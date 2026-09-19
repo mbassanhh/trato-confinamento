@@ -1,0 +1,458 @@
+<!-- ======================================================== -->
+<!-- PARTE 1 DE 4 - ESTILOS E AMBIENTE PREMIUM MONOCROMÁTICO  -->
+<!-- ======================================================== -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trato</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; background: #f8fafc; padding: 5px; margin: 0; color: #1e293b; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        
+        /* QUADRO DO TOPO COM SUPORTE PARA A ASSINATURA EMBUTIDA */
+        .header-moderno { background: #0f172a; color: white; padding: 14px; border-radius: 6px; text-align: center; margin-bottom: 12px; position: relative; }
+        .header-moderno h1 { font-size: 14px; margin: 0 0 4px 0; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+        .header-moderno .relogio { font-size: 16px; font-weight: 700; font-family: monospace; color: #e2e8f0; }
+        
+        /* ASSINATURA EM NEGRITO, ITÁLICO E VERMELHO-PIMENTA DENTRO DO QUADRO PRETO */
+        .assinatura-bassan { position: absolute; top: 12px; right: 14px; font-size: 7px; color: #dc2626; font-weight: bold; font-style: italic; letter-spacing: 0.3px; text-transform: uppercase; pointer-events: none; font-family: system-ui, sans-serif; }
+        
+        .status-badge { text-align: center; font-weight: bold; font-size: 11px; padding: 6px; border-radius: 4px; margin-bottom: 10px; text-transform: uppercase; }
+        .status-aberto { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+        .status-travado { background: #0f172a; color: white; border: 1px solid #0f172a; }
+        .ms-box { font-size: 12px; font-weight: 800; margin-bottom: 12px; text-align: center; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; background: #f1f5f9; padding: 8px; border-radius: 4px; border: 1px solid #cbd5e1; }
+        .table-responsive { overflow-x: auto; margin-bottom: 10px; border: 1px solid #e2e8f0; border-radius: 6px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #1e293b; color: white; padding: 8px 2px; font-size: 10px; text-transform: uppercase; border: 1px solid #0f172a; }
+        td { padding: 6px 2px; border-bottom: 1px solid #e2e8f0; font-size: 11px; text-align: center; }
+        .td-left { text-align: left !important; font-weight: bold; padding-left: 6px; }
+        .td-right { text-align: right !important; padding-right: 4px; }
+        .bg-green-soft { background: #f8fafc; font-weight: bold; color: #0f172a; }
+        .bg-amber-soft { background: #f1f5f9; font-weight: bold; color: #334155; }
+        input[type="number"] { width: 48px; padding: 5px 2px; border: 1px solid #cbd5e1; border-radius: 4px; text-align: right; font-weight: bold; font-size: 11px; }
+        .input-locked { background: #f1f5f9; color: #475569; width: 28px; padding: 4px 1px; border-radius: 4px; font-weight: bold; border: 1px solid #e2e8f0; }
+        select { width: 45px; padding: 5px 1px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .total-row-web { font-weight: bold; background: #f8fafc; border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a; }
+        /* ESTILOS DOS BOTÕES DO RODAPÉ E DO BANNER DE FECHAMENTO */
+        .btn-submit { width: 100%; background: #0f172a; color: white; padding: 12px; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; margin-top: 10px; text-transform: uppercase; -webkit-appearance: none; appearance: none; }
+        .btn-submit:hover { background: #1e293b; }
+        .btn-reset { width: 100%; background: #64748b; color: white; padding: 12px; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; display: none; margin-top: 10px; text-transform: uppercase; -webkit-appearance: none; appearance: none; }
+        
+        .zap-box { display: none; background: #f8fafc; border: 1px solid #cbd5e1; padding: 12px; margin-top: 15px; border-radius: 6px; text-align: center; }
+        .zap-text-area { background: white; border: 1px solid #cbd5e1; padding: 10px; font-family: monospace; font-size: 12px; width: 95%; height: 140px; resize: none; border-radius: 4px; }
+        .btn-acao-mono { background: #334155; color: white; padding: 10px 16px; font-size: 12px; font-weight: bold; border: none; border-radius: 4px; margin: 4px; cursor: pointer; text-transform: uppercase; -webkit-appearance: none; appearance: none; }
+        
+        .paineis-links-container { display: flex; justify-content: space-between; margin-top: 15px; gap: 8px; }
+        .btn-rodape-mono { flex: 1; background: white; color: #334155; padding: 10px; text-align: center; font-size: 11px; font-weight: bold; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; text-transform: uppercase; text-decoration: none; -webkit-appearance: none; appearance: none; }
+        .btn-rodape-mono:hover { background: #f1f5f9; color: #0f172a; border-color: #0f172a; }
+        .btn-rodape-azul { flex: 1; background: white; color: #1e40af; padding: 10px; text-align: center; font-size: 11px; font-weight: bold; border: 1px solid #93c5fd; border-radius: 4px; cursor: pointer; text-transform: uppercase; text-decoration: none; -webkit-appearance: none; appearance: none; }
+        .btn-rodape-azul:hover { background: #eff6ff; color: #1e3a8a; border-color: #1e40af; }
+        
+        .modal-painel { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 15px; border-radius: 6px; width: 92%; max-width: 460px; max-height: 85vh; overflow-y: auto; }
+        .modal-content h3 { margin: 0 0 10px 0; color: #0f172a; font-size: 13px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; text-transform: uppercase; }
+        .modal-section-title { font-size: 10px; color: #0f172a; font-weight: bold; margin: 10px 0 5px 0; text-transform: uppercase; background: #f1f5f9; padding: 4px; border-left: 3px solid #0f172a; }
+        .modal-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding-bottom: 3px; border-bottom: 1px dashed #e2e8f0; font-size: 11px; font-weight: bold; }
+        
+        .page-break { page-break-before: always; }
+        .pdf-titulo-box { text-align: center; border: 2px solid #000; padding: 8px; margin-top: 15px; background: #fff; }
+        .pdf-titulo { font-size: 14px; font-weight: bold; margin: 0; text-transform: uppercase; }
+        .pdf-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 10px; margin-bottom: 15px; }
+        .pdf-table th { border: 1px solid #000; padding: 4px 2px; background: #f1f5f9; font-weight: bold; }
+        .pdf-table td { border: 1px solid #000; padding: 4px 2px; }
+        #areaConfinamento, #areaSemi { display: none; }
+        @media print { .container { display: none !important; } .print-ativo { display: block !important; } @page { size: landscape; margin: 10mm; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- QUADRO PRETO DO TOPO COM A MARCA VERMELHA EMBUTIDA À DIREITA -->
+        <div class="header-moderno">
+            <div class="assinatura-bassan">Desenvolvido por MARCO BASSAN | v1.1 (Set/2026)</div>
+            <h1>Controle de Trato - Confinamento</h1>
+            <div class="relogio" id="relogioTopoDestaque">-</div>
+        </div>
+        <div id="statusManejo" class="status-badge status-aberto">Manejo em Andamento</div>
+        <div class="ms-box">MS DIETA ATUAL: <span id="txtMsDietaWeb">53.65</span>%</div>
+<!-- ======================================================== -->
+<!-- PARTE 2 - BLOCO 2B: ESTRUTURA VISÍVEL E COMPARTILHAMENTO -->
+<!-- ======================================================== -->
+     <!-- ======================================================== -->
+<!-- PARTE 2 - BLOCO 2B: PLANILHA, BOTÕES E MODAIS GERENCIAIS -->
+<!-- ======================================================== -->
+        <form id="tratoForm">
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="text-align:left;">Curral</th><th>Qtd Bois</th><th style="text-align:right; width:55px;">Total Realizado</th>
+                            <th>MS/Cab</th><th>Leitura de Cocho</th><th>Previsão MS/Cab</th><th style="text-align:right;">Total Previsto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpoTabelaForm"></tbody>
+                    <tfoot>
+                        <tr class="total-row-web">
+                            <td style="text-align:left;">TOTAL</td><td id="webTotalBois">0</td>
+                            <td style="text-align:right; color:#2563eb; font-size:13px;" id="webTotalRealizado">0 Kg</td><td>-</td><td>-</td><td>-</td>
+                            <td style="text-align:right; color:#dc2626; font-size:13px;" id="webTotalPrevisto">0 Kg</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <button type="button" id="btnFecharTrato" onclick="fecharTrato()" class="btn-submit">🔒 Fechar Trato e Gerar Resumos</button>
+            <button type="button" id="btnNovaLeitura" onclick="location.reload()" class="btn-reset">🔄 Nova Leitura Diária</button>
+        </form>
+        
+        <div class="paineis-links-container" id="containerBotoesGerenciais">
+            <button class="btn-rodape-mono" onclick="abrirModalSemi()">⚙️ Manejo Semi-Confinamento</button>
+            <button class="btn-rodape-azul" onclick="gerarLinkCompartilhado()">🔗 Gerar Link Tratorista</button>
+            <button class="btn-rodape-mono" onclick="abrirModalConf()">⚙️ Manejo Confinamento</button>
+        </div>
+        
+        <div id="caixaZap" class="zap-box">
+            <h3 style="color:#0f172a; margin-top:0; font-size:12px; text-transform:uppercase;">📋 Resumo de Tratos Previstos</h3>
+            <textarea id="textoParaCopiar" class="zap-text-area" readonly></textarea>
+            <div style="margin-top:8px;">
+                <button type="button" onclick="copyZap()" class="btn-acao-mono">📋 Copiar Texto</button>
+                <button type="button" onclick="imprimirC()" class="btn-acao-mono">🖨️ Imprimir Confinamento</button>
+                <button type="button" onclick="imprimirS()" class="btn-acao-mono">🍁 Imprimir Semi-Confinamento</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAIS GERENCIAIS MINIMALISTAS -->
+    <div id="modalConfig" class="modal-painel">
+        <div class="modal-content">
+            <h3>⚙️ Parametrizar Confinamento</h3>
+            <div class="modal-row" style="background:#f1f5f9; padding:5px;"><label>MS DIETA (%):</label><input type="number" id="inputModalMsDieta" step="0.01"></div>
+            <div class="modal-section-title">Quantidade de Bois por Curral</div>
+            <div id="listaCurraisModal"></div>
+            <div class="modal-section-title">Porcentagem dos Ingredientes (%)</div>
+            <div id="listaIngredientesModal"></div>
+            <div id="somaStatusConf" style="margin-top:10px;"></div>
+            <button type="button" id="btnSalvarConfReal" class="btn-submit" onclick="salvarConfigConf()">💾 Salvar Alterações</button>
+        </div>
+    </div>
+
+    <div id="modalSemi" class="modal-painel">
+        <div class="modal-content">
+            <h3>⚙️ Parametrizar Semi-Confinamento</h3>
+            <div class="modal-section-title">Configurações por Lote (Pasto)</div>
+            <div id="listaLotesSemiModal"></div>
+            <div class="modal-section-title">Porcentagem dos Ingredientes (%)</div>
+            <div id="listaIngredientesSemiModal"></div>
+            <div id="somaStatusSemi" style="margin-top:10px;"></div>
+            <button type="button" id="btnSalvarSemiReal" class="btn-submit" onclick="salvarConfigSemi()">💾 Salvar Alterações</button>
+        </div>
+    </div>
+
+<!-- ======================================================== -->
+<!-- PARTE 2 - BLOCO 2C: TABELAS OCULTAS PARA IMPRESSÃO       -->
+<!-- ======================================================== -->
+    <div id="areaConfinamento">
+        <div class="pdf-titulo-box"><h2 class="pdf-titulo">DISTRIBUIÇÃO CONFINAMENTO</h2></div>
+        <table class="pdf-table"><thead><tr><th>Curral</th><th>Nota</th><th>Dias</th><th>Total</th><th>Bois</th><th>T1</th><th>R1</th><th>T2</th><th>R2</th><th>T3</th><th>R3</th><th>T4</th><th>R4</th></tr></thead><tbody id="corpoTabelaPdf"></tbody></table>
+        <div class="page-break"></div>
+        <div class="pdf-titulo-box"><h2 class="pdf-titulo">CARREGAMENTO CONFINAMENTO</h2></div>
+        <table class="pdf-table"><thead><tr><th>Ingrediente</th><th>Total</th><th>C1</th><th>R1</th><th>C2</th><th>R2</th><th>C3</th><th>R3</th><th>C4</th><th>R4</th></tr></thead><tbody id="corpoIngredientesPdf"></tbody></table>
+    </div>
+
+    <div id="areaSemi">
+        <div class="pdf-titulo-box"><h2 class="pdf-titulo">SEMI CONFINAMENTO - DENTRO</h2></div>
+        <table class="pdf-table"><thead><tr><th>Pasto</th><th>Previsto</th><th>Realizado</th><th>Qtd/Cab</th></tr></thead><tbody id="corpoSemiDentroPdf"></tbody></table>
+        <div class="page-break"></div>
+        <div class="pdf-titulo-box"><h2 class="pdf-titulo">SEMI CONFINAMENTO - DENTRO (CARREGAMENTO)</h2></div>
+        <table class="pdf-table"><thead><tr><th>Ingrediente</th><th>Total Calculado</th></tr></thead><tbody id="corpoSemiDentroIngPdf"></tbody></table>
+        <div class="page-break"></div>
+        <div class="pdf-titulo-box"><h2 class="pdf-titulo">SEMI CONFINAMENTO - FORA</h2></div>
+        <table class="pdf-table"><thead><tr><th>Pasto</th><th>Previsto</th><th>Realizado</th><th>Qtd/Cab</th></tr></thead><tbody id="corpoSemiForaPdf"></tbody></table>
+        <div class="page-break"></div>
+        <div class="pdf-titulo-box"><h2 class="pdf-titulo">SEMI CONFINAMENTO - FORA (CARREGAMENTO)</h2></div>
+        <table class="pdf-table"><thead><tr><th>Ingrediente</th><th>Total Calculado</th></tr></thead><tbody id="corpoSemiForaIngPdf"></tbody></table>
+    </div>
+
+    <!-- SÓ AGORA ABRE SEGUIDO O MOTOR JAVASCRIPT DO SISTEMA -->
+    <script>
+
+// ========================================================
+// PARTE 3 - BLOCO 3A: CONFIGURAÇÕES E LEITOR BLINDADO ANTI-WHATSAPP
+// ========================================================
+        const dadosBase = [{id:"A5", b:13, d:96}, {id:"A4", b:58, d:47}, {id:"A3", b:0, d:0}, {id:"A2", b:37, d:107}, {id:"A1", b:43, d:105}, {id:"B1", b:32, d:133}, {id:"B2", b:47, d:69}, {id:"B3", b:64, d:33}, {id:"B4", b:66, d:69}, {id:"B5", b:9, d:144}, {id:"VINHAÇA", b:22, d:74}];
+        const dietaPctBase = {"BAGAÇO DE CANA": 17.09, "DDG": 10.29, "POLPA CITRICA": 8.55, "BAGAÇO LARANJA": 27.62, "FARELO DE ARROZ": 9.15, "MILHO FUBÁ": 15.28, "UREIA": 0.60, "NUCLEO MAXMEAT": 1.47, "ÁGUA": 9.95};
+        const semiDentroBase = [{id:"A1", pr:310, q:62}, {id:"A2", pr:0, q:0}, {id:"B2", pr:500, q:174}, {id:"B1", pr:380, q:77}, {id:"BARRACÃO", pr:100, q:23}, {id:"SEDE PIQUETE", pr:63, q:13}, {id:"PIQUETEAMENTO BAIXO", pr:200, q:18}, {id:"PIQUETEAMENTO ASFALTO", pr:448, q:64}, {id:"MOMBAÇA", pr:300, q:30}, {id:"BELA VISTA", pr:300, q:62}, {id:"BELA VISTA AÇUDE", pr:550, q:167}];
+        const semiForaBase = [{id:"SÃO GUILHERME ACIMA", pr:240, q:62}, {id:"SÃO GUILHERME BAIXO", pr:170, q:32}, {id:"BELEI BAIXO", pr:330, q:47}, {id:"BELEI ALTO", pr:360, q:59}, {id:"CASINHA", pr:480, q:60}, {id:"DIRCE", pr:160, q:12}, {id:"ABAIXO CASINHA", pr:430, q:53}, {id:"AROREIRA ALTO", pr:430, q:57}, {id:"AROEIRA MANGUEIRA", pr:200, q:20}, {id:"AÇUDE", pr:40, q:20}];
+        const dietaSemiPctBase = {"MILHO FUBÁ": 34.33, "DDG": 0.0, "FARELO DE ARROZ": 18.63, "AMENDOIN": 9.94, "UREIA": 0.75, "NUCLEO MAX MEAT": 2.30, "POLPA CÍTRICA": 28.05};
+
+        function clock() { const agora = new Date(); const rel = val("relogioTopoDestaque"); if(rel) rel.innerText = agora.toLocaleDateString('pt-BR') + " - " + agora.toLocaleTimeString('pt-BR'); }
+        clock(); setInterval(clock, 1000);
+
+        let curraisMemoria = JSON.parse(localStorage.getItem("cfg_c_b")) || dadosBase;
+        let dietaPct = JSON.parse(localStorage.getItem("cfg_dieta_pct")) || dietaPctBase;
+        let msDieta = parseFloat(localStorage.getItem("cfg_ms")) || 53.65;
+        let semiDentro = JSON.parse(localStorage.getItem("cfg_semi_d")) || semiDentroBase;
+        let semiFora = JSON.parse(localStorage.getItem("cfg_semi_f")) || semiForaBase;
+        let dietaSemiPct = JSON.parse(localStorage.getItem("cfg_semi_dieta")) || dietaSemiPctBase;
+
+        /* PORTABLE_SNAPSHOT_PLACEHOLDER */
+        window.__PORTABLE_SNAPSHOT__ = null;
+        // Snapshot embutido em links portáteis (sem servidor).
+        const portableSnapshot = window.__PORTABLE_SNAPSHOT__ || null;
+        const params = new URLSearchParams(window.location.search);
+        if(portableSnapshot) {
+            try {
+                const dc = portableSnapshot;
+                const mC = { b:"BAGAÇO DE CANA", d:"DDG", p:"POLPA CITRICA", bl:"BAGAÇO LARANJA", f:"FARELO DE ARROZ", m:"MILHO FUBÁ", u:"UREIA", n:"NUCLEO MAXMEAT", a:"ÁGUA" };
+                const mS = { m:"MILHO FUBÁ", d:"DDG", f:"FARELO DE ARROZ", am:"AMENDOIN", u:"UREIA", n:"NUCLEO MAX MEAT", p:"POLPA CÍTRICA" };
+                if(dc.c) curraisMemoria = dc.c;
+                if(dc.ms) msDieta = parseFloat(dc.ms);
+                if(dc.sd) semiDentro = dc.sd;
+                if(dc.sf) semiFora = dc.sf;
+                if(dc.dp) { dietaPct = {}; for(const [k,v] of Object.entries(dc.dp)) if(mC[k]) dietaPct[mC[k]]=v; }
+                if(dc.s_dp) { dietaSemiPct = {}; for(const [k,v] of Object.entries(dc.s_dp)) if(mS[k]) dietaSemiPct[mS[k]]=v; }
+                window.addEventListener("DOMContentLoaded", function(){ const box=val("containerBotoesGerenciais"); if(box) box.remove(); });
+            } catch(e) { console.log("Erro snapshot portátil", e); }
+        } else if(params.has("t")) {
+            try {
+                // LIMPEZA COMPLETA DE CÓDIGO SUJO VINDO DO WHATSAPP (ESPAÇOS E QUEBRAS)
+                let tParam = params.get("t").replace(/[\s\n\r]/g, "").replace(/-/g, "+").replace(/_/g, "/");
+                while(tParam.length % 4) tParam += "=";
+                let decodedText = decodeURIComponent(atob(tParam).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                
+                const dc = JSON.parse(decodedText);
+                const mC = { b:"BAGAÇO DE CANA", d:"DDG", p:"POLPA CITRICA", bl:"BAGAÇO LARANJA", f:"FARELO DE ARROZ", m:"MILHO FUBÁ", u:"UREIA", n:"NUCLEO MAXMEAT", a:"ÁGUA" };
+                const mS = { m:"MILHO FUBÁ", d:"DDG", f:"FARELO DE ARROZ", am:"AMENDOIN", u:"UREIA", n:"NUCLEO MAX MEAT", p:"POLPA CÍTRICA" };
+                
+                if(dc.c) curraisMemoria = dc.c; 
+                if(dc.ms) msDieta = parseFloat(dc.ms); 
+                if(dc.sd) semiDentro = dc.sd; 
+                if(dc.sf) semiFora = dc.sf;
+                if(dc.dp) { dietaPct = {}; for(const [k, v] of Object.entries(dc.dp)) { if(mC[k]) dietaPct[mC[k]] = v; } }
+                if(dc.s_dp) { dietaSemiPct = {}; for(const [k, v] of Object.entries(dc.s_dp)) { if(mS[k]) dietaSemiPct[mS[k]] = v; } }
+                
+                window.addEventListener("DOMContentLoaded", function() { const box = val("containerBotoesGerenciais"); if(box) box.remove(); });
+            } catch(e) { console.log("Erro decodificação URL", e); }
+        }
+
+// ========================================================
+// PARTE 3 - BLOCO 3B: RENDERIZAÇÃO DA PLANILHA E COCHO
+// ========================================================
+        function desenharTabelaTela() {
+            const tbodyForm = val("corpoTabelaForm"); if(!tbodyForm) return; tbodyForm.innerHTML = ""; let totB = 0;
+            val("txtMsDietaWeb").innerText = msDieta.toFixed(2); val("inputModalMsDieta").value = msDieta;
+
+            curraisMemoria.forEach(function(c) {
+                if (c.b > 0) {
+                    totB += c.b; const tr = document.createElement("tr");
+                    tr.innerHTML = '<td>'+c.id+'</td><td><input type="number" id="b_'+c.id+'" value="' + c.b + '" readonly class="input-locked"></td><td><input type="number" id="r_'+c.id+'" step="1" oninput="calcL(\''+c.id+'\')"></td><td class="bg-green-soft" id="ms_'+c.id+'">-</td><td><select id="s_'+c.id+'" disabled onchange="calcP(\''+c.id+'\')"><option value="3">3</option><option value="2">2</option><option value="1">1</option><option value="0" selected>0</option><option value="-1">-1</option><option value="-2">-2</option><option value="-3">-3</option></select></td><td class="bg-amber-soft" id="pMs_'+c.id+'">-</td><td class="bg-green-soft td-right" id="pMn_'+c.id+'">-</td>';
+                    tbodyForm.appendChild(tr);
+                }
+            });
+            val("webTotalBois").innerText = totB; tot();
+        }
+        window.onload = function() { desenharTabelaTela(); };
+        function val(id) { return document.getElementById(id); }
+
+        function calcL(id) {
+            const r = parseFloat(val("r_" + id).value) || 0; const b = parseInt(val("b_" + id).value) || 0;
+            if (r <= 0) { val("ms_" + id).innerText = "-"; val("s_" + id).disabled = true; val("pMs_" + id).innerText = "-"; val("pMn_" + id).innerText = "-"; tot(); return; }
+            val("ms_" + id).innerText = ((r * (msDieta / 100)) / b).toFixed(4); val("s_" + id).disabled = false; calcP(id);
+        }
+
+        function calcP(id) {
+            const r = parseFloat(val("r_" + id).value) || 0; const b = parseInt(val("b_" + id).value) || 0; const n = parseInt(val("s_" + id).value) || 0; if (r <= 0) return;
+            let f = n===3?0.82:n===2?0.92:n===1?0.97:n===-1?1.05:n===-2?1.08:n===-3?1.13:1.0; const nMs = ((r * (msDieta / 100)) / b) * f;
+            val("pMs_" + id).innerText = nMs.toFixed(4); val("pMn_" + id).innerText = Math.round((nMs * b) / (msDieta / 100)) + " Kg"; tot();
+        }
+
+        function tot() {
+            let tR = 0, tP = 0; curraisMemoria.forEach(function(c) { if(val("r_" + c.id)) { tR += parseFloat(val("r_" + c.id).value) || 0; const txt = val("pMn_" + c.id).innerText; if(txt !== "-") tP += parseInt(txt.replace(" Kg", "")) || 0; } });
+            if(val("webTotalRealizado")) val("webTotalRealizado").innerText = Math.round(tR) + " Kg"; if(val("webTotalPrevisto")) val("webTotalPrevisto").innerText = tP + " Kg";
+        }
+// ========================================================
+// PARTE 3 - BLOCO 3C: OPERAÇÃO DOS MODAIS E GERADOR BLINDADO
+// ========================================================
+        function checarSomaConf() {
+            let soma = 0; for (const ing of Object.keys(dietaPct)) { if(val("ing_" + ing)) soma += parseFloat(val("ing_" + ing).value) || 0; }
+            const ind = val("somaStatusConf"); const btn = val("btnSalvarConfReal"); if(!ind || !btn) return; ind.innerText = "SOMA: " + soma.toFixed(2) + "%";
+            if (Math.abs(soma - 100) < 0.01) { ind.style.cssText = "background:#f1f5f9;color:#0f172a;padding:4px;text-align:center;font-weight:bold;margin-top:5px;border-radius:4px;"; btn.disabled = false; }
+            else { ind.style.cssText = "background:#0f172a;color:white;padding:4px;text-align:center;font-weight:bold;margin-top:5px;border-radius:4px;"; btn.disabled = true; }
+        }
+
+        function checarSomaSemi() {
+            let soma = 0; for (const ing of Object.keys(dietaSemiPct)) { if(val("ings_" + ing)) soma += parseFloat(val("ings_" + ing).value) || 0; }
+            const ind = val("somaStatusSemi"); const btn = val("btnSalvarSemiReal"); if(!ind || !btn) return; ind.innerText = "SOMA: " + soma.toFixed(2) + "%";
+            if (Math.abs(soma - 100) < 0.01) { ind.style.cssText = "background:#f1f5f9;color:#0f172a;padding:4px;text-align:center;font-weight:bold;margin-top:5px;border-radius:4px;"; btn.disabled = false; }
+            else { ind.style.cssText = "background:#0f172a;color:white;padding:4px;text-align:center;font-weight:bold;margin-top:5px;border-radius:4px;"; btn.disabled = true; }
+        }
+
+        function abrirModalConf() {
+            const mList = val("listaCurraisModal"); mList.innerHTML = ""; curraisMemoria.forEach(function(c) { const row = document.createElement("div"); row.className = "modal-row"; row.innerHTML = '<label>'+c.id+':</label><input type="number" id="m_'+c.id+'" value="' + c.b + '">'; mList.appendChild(row); });
+            const mIng = val("listaIngredientesModal"); mIng.innerHTML = ""; for (const [ing, pct] of Object.entries(dietaPct)) { const row = document.createElement("div"); row.className = "modal-row"; row.innerHTML = '<label>'+ing+' (%):</label><input type="number" id="ing_'+ing+'" step="0.01" value="' + pct + '" oninput="checarSomaConf()">'; mIng.appendChild(row); }
+            val("inputModalMsDieta").value = msDieta; val("modalConfig").style.display = "flex"; checarSomaConf();
+        }
+
+        function abrirModalSemi() {
+            const mLotes = val("listaLotesSemiModal"); mLotes.innerHTML = "";
+            const divD = document.createElement("div"); divD.className = "modal-section-title"; divD.innerText = "Dentro"; mLotes.appendChild(divD);
+            semiDentro.forEach(function(s) { const row = document.createElement("div"); row.className = "modal-row"; row.innerHTML = '<label>'+s.id+':</label><div>B: <input type="number" id="sb_'+s.id+'" value="' + s.q + '" style="width:40px;"> T: <input type="number" id="st_'+s.id+'" value="'+s.pr+'" style="width:50px;"></div>'; mLotes.appendChild(row); });
+            const divF = document.createElement("div"); divF.className = "modal-section-title"; divF.innerText = "Fora"; mLotes.appendChild(divF);
+            semiFora.forEach(function(s) { const row = document.createElement("div"); row.className = "modal-row"; row.innerHTML = '<label>'+s.id+':</label><div>B: <input type="number" id="sb_'+s.id+'" value="' + s.q + '" style="width:40px;"> T: <input type="number" id="st_'+s.id+'" value="'+s.pr+'" style="width:50px;"></div>'; mLotes.appendChild(row); });
+            const mIngS = val("listaIngredientesSemiModal"); mIngS.innerHTML = ""; for (const [ing, pct] of Object.entries(dietaSemiPct)) { const row = document.createElement("div"); row.className = "modal-row"; row.innerHTML = '<label>'+ing+' (%):</label><input type="number" id="ings_'+ing+'" step="0.01" value="' + pct + '" oninput="checarSomaSemi()">'; mIngS.appendChild(row); }
+            val("modalSemi").style.display = "flex"; checarSomaSemi();
+        }
+
+        function salvarConfigConf() {
+            curraisMemoria.forEach(function(c) { c.b = parseInt(val("m_" + c.id).value)||0; });
+            for (const ing of Object.keys(dietaPct)) { dietaPct[ing] = parseFloat(val("ing_" + ing).value)||0; }
+            msDieta = parseFloat(val("inputModalMsDieta").value) || 53.65;
+            localStorage.setItem("cfg_c_b", JSON.stringify(curraisMemoria)); localStorage.setItem("cfg_dieta_pct", JSON.stringify(dietaPct)); localStorage.setItem("cfg_ms", msDieta);
+            val("modalConfig").style.display = "none"; desenharTabelaTela();
+        }
+
+        function salvarConfigSemi() {
+            semiDentro.forEach(function(s) { s.q = parseInt(val("sb_" + s.id).value)||0; s.pr = parseInt(val("st_" + s.id).value)||0; });
+            semiFora.forEach(function(s) { s.q = parseInt(val("sb_" + s.id).value)||0; s.pr = parseInt(val("st_" + s.id).value)||0; });
+            for (const ing of Object.keys(dietaSemiPct)) { if(val("ings_" + ing)) dietaSemiPct[ing] = parseFloat(val("ings_" + ing).value)||0; }
+            localStorage.setItem("cfg_semi_d", JSON.stringify(semiDentro)); localStorage.setItem("cfg_semi_f", JSON.stringify(semiFora)); localStorage.setItem("cfg_semi_dieta", JSON.stringify(dietaSemiPct));
+            val("modalSemi").style.display = "none"; desenharTabelaTela();
+        }
+
+        function gerarLinkTratoristaPuro() {
+            // Link CURTO: leva apenas a configuração atual. O HTML permanece no endereço atual.
+            const mCd = { "BAGAÇO DE CANA":"b", "DDG":"d", "POLPA CITRICA":"p", "BAGAÇO LARANJA":"bl", "FARELO DE ARROZ":"f", "MILHO FUBÁ":"m", "UREIA":"u", "NUCLEO MAXMEAT":"n", "ÁGUA":"a" };
+            const mSd = { "MILHO FUBÁ":"m", "DDG":"d", "FARELO DE ARROZ":"f", "AMENDOIN":"am", "UREIA":"u", "NUCLEO MAX MEAT":"n", "POLPA CÍTRICA":"p" };
+            const dpR = {};
+            for (const [k,v] of Object.entries(dietaPct)) if(mCd[k]) dpR[mCd[k]]=Number(v);
+            const sDpR = {};
+            for (const [k,v] of Object.entries(dietaSemiPct)) if(mSd[k]) sDpR[mSd[k]]=Number(v);
+            const snapshot = { c:curraisMemoria, ms:Number(msDieta), sd:semiDentro, sf:semiFora, dp:dpR, s_dp:sDpR };
+            const base = window.location.href.split('?')[0].split('#')[0];
+            return base + '?t=' + encodeURIComponent(b64e(JSON.stringify(snapshot)));
+        }
+
+        function b64e(s) {
+            return btoa(unescape(encodeURIComponent(s)))
+                .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+        }
+
+        function gerarLinkCompartilhado() {
+            const link = gerarLinkTratoristaPuro();
+            const btnLink = document.querySelector(".btn-rodape-azul");
+            const area = document.createElement("textarea");
+            area.value = link;
+            area.style.position = "fixed";
+            area.style.left = "-9999px";
+            document.body.appendChild(area);
+            area.focus(); area.select();
+            let copiou = false;
+            try { copiou = document.execCommand("copy"); } catch(e) {}
+            document.body.removeChild(area);
+            if(btnLink) {
+                const txtOriginal = btnLink.innerHTML;
+                btnLink.innerHTML = copiou ? "✅ LINK COPIADO" : "⚠️ SELECIONE O LINK ABAIXO";
+                setTimeout(function(){ btnLink.innerHTML = txtOriginal; }, 3000);
+            }
+            let caixa = document.getElementById("caixaLinkTratorista");
+            if(!caixa) {
+                caixa = document.createElement("div");
+                caixa.id = "caixaLinkTratorista";
+                caixa.style.cssText = "margin-top:10px;padding:10px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;";
+                document.getElementById("containerBotoesGerenciais").after(caixa);
+            }
+            caixa.innerHTML = '<div style="font-weight:bold;font-size:11px;margin-bottom:5px;">🔗 LINK GERADO</div>' +
+                '<textarea id="linkGeradoVisivel" readonly style="width:100%;height:70px;box-sizing:border-box;font-size:10px;padding:6px;"></textarea>' +
+                '<div style="font-size:10px;margin-top:5px;color:#475569;">Este link agora é curto. Copie e cole diretamente na barra de endereço do Chrome.</div>';
+            document.getElementById("linkGeradoVisivel").value = link;
+        }
+// ========================================================
+// ========================================================
+// PARTE 3 - BLOCO 3D: TRAVA DE SEGURANÇA E ENCERRAMENTO HTML
+// ========================================================
+        function fecharTrato() {
+            const erroAntigo = document.getElementById("bannerErroVisual"); if(erroAntigo) erroAntigo.remove();
+            let erroValidacao = false; let curralPendenteFocus = null; let mensagemErroTexto = "";
+            
+            curraisMemoria.forEach(function(c) {
+                if (c.b > 0 && !erroValidacao) {
+                    const inputReal = val("r_" + c.id);
+                    if (inputReal) {
+                        const valorDigitado = parseInt(inputReal.value) || 0;
+                        if (valorDigitado <= 0) {
+                            mensagemErroTexto = "⚠️ OPERAÇÃO BLOQUEADA: O Curral " + c.id + " possui " + c.b + " bois e não pode ter o campo Realizado MN vazio ou igual a zero!";
+                            curralPendenteFocus = inputReal; erroValidacao = true;
+                        }
+                    }
+                }
+            });
+
+            if (erroValidacao) {
+                const banner = document.createElement("div"); banner.id = "bannerErroVisual";
+                banner.style.cssText = "background:#fee2e2; color:#991b1b; border:1px solid #fecaca; padding:12px; border-radius:6px; text-align:center; font-weight:bold; font-size:12px; margin-top:10px; margin-bottom:5px; text-transform:uppercase;";
+                banner.innerText = mensagemErroTexto; val("tratoForm").insertBefore(banner, val("btnFecharTrato")); 
+                if(curralPendenteFocus) curralPendenteFocus.focus(); return;
+            }
+
+            curraisMemoria.forEach(function(c) { if(val("r_"+c.id)){ val("r_"+c.id).readOnly = true; val("s_"+c.id).disabled = true; } });
+            const totalGeralPrevisto = val("webTotalPrevisto").innerText; const relText = val("relogioTopoDestaque").innerText; const dtApenas = relText.split(" - ");
+            val("statusManejo").innerText = "LEITURA CONCLUÍDA - " + relText; val("statusManejo").className = "status-badge status-travado";
+            const tBoxes = document.getElementsByClassName("print-data-titulo"); for(let i=0; i<tBoxes.length; i++) { tBoxes[i].innerText = dtApenas; }
+            
+            let txt = '🤠 *MANEJO DIÁRIO DE TRATO - FAZENDA*\n📅 *Data:* ' + dtApenas + '\n📊 *Total Previsto Geral:* ' + totalGeralPrevisto + '\n\n📝 *QUANTIDADES PREVISTAS POR CURRAL:*\n';
+            const cPdf = val("corpoTabelaPdf"); cPdf.innerHTML = ""; let sTot=0, sB=0, sT1=0, sT2=0, sT3=0, sT4=0;
+
+            curraisMemoria.forEach(function(c) {
+                if(!val("r_"+c.id)) return;
+                const r = parseFloat(val("r_"+c.id).value)||0; const n = val("s_"+c.id).value; const pT = val("pMn_"+c.id).innerText;
+                let p = pT !== "-" ? parseInt(pT.replace(" Kg", "")) : 0;
+                if (r > 0) { txt += '▪️ *Curral ' + c.id + ':* ' + pT + ' (Nota: ' + n + ' | Ant: ' + Math.round(r) + ' Kg)\n'; }
+                let t1=0, t2=0, t3=0, t4=0; if(p > 0) { if(c.id === "VINHAÇA") { t1 = Math.round(p*0.5); t4 = Math.round(p*0.5); } else { t1 = Math.round(p*0.2); t2 = Math.round(p*0.3); t3 = Math.round(p*0.3); t4 = Math.round(p*0.2); } }
+                sTot+=p; sB+=c.b; sT1+=t1; sT2+=t2; sT3+=t3; sT4+=t4;
+                const tr = document.createElement("tr"); tr.innerHTML = '<td>'+c.id+'</td><td>'+(r!=='0'?n:'')+'</td><td>'+c.d+'</td><td>'+(p>0?p:'')+'</td><td>'+(c.b>0?c.b:'')+'</td><td>'+(t1>0?t1:'')+'</td><td></td><td>'+(t2>0?t2:'')+'</td><td></td><td>'+(t3>0?t3:'')+'</td><td></td><td>'+(t4>0?t4:'')+'</td><td></td>'; cPdf.appendChild(tr);
+            });
+
+            const trS = document.createElement("tr"); trS.style.fontWeight = "bold"; trS.innerHTML = '<td>TOTAL</td><td></td><td></td><td>'+sTot+'</td><td>'+sB+'</td><td>'+sT1+'</td><td></td><td>'+sT2+'</td><td></td><td>'+sT3+'</td><td></td><td>'+sT4+'</td><td></td>'; cPdf.appendChild(trS);
+            
+            // LAÇO DE IMPRESSÃO INTEIRAMENTE CORRIGIDO E DIRETO:
+            const cIng = val("corpoIngredientesPdf"); cIng.innerHTML = ""; 
+            const ordemFixaIngredientes = [ "BAGAÇO DE CANA", "DDG", "POLPA CITRICA", "BAGAÇO LARANJA", "FARELO DE ARROZ", "MILHO FUBÁ", "UREIA", "NUCLEO MAXMEAT", "ÁGUA" ];
+            
+            ordemFixaIngredientes.forEach(function(ing) {
+                const pct = dietaPct[ing] || 0; 
+                const fPct = pct / 100; 
+                const i1 = Math.round(sT1 * fPct); 
+                const i2 = Math.round(sT2 * fPct); 
+                const i3 = Math.round(sT3 * fPct); 
+                const i4 = Math.round(sT4 * fPct);
+                const trI = document.createElement("tr"); trI.innerHTML = '<td style="text-align:left; font-weight:bold;">'+ing+'</td><td style="color:red; font-weight:bold;">'+(i1+i2+i3+i4)+'</td><td>'+(i1>0?i1:'')+'</td><td></td><td>'+(i2>0?i2:'')+'</td><td></td><td>'+(i3>0?i3:'')+'</td><td></td><td>'+(i4>0?i4:'')+'</td><td></td>'; cIng.appendChild(trI);
+            });
+
+            let tPrevD = 0; const cDentro = val("corpoSemiDentroPdf"); cDentro.innerHTML = ""; semiDentro.forEach(function(sd) { if (sd.q > 0) { tPrevD += sd.pr; const tr = document.createElement("tr"); tr.innerHTML = '<td>'+sd.id+'</td><td>'+sd.pr+'</td><td></td><td>'+sd.q+'</td>'; cDentro.appendChild(tr); } });
+            const trTDentro = document.createElement("tr"); trTDentro.style.fontWeight = "bold"; trTDentro.innerHTML = '<td style="text-align:left;">TOTAL DENTRO</td><td>'+tPrevD+'</td><td></td><td>-</td>'; cDentro.appendChild(trTDentro);
+            const cDentroIng = val("corpoSemiDentroIngPdf"); cDentroIng.innerHTML = ""; for (const [ing, pct] of Object.entries(dietaSemiPct)) { const tr = document.createElement("tr"); tr.innerHTML = '<td>'+ing+'</td><td style="color:red; font-weight:bold;">'+Math.round(tPrevD * (pct / 100))+' KG</td>'; cDentroIng.appendChild(tr); }
+
+            let tPrevF = 0; const cFora = val("corpoSemiForaPdf"); cFora.innerHTML = ""; semiFora.forEach(function(sf) { if (sf.q > 0) { tPrevF += sf.pr; const tr = document.createElement("tr"); tr.innerHTML = '<td>'+sf.id+'</td><td>'+sf.pr+'</td><td></td><td>'+sf.q+'</td>'; cFora.appendChild(tr); } });
+            const trTFora = document.createElement("tr"); trTFora.style.fontWeight = "bold"; trTFora.innerHTML = '<td style="text-align:left;">TOTAL FORA</td><td>'+tPrevF+'</td><td></td><td>-</td>'; cFora.appendChild(trTFora);
+            const cForaIng = val("corpoSemiForaIngPdf"); cForaIng.innerHTML = ""; for (const [ing, pct] of Object.entries(dietaSemiPct)) { const tr = document.createElement("tr"); tr.innerHTML = '<td>'+ing+'</td><td style="color:red; font-weight:bold;">'+Math.round(tPrevF * (pct / 100))+' KG</td>'; cForaIng.appendChild(tr); }
+
+            val("textoParaCopiar").value = txt; val("caixaZap").style.display = "block";
+            val("btnFecharTrato").style.display = "none"; val("btnNovaLeitura").style.display = "block";
+        }
+
+        function imprimirC() { val("areaConfinamento").className = "print-ativo"; val("areaSemi").className = ""; window.print(); }
+        function imprimirS() { val("areaConfinamento").className = ""; val("areaSemi").className = "print-ativo"; window.print(); }
+        
+        function copyZap() { 
+            const area = document.createElement("textarea"); area.value = val("textoParaCopiar").value; document.body.appendChild(area); area.select(); 
+            try { 
+                document.execCommand("copy"); const btn = document.querySelector(".zap-box button");
+                if(btn) { const txtOriginal = btn.innerText; btn.innerText = "✅ Resumo Limpo Copiado!"; setTimeout(function() { btn.innerText = txtOriginal; }, 2500); }
+            } catch (err) {} document.body.removeChild(area); 
+        }
+        window.onclick = function(e) { if (e.target == val("modalConfig")) val("modalConfig").style.display = "none"; if (e.target == val("modalSemi")) val("modalSemi").style.display = "none"; }
+    </script>
+</body>
+</html>

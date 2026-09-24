@@ -8,7 +8,7 @@
 :root{--bg:#f3f5f7;--panel:#fff;--line:#dfe4e8;--text:#20262d;--muted:#68727d;--dark:#172027;--accent:#315d4b;--accent2:#e9f0ec;--danger:#a33a3a;--shadow:0 8px 24px rgba(24,32,39,.07)}
 *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
 .app{display:flex;min-height:100vh}.side{width:235px;background:var(--dark);color:#fff;padding:24px 15px;position:fixed;left:0;top:0;bottom:0}.brand{font-size:19px;font-weight:700;line-height:1.2;padding:0 12px 24px;border-bottom:1px solid rgba(255,255,255,.12)}.brand small{display:block;color:#aeb8be;font-size:11px;font-weight:400;margin-top:6px}.nav{margin-top:20px}.nav button{width:100%;border:0;background:transparent;color:#cbd2d6;text-align:left;padding:12px 13px;border-radius:8px;margin:2px 0;cursor:pointer;font-size:14px}.nav button.active,.nav button:hover{background:#2a353c;color:#fff}.main{margin-left:235px;width:calc(100% - 235px);padding:26px 30px 40px}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:22px}.eyebrow{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}.title{font-size:27px;font-weight:700;margin:5px 0}.subtitle{font-size:13px;color:var(--muted)}.actions{display:flex;gap:8px}.btn{border:1px solid var(--line);background:#fff;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}.btn.danger{color:var(--danger)}
-.page{display:none}.page.active{display:block}.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:20px;margin-bottom:18px}.panel h2{font-size:17px;margin:0 0 5px}.panel p{font-size:12px;color:var(--muted);margin:0 0 16px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.field label{display:block;font-size:11px;font-weight:700;color:#4f5962;margin:0 0 6px}.field input,.field select{width:100%;padding:11px 10px;border:1px solid #ccd3d8;border-radius:7px;background:#fff;font-size:13px;color:var(--text);outline:none}.field input:focus{border-color:#8ca99b;box-shadow:0 0 0 3px var(--accent2)}.locked{background:#f1f3f4!important;color:#59636b!important}.hint{font-size:11px;color:var(--muted);margin-top:5px}.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px}.kpi{background:#fff;border:1px solid var(--line);border-radius:10px;padding:15px}.kpi span{display:block;color:var(--muted);font-size:11px}.kpi strong{display:block;font-size:21px;margin-top:6px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:9px}table{width:100%;border-collapse:collapse;min-width:1450px;font-size:12px}th{background:#f1f3f4;color:#4b555e;text-align:left;padding:10px;border-bottom:1px solid var(--line);white-space:nowrap}td{padding:9px 10px;border-bottom:1px solid #edf0f2;white-space:nowrap}tr:last-child td{border-bottom:0}.pending{color:#8b6a21;font-weight:700}.empty{padding:35px;text-align:center;color:var(--muted)}.section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:13px}.tag{font-size:11px;padding:5px 8px;border-radius:20px;background:var(--accent2);color:var(--accent);font-weight:700}.notice{background:#f7f8f8;border-left:4px solid var(--accent);padding:12px 14px;font-size:12px;color:#4d5860;margin-top:14px}.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.row2{display:grid;grid-template-columns:2fr 1fr 1fr;gap:13px}.small-note{font-size:11px;color:var(--muted)}
+.page{display:none}.page.active{display:block}.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:20px;margin-bottom:18px}.panel h2{font-size:17px;margin:0 0 5px}.panel p{font-size:12px;color:var(--muted);margin:0 0 16px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.field label{display:block;font-size:11px;font-weight:700;color:#4f5962;margin:0 0 6px}.field input,.field select{width:100%;padding:11px 10px;border:1px solid #ccd3d8;border-radius:7px;background:#fff;font-size:13px;color:var(--text);outline:none}.field input:focus{border-color:#8ca99b;box-shadow:0 0 0 3px var(--accent2)}.locked{background:#f1f3f4!important;color:#59636b!important}.hint{font-size:11px;color:var(--muted);margin-top:5px}.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px}.kpi{background:#fff;border:1px solid var(--line);border-radius:10px;padding:15px}.kpi span{display:block;color:var(--muted);font-size:11px}.kpi strong{display:block;font-size:21px;margin-top:6px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:9px}table{width:100%;border-collapse:collapse;min-width:1450px;font-size:12px}th{background:#f1f3f4;color:#4b555e;text-align:left;padding:10px;border-bottom:1px solid var(--line);white-space:nowrap}td{padding:9px 10px;border-bottom:1px solid #edf0f2;white-space:nowrap}tr:last-child td{border-bottom:0}.pending{color:#8b6a21;font-weight:700}.status-badge{display:inline-block;padding:7px 12px;border-radius:8px;font-size:16px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}.status-badge.compact{padding:3px 7px;border-radius:12px;font-size:10px;letter-spacing:.02em}.status-resumo{font-size:11px;color:var(--muted);font-weight:700;white-space:nowrap}.status-resumo .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 4px 0 10px;vertical-align:middle}.dot.ativo{background:#2f9e57}.dot.venda{background:#d4a900}.dot.morte{background:#c83d3d}.consulta-animal{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.consulta-animal .field{min-width:240px}.ficha-topo{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px}.ficha-ident{font-size:20px;font-weight:900}.ficha-meta{font-size:12px;color:var(--muted);margin-top:4px}.status-ativo{background:#dff3e5;color:#176b36;border:1px solid #9bd3aa}.status-venda{background:#fff2b8;color:#725600;border:1px solid #e2c85f}.status-morte{background:#f9d7d7;color:#9b1c1c;border:1px solid #e59a9a}.tipo-evento{font-weight:800;text-transform:uppercase}.id-tecnico{font-family:monospace;font-size:10px;color:var(--muted)}.empty{padding:35px;text-align:center;color:var(--muted)}.section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:13px}.tag{font-size:11px;padding:5px 8px;border-radius:20px;background:var(--accent2);color:var(--accent);font-weight:700}.notice{background:#f7f8f8;border-left:4px solid var(--accent);padding:12px 14px;font-size:12px;color:#4d5860;margin-top:14px}.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.row2{display:grid;grid-template-columns:2fr 1fr 1fr;gap:13px}.small-note{font-size:11px;color:var(--muted)}
 @media(max-width:1050px){.grid{grid-template-columns:repeat(2,1fr)}.kpis{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.side{position:static;width:100%;height:auto}.app{display:block}.main{margin-left:0;width:100%;padding:18px}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap}.grid,.row2{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}.top{display:block}.actions{margin-top:12px}}
 
 .chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.chart-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px}.chart-box h3{margin:0 0 4px;font-size:15px}.chart-box p{margin:0 0 14px;font-size:11px;color:var(--muted)}.bars{display:flex;align-items:flex-end;gap:10px;height:210px;border-bottom:1px solid var(--line);padding:12px 6px 0}.bar-item{flex:1;min-width:48px;text-align:center}.bar{width:70%;margin:auto;background:var(--accent);border-radius:6px 6px 0 0;min-height:2px}.bar-value{font-size:10px;font-weight:700;margin-bottom:5px}.bar-label{font-size:9px;color:var(--muted);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.home-head{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:16px}.print-only-title{display:none}@media(max-width:760px){.chart-grid{grid-template-columns:1fr}}
@@ -34,6 +34,8 @@
     <button onclick="showPage('animais',this)">Animais Negociados</button>
     <button onclick="showPage('pesagens',this)">Pesagens</button>
     <button onclick="showPage('abate',this)">Abate / Resultados</button>
+    <button onclick="showPage('parcial',this)">Parcial</button>
+    <button onclick="showPage('arrobaProduzida',this)">Arroba Produzida</button>
     <button onclick="showPage('graficos',this)">Gráficos</button>
     <button onclick="showPage('relatorios',this)">Relatórios / Impressão</button>
   </div>
@@ -65,7 +67,7 @@
   </section>
 
   <section id="dashboard" class="page active">
-    <div class="panel"><div class="home-head"><div><h2>Visão geral</h2><p>Resumo atualizado de todas as pesagens salvas no sistema.</p></div><span class="tag">VISÃO GERENCIAL</span></div><div class="kpis" id="dashKpis"></div></div>
+    <div class="panel"><div class="home-head"><div><h2>Visão geral</h2><p>Resumo atualizado de todas as pesagens salvas no sistema.</p></div><div style="text-align:right"><span class="tag">VISÃO GERENCIAL</span><div id="dashStatusResumo" class="status-resumo" style="margin-top:9px"></div></div></div><div class="kpis" id="dashKpis"></div></div>
     <div id="dashGraficos" class="chart-grid"></div>
   </section>
 
@@ -105,8 +107,26 @@
     <div class="panel" style="margin-top:16px"><div class="section-head"><div><h2>Animais desta pesagem</h2><p>Somente os animais da pesagem atual. Os demais continuam salvos no sistema.</p></div><span class="tag">LISTAGEM</span></div><div id="animaisInline"></div></div>
   </section>
 
-  <section id="animais" class="page"><div class="panel"><h2>Animais Negociados</h2><p>Todos os animais negociados salvos no sistema.</p><div id="animaisTable"></div></div></section>
+  <section id="animais" class="page"><div class="panel"><div class="section-head"><div><h2>Consulta individual</h2><p>Informe o BRINCO/SB para visualizar o histórico completo do animal.</p></div><span class="tag">FICHA DO ANIMAL</span></div><div class="consulta-animal"><div class="field"><label>BRINCO / SB</label><input id="consultaBrinco" placeholder="Digite o número do animal"></div><button class="btn primary" type="button" onclick="consultarAnimal()">Buscar animal</button><button class="btn" type="button" onclick="limparConsultaAnimal()">Limpar</button></div><div id="fichaAnimal" style="margin-top:18px"></div></div><div class="panel"><h2>Animais Negociados</h2><p>Todos os animais negociados salvos no sistema.</p><div id="animaisTable"></div></div></section>
   <section id="pesagens" class="page"><div class="panel"><h2>Pesagens</h2><p>Controle da pesagem de saída.</p><div id="pesagensTable"></div></div></section>
+
+  <section id="parcial" class="page">
+    <div class="panel">
+      <div class="section-head"><div><h2>Parcial por origem / lote</h2><p>Cada lote é identificado por ORIGEM + DATA DE ENTRADA. As vendas atualizam automaticamente os indicadores do lote.</p></div><span class="tag">MÉDIA PONDERADA</span></div>
+      <div id="parcialConteudo"></div>
+    </div>
+  </section>
+
+  <section id="arrobaProduzida" class="page">
+    <div class="panel">
+      <div class="section-head"><div><h2>Arroba Produzida</h2><p>Total de arrobas produzidas pelos animais vendidos, classificado por mês e origem. Animais sem peso de entrada não entram nesta apuração.</p></div><span class="tag">PRODUÇÃO MENSAL</span></div>
+      <div class="grid" style="margin-bottom:16px">
+        <div class="field"><label>Mês / Ano</label><select id="filtroMesArroba" onchange="renderArrobaProduzida()"></select></div>
+      </div>
+      <div id="arrobaProduzidaConteudo"></div>
+    </div>
+  </section>
+
     <section id="graficos" class="page"><div id="graficosConteudo" class="chart-grid"></div></section>
   <section id="relatorios" class="page"><div class="panel"><h2>Relatórios / Impressão</h2><p>Imprima a listagem atual pelo botão no topo.</p></div></section>
 <div id="assinaturaGlobal" style="margin:28px 8px 8px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:12px;font-weight:800;font-style:italic;color:#17242d">
@@ -158,15 +178,19 @@ function addAnimal(){calc();let x={entrada:$('l_entrada').value,saida:$('l_saida
 function del(i){if(confirm('Excluir este animal?')){animais.splice(i,1);localStorage.setItem('pesagem_saida_etapa1_v2',JSON.stringify(animais));renderAll()}}
 function money(v){return isFinite(v)?Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—'}
 function dataBR(v){if(!v)return '—';let p=String(v).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:v}
-function tabelaAnimais(lista=animais,permitirExcluir=true){if(!lista.length)return '<div class="empty">Nenhum animal cadastrado.</div>';let h='<div class="table-wrap"><table><thead><tr><th>Data saída</th><th>Data entrada</th><th>Destino</th><th>Origem</th><th>Brinco</th><th>Peso entrada (kg / @)</th><th>Peso saída (kg / @)</th><th>Peso médio saída da pesagem</th><th>GMD</th><th>Dias</th><th>Diária</th><th>Origem compra</th><th>Compra</th><th>Custo atual</th><th>Custo acumulado</th><th>Custo animal</th><th>Valor venda</th><th>Resultado</th>'+(permitirExcluir?'<th></th>':'')+'</tr></thead><tbody>';lista.forEach(x=>{const i=animais.indexOf(x);const mesma=animais.filter(y=>(y.entrada||'')===(x.entrada||'')&&(y.saida||'')===(x.saida||'')&&String(y.destino||'').trim().toUpperCase()===String(x.destino||'').trim().toUpperCase());const pm=mesma.length?mesma.reduce((a,y)=>a+(Number(y.ps)||0),0)/mesma.length:0;const pe=Number(x.pe),ps=Number(x.ps);h+=`<tr><td>${dataBR(x.saida)}</td><td>${dataBR(x.entrada)}</td><td>${x.destino||'—'}</td><td>${x.origem||'—'}</td><td>${x.brinco||'—'}</td><td>${Number.isFinite(pe)?pe.toFixed(2)+' kg / '+((pe/2)/15).toFixed(2)+' @':'—'}</td><td>${Number.isFinite(ps)?ps.toFixed(2)+' kg / '+((ps/2)/15).toFixed(2)+' @':'—'}</td><td>${pm?pm.toFixed(2)+' kg / '+((pm/2)/15).toFixed(2)+' @':'—'}</td><td>${isFinite(x.gmd)?x.gmd.toFixed(3):'—'}</td><td>${x.dias??'—'}</td><td>${money(x.diaria)}</td><td>${x.origemCompra||'—'}</td><td>${money(x.compra)}</td><td>${money(x.custoAtual)}</td><td>${money(x.custoAcumulado)}</td><td>${money(x.custoAnimal)}</td><td class="pending">${isFinite(x.valorVenda)?money(x.valorVenda):'Aguardando abate'}</td><td class="pending">${isFinite(x.resultado)?money(x.resultado):'Aguardando abate'}</td>${permitirExcluir?`<td><button class="btn danger" onclick="del(${i})">Excluir</button></td>`:''}</tr>`});return h+'</tbody></table></div>'}
+function statusHTML(v,compact=false){const s=String(v||'').trim().toUpperCase()||'—';const c=s==='ATIVO'?'status-ativo':s==='VENDA'?'status-venda':s==='MORTE'?'status-morte':'';const cp=compact?' compact':'';return c?`<span class="status-badge ${c}${cp}">${s}</span>`:`<span class="status-badge${cp}">${s}</span>`}
+function idCurto(v){return v?String(v):'—'}
+function tabelaAnimais(lista=animais,permitirExcluir=true){if(!lista.length)return '<div class="empty">Nenhum animal cadastrado.</div>';let h='<div class="table-wrap"><table><thead><tr><th>Status</th><th>Data saída</th><th>Data entrada</th><th>Destino</th><th>Origem</th><th>Brinco</th><th>Peso entrada (kg / @)</th><th>Peso saída (kg / @)</th><th>Peso médio saída da pesagem</th><th>GMD</th><th>Dias</th><th>Diária</th><th>Origem compra</th><th>Compra</th><th>Custo atual</th><th>Custo acumulado</th><th>Custo animal</th><th>Valor venda</th><th>Resultado</th>'+(permitirExcluir?'<th></th>':'')+'</tr></thead><tbody>';[...lista].sort((a,b)=>String(b.saida||'').localeCompare(String(a.saida||''))||String(b.entrada||'').localeCompare(String(a.entrada||''))).forEach(x=>{const i=animais.indexOf(x);const mesma=animais.filter(y=>(y.entrada||'')===(x.entrada||'')&&(y.saida||'')===(x.saida||'')&&String(y.destino||'').trim().toUpperCase()===String(x.destino||'').trim().toUpperCase());const pm=mesma.length?mesma.reduce((a,y)=>a+(Number(y.ps)||0),0)/mesma.length:0;const pe=Number(x.pe),ps=Number(x.ps);h+=`<tr><td>${statusHTML(x.status,true)}</td><td>${dataBR(x.saida)}</td><td>${dataBR(x.entrada)}</td><td>${x.destino||'—'}</td><td>${x.origem||'—'}</td><td>${x.brinco||'—'}</td><td>${Number.isFinite(pe)?pe.toFixed(2)+' kg / '+((pe/2)/15).toFixed(2)+' @':'—'}</td><td>${Number.isFinite(ps)?ps.toFixed(2)+' kg / '+((ps/2)/15).toFixed(2)+' @':'—'}</td><td>${pm?pm.toFixed(2)+' kg / '+((pm/2)/15).toFixed(2)+' @':'—'}</td><td>${isFinite(x.gmd)?x.gmd.toFixed(3):'—'}</td><td>${x.dias??'—'}</td><td>${money(x.diaria)}</td><td>${x.origemCompra||'—'}</td><td>${money(x.compra)}</td><td>${money(x.custoAtual)}</td><td>${money(x.custoAcumulado)}</td><td>${money(x.custoAnimal)}</td><td class="pending">${isFinite(x.valorVenda)?money(x.valorVenda):'Aguardando abate'}</td><td class="pending">${isFinite(x.resultado)?money(x.resultado):'Aguardando abate'}</td>${permitirExcluir?`<td><button class="btn danger" onclick="del(${i})">Excluir</button></td>`:''}</tr>`});return h+'</tbody></table></div>'}
 function renderTable(target){const el=$(target);if(el)el.innerHTML=tabelaAnimais(animais,true)}
 function pesagemAtualAnimais(){const e=$('l_entrada').value,s=$('l_saida').value,d=String($('l_destino').value||'').trim().toUpperCase();return animais.filter(x=>(x.entrada||'')===e&&(x.saida||'')===s&&String(x.destino||'').trim().toUpperCase()===d)}
 function renderAnimaisInline(){const el=$('animaisInline');if(!el)return;el.innerHTML=tabelaAnimais(pesagemAtualAnimais(),true)}
-function renderPesagens(){const el=$('pesagensTable');if(!el)return;const gs=gruposAbate();if(!gs.length){el.innerHTML='<div class="empty">Nenhuma pesagem cadastrada.</div>';return}let h='<div class="table-wrap"><table style="min-width:850px"><thead><tr><th>Data saída</th><th>Data entrada</th><th>Destino</th><th>Origem</th><th>Animais</th><th>Peso médio saída</th></tr></thead><tbody>';gs.forEach(g=>{const a=g.base,ls=g.indices.map(i=>animais[i]),pm=ls.reduce((s,x)=>s+(Number(x.ps)||0),0)/ls.length;h+=`<tr><td>${dataBR(a.saida)}</td><td>${dataBR(a.entrada)}</td><td>${a.destino||'—'}</td><td>${a.origem||'SEM ORIGEM'}</td><td>${g.indices.length}</td><td>${pm.toFixed(2)} kg / ${((pm/2)/15).toFixed(2)} @</td></tr>`});el.innerHTML=h+'</tbody></table></div>'}
+let ordemPesagens='DESC';
+function alternarOrdemPesagens(v){ordemPesagens=v;renderPesagens()}
+function renderPesagens(){const el=$('pesagensTable');if(!el)return;let gs=[...gruposAbate()];if(ordemPesagens==='ASC')gs.reverse();if(!gs.length){el.innerHTML='<div class="empty">Nenhuma pesagem cadastrada.</div>';return}let h='<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><label style="font-size:12px;font-weight:800">ORDENAR&nbsp;<select onchange="alternarOrdemPesagens(this.value)" style="padding:7px 10px;border:1px solid #d1d5db;border-radius:7px"><option value="DESC" '+(ordemPesagens==='DESC'?'selected':'')+'>MAIS RECENTE PRIMEIRO</option><option value="ASC" '+(ordemPesagens==='ASC'?'selected':'')+'>MAIS ANTIGA PRIMEIRO</option></select></label></div><div class="table-wrap"><table style="min-width:850px"><thead><tr><th>Data saída</th><th>Data entrada</th><th>Destino</th><th>Origem</th><th>Animais</th><th>Peso médio saída</th></tr></thead><tbody>';gs.forEach(g=>{const a=g.base,ls=g.indices.map(i=>animais[i]),pm=ls.reduce((s,x)=>s+(Number(x.ps)||0),0)/ls.length;h+=`<tr><td>${dataBR(a.saida)}</td><td>${dataBR(a.entrada)}</td><td>${a.destino||'—'}</td><td>${a.origem||'SEM ORIGEM'}</td><td>${g.indices.length}</td><td>${pm.toFixed(2)} kg / ${((pm/2)/15).toFixed(2)} @</td></tr>`});el.innerHTML=h+'</tbody></table></div>'}
 function renderMediasInline(){let el=$('mediasInline');if(!el)return;const lista=pesagemAtualAnimais();if(!lista.length){el.innerHTML='<div class="empty">Nenhum animal lançado nesta pesagem.</div>';return}const avg=(k,a=lista)=>{let v=a.map(x=>Number(x[k])).filter(Number.isFinite);return v.length?v.reduce((s,n)=>s+n,0)/v.length:0};const cards=a=>`<div class="kpis"><div class="kpi"><span>ANIMAIS</span><strong>${a.length}</strong></div><div class="kpi"><span>PESO MÉDIO ENTRADA</span><strong>${avg('pe',a).toFixed(1)} kg / ${((avg('pe',a)/2)/15).toFixed(2)} @</strong></div><div class="kpi"><span>PESO MÉDIO SAÍDA</span><strong>${avg('ps',a).toFixed(1)} kg / ${((avg('ps',a)/2)/15).toFixed(2)} @</strong></div><div class="kpi"><span>GMD MÉDIO</span><strong>${avg('gmd',a).toFixed(3)}</strong></div><div class="kpi"><span>DIAS MÉDIOS</span><strong>${avg('dias',a).toFixed(1)}</strong></div><div class="kpi"><span>DIÁRIA MÉDIA</span><strong>${money(avg('diaria',a))}</strong></div><div class="kpi"><span>PREÇO COMPRA MÉDIO</span><strong>${money(avg('compra',a))}</strong></div><div class="kpi"><span>CUSTO MÉDIO ANIMAL</span><strong>${money(avg('custoAnimal',a))}</strong></div></div>`;let h='<h3>MÉDIA GERAL DA PESAGEM ATUAL</h3>'+cards(lista);let g={};lista.forEach(x=>{let o=(x.origem||'SEM ORIGEM').toUpperCase();(g[o]??=[]).push(x)});Object.entries(g).forEach(([o,a])=>h+=`<div style="margin-top:18px"><h3>ORIGEM: ${o}</h3>${cards(a)}</div>`);el.innerHTML=h}
 function grupoKey(x){return [x.entrada||'',x.saida||'',x.destino||'',x.origem||''].join('|')}
 function grupoLabel(x){return `${(x.origem||'SEM ORIGEM').toUpperCase()} — SAÍDA ${dataBR(x.saida)} — ${x.destino||'SEM DESTINO'}`}
-function gruposAbate(){const m={};animais.forEach((x,i)=>{const k=grupoKey(x);if(!m[k])m[k]={key:k,base:x,indices:[]};m[k].indices.push(i)});return Object.values(m)}
+function gruposAbate(){const m={};animais.forEach((x,i)=>{const k=grupoKey(x);if(!m[k])m[k]={key:k,base:x,indices:[]};m[k].indices.push(i)});return Object.values(m).sort((a,b)=>String(b.base.saida||'').localeCompare(String(a.base.saida||''))||String(b.base.entrada||'').localeCompare(String(a.base.entrada||'')))}
 function preencherGruposAbate(){const sel=$('ab_grupo');if(!sel)return;const atual=sel.value;const gs=gruposAbate();sel.innerHTML='<option value="">Selecione a pesagem</option>'+gs.map(g=>`<option value="${encodeURIComponent(g.key)}">${grupoLabel(g.base)} — ${g.indices.length} animal(is)</option>`).join('');if(gs.some(g=>encodeURIComponent(g.key)===atual))sel.value=atual;mostrarResumoAbate()}
 function grupoSelecionado(){const v=$('ab_grupo')?.value;if(!v)return null;return gruposAbate().find(g=>encodeURIComponent(g.key)===v)||null}
 let abatePreview=null;
@@ -178,11 +202,132 @@ function renderResultadoAbate(g,ca,va){const el=$('abateResultado');if(!el||!g)r
 function renderMediaGeralSaida(saida,gAtual,caAtual,vaAtual){const rs=[];animais.forEach((x,i)=>{if(x.saida!==saida)return;const atual=gAtual?.indices.includes(i),ca=atual?Number(caAtual):Number(x.pesoCarcacaArrobas),va=atual?Number(vaAtual):Number(x.valorArroba);if(Number.isFinite(ca)&&Number.isFinite(va))rs.push({x,ca,va,r:calcAbate(x,ca,va)})});if(!rs.length)return '';const n=rs.length,avgX=k=>rs.reduce((s,z)=>s+(Number(z.x[k])||0),0)/n,avgR=k=>rs.reduce((s,z)=>s+(Number(z.r[k])||0),0)/n,totalPE=rs.reduce((s,z)=>s+(Number(z.x.pe)||0),0),totalPS=rs.reduce((s,z)=>s+(Number(z.x.ps)||0),0),totalCarc=rs.reduce((s,z)=>s+z.r.pesoCarcKg,0),pe=totalPE/n,ps=totalPS/n,rend=totalPS>0?totalCarc/totalPS:0,gmd=avgX('gmd'),dias=avgX('dias'),diaria=avgX('diaria'),ca=rs.reduce((s,z)=>s+z.ca,0)/n,va=rs.reduce((s,z)=>s+z.va,0)/n,kgProd=ps-pe,arr=kgProd*rend/15,gdc=rend*gmd,dias1=gdc>0?15/gdc:0,custo=diaria*dias,apurado=arr*va,apuradoConf=apurado-custo,custoArr=arr>0?custo/arr:0,ret=apurado>0?100-(custo/apurado)*100:0,apuradoProd=(va-custoArr)*arr,retMes=dias>0?ret/dias*30:0,totalArr=rs.reduce((s,z)=>s+z.r.arrobasProd,0),totalL=rs.reduce((s,z)=>s+z.r.liquido,0),totalF=rs.reduce((s,z)=>s+z.r.funrural,0),totalR=rs.reduce((s,z)=>s+z.r.receber,0);return `<div style="margin-top:28px;border-top:2px solid var(--line);padding-top:22px"><h3>MÉDIA GERAL DA SAÍDA DO DIA — ${dataBR(saida)}</h3><div class="notice"><b>${n} animal(is)</b> considerados nesta saída. A origem em conferência já entra na média.</div><div class="kpis"><div class="kpi"><span>QTD DE DIAS</span><strong>${dias.toFixed(0)}</strong></div><div class="kpi"><span>VALOR DIÁRIA</span><strong>${money0(diaria)}</strong></div><div class="kpi"><span>GMD</span><strong>${gmd.toFixed(3)}</strong></div><div class="kpi"><span>PESO CARCAÇA (@)</span><strong>${ca.toFixed(2)} @</strong></div><div class="kpi"><span>PESO CARCAÇA (KG)</span><strong>${avgR('pesoCarcKg').toFixed(2)} kg</strong></div><div class="kpi"><span>VALOR DA ARROBA</span><strong>${money0(va)}</strong></div><div class="kpi"><span>RENDIMENTO</span><strong>${(rend*100).toFixed(2)}%</strong></div><div class="kpi"><span>PESO MÉDIO ENTRADA</span><strong>${pe.toFixed(2)} kg / ${((pe/2)/15).toFixed(2)} @</strong></div><div class="kpi"><span>PESO MÉDIO SAÍDA</span><strong>${ps.toFixed(2)} kg / ${((ps/2)/15).toFixed(2)} @</strong></div><div class="kpi"><span>KG PRODUZIDOS</span><strong>${kgProd.toFixed(2)} kg</strong></div><div class="kpi"><span>ARROBAS PRODUZIDAS</span><strong>${arr.toFixed(2)} @</strong></div><div class="kpi"><span>GDC</span><strong>${gdc.toFixed(3)}</strong></div><div class="kpi"><span>DIAS PARA PRODUZIR 1 @</span><strong>${dias1.toFixed(2)}</strong></div><div class="kpi"><span>APURADO EM @ BOI</span><strong>${money0(apurado)}</strong></div><div class="kpi"><span>APURADO NO CONFINAMENTO</span><strong>${money0(apuradoConf)}</strong></div><div class="kpi"><span>CUSTO DA @ PRODUZIDA</span><strong>${money0(custoArr)}</strong></div><div class="kpi"><span>RETORNO DO CAPITAL NO PERÍODO</span><strong>${ret.toFixed(2)}</strong></div><div class="kpi"><span>APURADO @ PRODUZIDA</span><strong>${money0(apuradoProd)}</strong></div><div class="kpi"><span>RETORNO DE CAPITAL MENSAL</span><strong>${retMes.toFixed(2)}</strong></div></div><h3 style="margin-top:22px">TOTAIS DA SAÍDA DO DIA</h3><div class="kpis"><div class="kpi"><span>ANIMAIS</span><strong>${n}</strong></div><div class="kpi"><span>ARROBAS PRODUZIDAS TOTAL</span><strong>${totalArr.toFixed(2)} @</strong></div><div class="kpi"><span>LÍQUIDO</span><strong>${money0(totalL)}</strong></div><div class="kpi"><span>FUNRURAL</span><strong>${money0(totalF)}</strong></div><div class="kpi"><span>A RECEBER</span><strong>${money0(totalR)}</strong></div></div></div>`}
 function salvarAbate(){try{const g=grupoSelecionado();if(!g||!abatePreview||abatePreview.key!==g.key){toast('CARREGUE OS DADOS PARA CONFERÊNCIA ANTES DE SALVAR.');return}const ca=Number(abatePreview.ca),va=Number(abatePreview.va);g.indices.forEach(i=>{const x=animais[i],r=calcAbate(x,ca,va);Object.assign(x,{pesoCarcacaArrobas:ca,valorArroba:va,valorVenda:r.venda,resultado:r.resultado,pesoCarcacaKg:r.pesoCarcKg,rendimentoCarcaca:r.rendPct,arrobasProduzidas:r.arrobasProd,gdc:r.gdc,diasPorArroba:r.dias1,kgProduzidos:r.kgProd,custoArrobaProduzida:r.custoArroba,retornoCapitalPeriodo:r.retorno,apuradoArrobaProduzida:r.apuradoAt,retornoCapitalMensal:r.retornoMensal,apuradoArrobasBoi:r.apuradoBoi,apuradoConfinamento:r.apuradoConf,liquido:r.liquido,funrural:r.funrural,aReceber:r.receber,abateSalvoEm:new Date().toISOString()})});localStorage.setItem('pesagem_saida_etapa1_v2',JSON.stringify(animais));renderTable('animaisTable');renderPesagens();renderGraficos();renderResultadoAbate(g,ca,va);toast('ABATE SALVO E GRAVADO COM SUCESSO.')}catch(e){console.error(e);toast('ERRO AO SALVAR O ABATE: '+(e?.message||'VERIFIQUE OS DADOS.'))}}
 function imprimirDashAbate(){const area=$('dashOrigemImpressao');if(!area){toast('CARREGUE OS DADOS ANTES DE IMPRIMIR.');return}const w=window.open('','_blank');if(!w){toast('LIBERE A JANELA DE IMPRESSÃO NO NAVEGADOR.');return}w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Dashboard do Abate</title><style>body{font-family:Arial;color:#20262d;padding:20px}.notice{padding:10px;border-left:4px solid #315d4b;background:#f7f8f8}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.kpi{border:1px solid #dfe4e8;border-radius:8px;padding:12px}.kpi span{display:block;font-size:10px;color:#68727d}.kpi strong{display:block;font-size:17px;margin-top:5px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border-bottom:1px solid #ddd;padding:6px;text-align:left}.no-print{display:none}</style></head><body>${area.innerHTML}</body></html>`);w.document.close();setTimeout(()=>w.print(),250)}
-function graficoBarras(lista,campo,titulo,descricao,formatador){if(!lista.length)return `<div class="chart-box"><h3>${titulo}</h3><div class="empty">Sem dados suficientes.</div></div>`;const vals=lista.map(x=>Number(x[campo])||0),max=Math.max(...vals,0.0001);return `<div class="chart-box"><h3>${titulo}</h3><p>${descricao}</p><div class="bars">${lista.slice(-10).map((x,i)=>{const v=vals[vals.length-Math.min(lista.length,10)+i]||0;return `<div class="bar-item"><div class="bar-value">${formatador(v)}</div><div class="bar" style="height:${Math.max(2,(v/max)*150)}px"></div><div class="bar-label">${x.label}</div></div>`}).join('')}</div></div>`}
-function dadosGraficos(){return gruposAbate().map(g=>{const a=g.base,ls=g.indices.map(i=>animais[i]),avg=k=>ls.reduce((s,x)=>s+(Number(x[k])||0),0)/ls.length;return{label:(a.origem||'SEM ORIGEM')+' '+dataBR(a.saida),gmd:avg('gmd'),pesoSaida:avg('ps')}})}
+function graficoBarras(lista,campo,titulo,descricao,formatador){if(!lista.length)return `<div class="chart-box"><h3>${titulo}</h3><div class="empty">Sem dados suficientes.</div></div>`;const exib=lista.slice(0,10),vals=exib.map(x=>Number(x[campo])||0),max=Math.max(...vals,0.0001);return `<div class="chart-box"><h3>${titulo}</h3><p>${descricao}</p><div class="bars">${exib.map((x,i)=>{const v=vals[i]||0;return `<div class="bar-item"><div class="bar-value">${formatador(v)}</div><div class="bar" style="height:${Math.max(2,(v/max)*150)}px"></div><div class="bar-label">${x.label}</div></div>`}).join('')}</div></div>`}
+function dadosGraficos(){return gruposAbate().map(g=>{const a=g.base,ls=g.indices.map(i=>animais[i]),avg=k=>ls.reduce((s,x)=>s+(Number(x[k])||0),0)/ls.length;return{data:a.saida||'',label:(a.origem||'SEM ORIGEM')+' '+dataBR(a.saida),gmd:avg('gmd'),pesoSaida:avg('ps')}}).sort((a,b)=>String(b.data).localeCompare(String(a.data)))}
 function renderGraficos(){const d=dadosGraficos(),html=graficoBarras(d,'gmd','GMD médio por pesagem','Últimas pesagens cadastradas.',v=>v.toFixed(3))+graficoBarras(d,'pesoSaida','Peso médio de saída','Peso médio em kg por pesagem.',v=>v.toFixed(0)+' kg');if($('graficosConteudo'))$('graficosConteudo').innerHTML=html;if($('dashGraficos'))$('dashGraficos').innerHTML=html}
 $('ab_grupo')?.addEventListener('change',mostrarResumoAbate);
-function renderAll(){renderTable('animaisTable');preencherGruposAbate();renderPesagens();renderMediasInline();renderAnimaisInline();const n=animais.length,avg=k=>{const v=animais.map(x=>Number(x[k])).filter(Number.isFinite);return v.length?v.reduce((s,a)=>s+a,0)/v.length:0},ae=avg('pe'),as=avg('ps'),ag=avg('gmd'),ad=avg('dias'),pes=gruposAbate().length;$('dashKpis').innerHTML=`<div class="kpi"><span>ANIMAIS</span><strong>${n}</strong></div><div class="kpi"><span>PESAGENS</span><strong>${pes}</strong></div><div class="kpi"><span>PESO MÉDIO ENTRADA</span><strong>${n?ae.toFixed(1):'—'} kg / ${n?((ae/2)/15).toFixed(2):'—'} @</strong></div><div class="kpi"><span>PESO MÉDIO SAÍDA</span><strong>${n?as.toFixed(1):'—'} kg / ${n?((as/2)/15).toFixed(2):'—'} @</strong></div><div class="kpi"><span>GMD MÉDIO</span><strong>${n?ag.toFixed(3):'—'}</strong></div><div class="kpi"><span>DIAS MÉDIOS</span><strong>${n?Math.round(ad):'—'}</strong></div>`;renderGraficos()}
+
+async function consultarAnimal(){
+  const q=String($('consultaBrinco')?.value||'').trim().toUpperCase();
+  const box=$('fichaAnimal'); if(!box)return;
+  if(!q){box.innerHTML='<div class="empty">Informe o BRINCO/SB.</div>';return}
+  box.innerHTML='<div class="empty">CONSULTANDO HISTÓRICO NO BANCO...</div>';
+  try{
+    const resp=await supa.from('animais').select('*').ilike('brinco',q).order('data_saida',{ascending:false});
+    if(resp.error) throw resp.error;
+    const hist=(resp.data||[]).map(dbToAnimal);
+    if(!hist.length){box.innerHTML='<div class="empty">Animal não encontrado.</div>';return}
+    const atual=hist[0];
+    box.innerHTML=`<div class="ficha-topo"><div><div class="ficha-ident">ANIMAL ${atual.brinco||q}</div><div class="ficha-meta">${hist.length} ciclo(s)/evento(s) encontrado(s) • CONSULTA SUPABASE</div></div>${statusHTML(atual.status)}</div>`+
+      tabelaAnimais(hist,false);
+  }catch(e){
+    console.error(e);
+    box.innerHTML='<div class="empty">ERRO AO CONSULTAR O BANCO: '+String(e?.message||e)+'</div>';
+  }
+}
+function limparConsultaAnimal(){if($('consultaBrinco'))$('consultaBrinco').value='';if($('fichaAnimal'))$('fichaAnimal').innerHTML=''}
+
+
+const HIST_ARROBA_PRODUZIDA=[{"data":"2026-06-02","origem":"BAIA B5","qtd":4,"arrobas":-0.2},{"data":"2026-06-02","origem":"BAIA A4","qtd":8,"arrobas":18.8},{"data":"2026-06-02","origem":"BAIA A5","qtd":2,"arrobas":5.5},{"data":"2026-06-08","origem":"BAIA B4","qtd":21,"arrobas":40.32},{"data":"2026-06-10","origem":"BAIA B2","qtd":18,"arrobas":61.199999999999996},{"data":"2026-06-10","origem":"CASINHA CARLINHO","qtd":1,"arrobas":3.28},{"data":"2026-06-10","origem":"VINHAÇA","qtd":2,"arrobas":1.72},{"data":"2026-06-16","origem":"PQT ASFALTO","qtd":1,"arrobas":0.03},{"data":"2026-06-16","origem":"VINHAÇA","qtd":7,"arrobas":5.32},{"data":"2026-06-16","origem":"BAIA B2","qtd":15,"arrobas":55.5},{"data":"2026-06-16","origem":"BAIA B4","qtd":8,"arrobas":27.12},{"data":"2026-06-16","origem":"BAIA B3","qtd":8,"arrobas":37.2},{"data":"2026-06-16","origem":"BAIA A4","qtd":21,"arrobas":40.32},{"data":"2026-07-08","origem":"CASINHA CARLINHO","qtd":1,"arrobas":0.96},{"data":"2026-07-08","origem":"BAIA A4","qtd":9,"arrobas":37.800000000000004},{"data":"2026-07-08","origem":"BAIA A5","qtd":1,"arrobas":3.01},{"data":"2026-07-08","origem":"CAMARGO","qtd":1,"arrobas":-4.78},{"data":"2026-08-03","origem":"BAIA A5","qtd":9,"arrobas":32.129999999999995},{"data":"2026-08-03","origem":"BAIA B5","qtd":12,"arrobas":56.28},{"data":"2026-08-05","origem":"CASINHA CARLINHO","qtd":4,"arrobas":8.4},{"data":"2026-08-05","origem":"BAIA B3","qtd":13,"arrobas":62.79},{"data":"2026-08-06","origem":"BAIA B1","qtd":22,"arrobas":98.12},{"data":"2026-08-06","origem":"VINHAÇA","qtd":5,"arrobas":10.549999999999999},{"data":"2026-08-06","origem":"BAIA A3","qtd":5,"arrobas":30.5},{"data":"2026-08-11","origem":"BAIA A2","qtd":22,"arrobas":113.74},{"data":"2026-08-20","origem":"BELA VISTA AÇUDE","qtd":32,"arrobas":59.84},{"data":"2026-08-20","origem":"PASTO A1","qtd":28,"arrobas":10.08},{"data":"2026-08-21","origem":"BAIA A3","qtd":12,"arrobas":66.84},{"data":"2026-08-21","origem":"BAIA B1","qtd":7,"arrobas":34.79},{"data":"2026-08-21","origem":"BAIA B5","qtd":3,"arrobas":12.450000000000001},{"data":"2026-08-27","origem":"BELA VISTA","qtd":32,"arrobas":36.16},{"data":"2026-08-27","origem":"BELA VISTA","qtd":9,"arrobas":7.92},{"data":"2026-08-27","origem":"PASTO A1","qtd":16,"arrobas":5.28},{"data":"2026-08-27","origem":"BELA VISTA AÇUDE","qtd":7,"arrobas":9.66},{"data":"2026-08-31","origem":"BAIA A5","qtd":17,"arrobas":49.3},{"data":"2026-08-31","origem":"BAIA A2","qtd":5,"arrobas":25.2},{"data":"2026-09-04","origem":"BAIA A3","qtd":8,"arrobas":47.92},{"data":"2026-09-04","origem":"BAIA A2","qtd":4,"arrobas":21.6},{"data":"2026-09-07","origem":"BAIA B5","qtd":9,"arrobas":37.26},{"data":"2026-09-07","origem":"CASINHA CARLINHO","qtd":13,"arrobas":46.800000000000004},{"data":"2026-09-09","origem":"PASTO A1","qtd":25,"arrobas":19.0},{"data":"2026-09-10","origem":"BAIA A1","qtd":17,"arrobas":97.41000000000001},{"data":"2026-09-10","origem":"BAIA A2","qtd":5,"arrobas":27.200000000000003},{"data":"2026-09-15","origem":"BAIA A5","qtd":4,"arrobas":18.88},{"data":"2026-09-15","origem":"BAIA A2","qtd":4,"arrobas":21.72},{"data":"2026-09-15","origem":"BAIA B1","qtd":13,"arrobas":64.74000000000001},{"data":"2026-09-17","origem":"BAIA A1","qtd":1,"arrobas":4.65},{"data":"2026-09-17","origem":"BAIA A4","qtd":1,"arrobas":5.9},{"data":"2026-09-17","origem":"BAIA B4","qtd":5,"arrobas":18.65},{"data":"2026-09-17","origem":"BAIA B2","qtd":6,"arrobas":24.599999999999998},{"data":"2026-09-22","origem":"VINHAÇA","qtd":22,"arrobas":108.46},{"data":"2026-09-23","origem":"BAIA B4","qtd":10,"arrobas":34.2},{"data":"2026-09-23","origem":"BAIA B1","qtd":8,"arrobas":41.68},{"data":"2026-09-23","origem":"BAIA B2","qtd":3,"arrobas":13.11},{"data":"2026-09-23","origem":"BAIA B5","qtd":1,"arrobas":5.17}];
+const HIST_ARROBA_CORTE='2026-09-23';
+const NUMERACAO_GERAL_ATIVOS={"totalPorOrigem":{"ACUDE":20,"BAIA B1":10,"BARRACAO":41,"SEM LOCALIDADE":136,"BAIA B5":12,"PASTO B1":91,"AROEIRA CIMA":57,"BAIA A3":22,"BAIA A1":42,"MOMBACA":21,"BELEI ALTO":43,"BELA VISTA":43,"PASTO A2":80,"PQT BAIXO":2,"SAO GUILERME BAIXO":28,"LEILAO BAURU":1,"POSTO KAFE":8,"BAIA B2":40,"BAIA B4":52,"BAIA B3":64,"BAIA A4":57,"DIRCE":11,"CASINHA":60,"PASTO B2":48,"AROEIRA MANGUEIRA":20},"semDataPorOrigem":{"ACUDE":20,"BAIA B1":10,"SEM LOCALIDADE":136,"BAIA B5":12,"BAIA A3":22,"BAIA A1":42,"BARRACAO":27,"BELEI ALTO":43,"BELA VISTA":43,"PASTO A2":73,"PQT BAIXO":1,"LEILAO BAURU":1,"PASTO B1":5,"POSTO KAFE":8,"BAIA B2":40,"BAIA B4":52,"BAIA B3":64,"BAIA A4":57,"DIRCE":11,"CASINHA":60},"porOrigemData":{"BARRACAO|2026-08-14":3,"PASTO B1|2026-08-14":28,"AROEIRA CIMA|2026-08-14":57,"MOMBACA|2026-09-15":21,"SAO GUILERME BAIXO|2026-08-13":28,"PQT BAIXO|2026-08-17":1,"PASTO B2|2026-09-01":48,"BARRACAO|2026-09-01":4,"PASTO A2|2026-09-03":7,"AROEIRA MANGUEIRA|2026-09-04":20,"BARRACAO|2026-09-04":1,"PASTO B1|2026-09-07":20,"BARRACAO|2026-09-07":6,"PASTO B1|2026-09-09":38}};
+function normChave(v){return String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ')}
+function numFin(v){const n=Number(v);return Number.isFinite(n)?n:0}
+function mediaPond(lista,campo,pesoCampo=null){
+  let soma=0,peso=0;
+  lista.forEach(x=>{const v=Number(x[campo]);if(!Number.isFinite(v))return;const p=pesoCampo?numFin(x[pesoCampo]):1;if(p<=0)return;soma+=v*p;peso+=p});
+  return peso?soma/peso:0;
+}
+function lotesParcial(){
+  const mp=new Map();
+  animais.forEach(x=>{
+    if(!x.origem||!x.entrada)return;
+    const key=normChave(x.origem)+'|'+x.entrada;
+    if(!mp.has(key))mp.set(key,{key,origem:String(x.origem).trim().toUpperCase(),entrada:x.entrada,todos:[],vendidos:[],emEngorda:0});
+    const g=mp.get(key);g.todos.push(x);
+    if(String(x.status||'').toUpperCase()==='VENDA'||String(x.tipoEvento||'').toUpperCase()==='VENDA')g.vendidos.push(x);
+  });
+  const grupos=[...mp.values()];
+  grupos.forEach(g=>{g.ultimaSaida=g.todos.reduce((m,x)=>String(x.saida||'')>m?String(x.saida||''):m,'')});
+  const porOrigem=new Map();
+  grupos.forEach(g=>{const o=normChave(g.origem);if(!porOrigem.has(o))porOrigem.set(o,[]);porOrigem.get(o).push(g)});
+  porOrigem.forEach((gs,o)=>{
+    gs.sort((a,b)=>String(b.ultimaSaida).localeCompare(String(a.ultimaSaida))||String(b.entrada).localeCompare(String(a.entrada)));
+    gs.forEach(g=>g.emEngorda=Number(NUMERACAO_GERAL_ATIVOS.porOrigemData[o+'|'+g.entrada]||0));
+    const semData=Number(NUMERACAO_GERAL_ATIVOS.semDataPorOrigem[o]||0);
+    if(semData>0&&gs.length)gs[0].emEngorda+=semData;
+  });
+  return grupos.sort((a,b)=>String(b.ultimaSaida).localeCompare(String(a.ultimaSaida))||String(b.entrada).localeCompare(String(a.entrada))||b.origem.localeCompare(a.origem,'pt-BR'));
+}
+function renderParcial(){
+  const el=$('parcialConteudo');if(!el)return;
+  const grupos=lotesParcial();
+  if(!grupos.length){el.innerHTML='<div class="empty">Nenhum lote encontrado.</div>';return}
+  let h='';
+  grupos.forEach(g=>{
+    const nv=g.vendidos.length,eng=Math.max(0,Number(g.emEngorda)||0),n0=nv+eng,saldo=eng,sit=eng>0?'EM ENGORDA':'FINALIZADO';
+    const v=g.vendidos;
+    const soma=k=>v.reduce((a,x)=>a+numFin(x[k]),0);
+    const pe=mediaPond(v,'pe'),ps=mediaPond(v,'ps'),gmd=mediaPond(v,'gmd'),dias=mediaPond(v,'dias'),diaria=mediaPond(v,'diaria');
+    const carcKg=soma('pesoCarcacaKg'),pesoSaidaTotal=soma('ps'),rend=pesoSaidaTotal>0?(carcKg/pesoSaidaTotal)*100:mediaPond(v,'rendimentoCarcaca');
+    const arrTotal=soma('arrobasProduzidas'),arrMedia=nv?arrTotal/nv:0;
+    const gdc=mediaPond(v,'gdc'),diasArr=mediaPond(v,'diasPorArroba'),custoArr=mediaPond(v,'custoArrobaProduzida');
+    const apConf=mediaPond(v,'apuradoConfinamento'),ret=mediaPond(v,'retornoCapitalPeriodo'),retMes=mediaPond(v,'retornoCapitalMensal');
+    h+=`<div style="border:1px solid var(--line);border-radius:11px;padding:16px;margin-bottom:16px">
+      <div class="section-head"><div><h2>${g.origem} — ENTRADA ${dataBR(g.entrada)}</h2><p>${nv} vendido(s) • ${eng} em engorda • ${n0} animal(is) identificados no lote.</p></div><span class="status-badge compact ${sit==='FINALIZADO'?'status-venda':'status-ativo'}">${sit} — ${eng} ANIMAIS</span></div>
+      <div class="kpis">
+        <div class="kpi"><span>QTD INICIAL</span><strong>${n0}</strong></div>
+        <div class="kpi"><span>VENDIDOS</span><strong>${nv}</strong></div>
+        <div class="kpi"><span>EM ENGORDA</span><strong>${eng}</strong></div>
+        <div class="kpi"><span>PESO MÉDIO ENTRADA</span><strong>${nv?pe.toFixed(2):'—'} kg</strong></div>
+        <div class="kpi"><span>PESO MÉDIO SAÍDA</span><strong>${nv?ps.toFixed(2):'—'} kg</strong></div>
+        <div class="kpi"><span>GMD MÉDIO</span><strong>${nv?gmd.toFixed(3):'—'}</strong></div>
+        <div class="kpi"><span>DIAS MÉDIOS</span><strong>${nv?dias.toFixed(1):'—'}</strong></div>
+        <div class="kpi"><span>DIÁRIA MÉDIA</span><strong>${nv?money0(diaria):'—'}</strong></div>
+        <div class="kpi"><span>RENDIMENTO</span><strong>${nv?rend.toFixed(2)+'%':'—'}</strong></div>
+        <div class="kpi"><span>@ PRODUZIDAS / BOI</span><strong>${nv?arrMedia.toFixed(2)+' @':'—'}</strong></div>
+        <div class="kpi"><span>@ PRODUZIDAS TOTAL</span><strong>${nv?arrTotal.toFixed(2)+' @':'—'}</strong></div>
+        <div class="kpi"><span>GDC</span><strong>${nv?gdc.toFixed(3):'—'}</strong></div>
+        <div class="kpi"><span>DIAS / 1 @</span><strong>${nv?diasArr.toFixed(2):'—'}</strong></div>
+        <div class="kpi"><span>CUSTO @ PRODUZIDA</span><strong>${nv?money0(custoArr):'—'}</strong></div>
+        <div class="kpi"><span>APURADO CONFINAMENTO</span><strong>${nv?money0(apConf):'—'}</strong></div>
+        <div class="kpi"><span>RETORNO CAPITAL PERÍODO</span><strong>${nv?ret.toFixed(2):'—'}</strong></div>
+        <div class="kpi"><span>RETORNO CAPITAL MENSAL</span><strong>${nv?retMes.toFixed(2):'—'}</strong></div>
+      </div>
+    </div>`;
+  });
+  el.innerHTML=h;
+}
+function mesesComVendas(){
+  const h=HIST_ARROBA_PRODUZIDA.map(x=>x.data.slice(0,7));
+  const novos=animais.filter(x=>(String(x.status||'').toUpperCase()==='VENDA'||String(x.tipoEvento||'').toUpperCase()==='VENDA')&&x.saida&&String(x.saida)>HIST_ARROBA_CORTE&&Number(x.pe)>0).map(x=>String(x.saida).slice(0,7));
+  return [...new Set([...h,...novos])].sort().reverse();
+}
+function preencherMesArroba(){
+  const sel=$('filtroMesArroba');if(!sel)return;
+  const atual=sel.value,meses=mesesComVendas();
+  sel.innerHTML=meses.map(m=>{const [a,mm]=m.split('-');return `<option value="${m}">${mm}/${a}</option>`}).join('');
+  if(atual&&meses.includes(atual))sel.value=atual;
+}
+function renderArrobaProduzida(){
+  const el=$('arrobaProduzidaConteudo'),sel=$('filtroMesArroba');if(!el||!sel)return;
+  preencherMesArroba();
+  const mes=sel.value;
+  if(!mes){el.innerHTML='<div class="empty">Nenhuma venda com peso de entrada encontrada.</div>';return}
+  const mp=new Map();
+  const add=(origem,qtd,arrobas)=>{const o=String(origem||'SEM ORIGEM').trim().toUpperCase();if(!mp.has(o))mp.set(o,{origem:o,qtd:0,arrobas:0});const g=mp.get(o);g.qtd+=Number(qtd)||0;g.arrobas+=Number(arrobas)||0};
+  HIST_ARROBA_PRODUZIDA.filter(x=>x.data.slice(0,7)===mes).forEach(x=>add(x.origem,x.qtd,x.arrobas));
+  animais.filter(x=>(String(x.status||'').toUpperCase()==='VENDA'||String(x.tipoEvento||'').toUpperCase()==='VENDA')&&String(x.saida||'')>HIST_ARROBA_CORTE&&String(x.saida||'').slice(0,7)===mes&&Number.isFinite(Number(x.pe))&&Number(x.pe)>0).forEach(x=>add(x.origem,1,numFin(x.arrobasProduzidas)));
+  const rows=[...mp.values()].sort((a,b)=>b.arrobas-a.arrobas||b.origem.localeCompare(a.origem,'pt-BR'));
+  const totalAnim=rows.reduce((s,r)=>s+r.qtd,0),totalArr=rows.reduce((s,r)=>s+r.arrobas,0);
+  let h=`<div class="kpis"><div class="kpi"><span>ANIMAIS VENDIDOS NO MÊS</span><strong>${totalAnim}</strong></div><div class="kpi"><span>ARROBAS PRODUZIDAS NO MÊS</span><strong>${totalArr.toFixed(2)} @</strong></div><div class="kpi"><span>MÉDIA @ PRODUZIDA / BOI</span><strong>${totalAnim?(totalArr/totalAnim).toFixed(2):'0.00'} @</strong></div></div>`;
+  h+='<div class="table-wrap"><table style="min-width:650px"><thead><tr><th>Origem</th><th>Animais vendidos</th><th>Arrobas produzidas</th><th>Média @ / boi</th><th>% do mês</th></tr></thead><tbody>';
+  rows.forEach(r=>h+=`<tr><td><b>${r.origem}</b></td><td>${r.qtd}</td><td>${r.arrobas.toFixed(2)} @</td><td>${r.qtd?(r.arrobas/r.qtd).toFixed(2):'0.00'} @</td><td>${totalArr?(r.arrobas/totalArr*100).toFixed(2):'0.00'}%</td></tr>`);
+  h+=`<tr><td><b>TOTAL DO MÊS</b></td><td><b>${totalAnim}</b></td><td><b>${totalArr.toFixed(2)} @</b></td><td><b>${totalAnim?(totalArr/totalAnim).toFixed(2):'0.00'} @</b></td><td><b>${totalArr?'100.00':'0.00'}%</b></td></tr></tbody></table></div>`;
+  el.innerHTML=h;
+}
+
+function renderAll(){renderTable('animaisTable');preencherGruposAbate();renderPesagens();renderMediasInline();renderAnimaisInline();const n=animais.length,avg=k=>{const v=animais.map(x=>Number(x[k])).filter(Number.isFinite);return v.length?v.reduce((s,a)=>s+a,0)/v.length:0},ae=avg('pe'),as=avg('ps'),ag=avg('gmd'),ad=avg('dias'),pes=gruposAbate().length;const nAtivo=animais.filter(x=>x.status==='ATIVO').length,nVenda=animais.filter(x=>x.status==='VENDA').length,nMorte=animais.filter(x=>x.status==='MORTE').length;$('dashKpis').innerHTML=`<div class="kpi"><span>ANIMAIS</span><strong>${n}</strong></div><div class="kpi"><span>PESAGENS</span><strong>${pes}</strong></div><div class="kpi"><span>PESO MÉDIO ENTRADA</span><strong>${n?ae.toFixed(1):'—'} kg / ${n?((ae/2)/15).toFixed(2):'—'} @</strong></div><div class="kpi"><span>PESO MÉDIO SAÍDA</span><strong>${n?as.toFixed(1):'—'} kg / ${n?((as/2)/15).toFixed(2):'—'} @</strong></div><div class="kpi"><span>GMD MÉDIO</span><strong>${n?ag.toFixed(3):'—'}</strong></div><div class="kpi"><span>DIAS MÉDIOS</span><strong>${n?Math.round(ad):'—'}</strong></div>`;const ds=$('dashStatusResumo');if(ds)ds.innerHTML=`<span class="dot ativo"></span>ATIVO ${nAtivo}<span class="dot venda"></span>VENDA ${nVenda}<span class="dot morte"></span>MORTE ${nMorte}`;renderGraficos();renderParcial();preencherMesArroba();renderArrobaProduzida()}
 
 const SUPA_URL="https://zswsyknzypheqblwnpih.supabase.co", SUPA_KEY="sb_publishable_RjmLrtFPaYK5lJiD30Uqqw_QbBm0BZg";
 const {createClient}=supabase;
@@ -191,7 +336,7 @@ const supa=createClient(SUPA_URL,SUPA_KEY);
 function nval(v){return v===null||v===undefined||v===''?0:Number(v)}
 function dbToAnimal(r){
  return {
-  _dbid:r.id,_pesagem_id:r.pesagem_id,
+  _dbid:r.id,_pesagem_id:r.pesagem_id,status:(r.status||'').toUpperCase(),tipoEvento:(r.tipo_evento||'').toUpperCase(),eventoId:r.evento_id||'',cicloId:r.ciclo_id||'',
   entrada:r.data_entrada||'',saida:r.data_saida||'',destino:r.destino||'',
   brinco:r.brinco||'',origem:r.origem||'',pe:nval(r.peso_entrada),ps:nval(r.peso_saida),
   dias:r.qtd_dias??0,gmd:nval(r.gmd),diaria:nval(r.valor_diaria),origemCompra:r.origem_compra||'',
@@ -201,21 +346,44 @@ function dbToAnimal(r){
  };
 }
 async function carregarSupabase(){
- const qa=await supa.from('animais').select('*').order('data_saida',{ascending:true});
+ const qa=await supa.from('animais').select('*').order('data_saida',{ascending:false});
  if(qa.error) throw qa.error;
  animais=qa.data.map(dbToAnimal);
- const qb=await supa.from('abates').select('*');
+ const qb=await supa.from('abates').select('*').order('data_abate',{ascending:false});
  if(qb.error) throw qb.error;
+ const normOrig=v=>String(v||'').trim().toUpperCase()
+   .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+   .replace(/\s+/g,' ');
  for(const b of qb.data){
-   const ls=animais.filter(x=>x._pesagem_id===b.pesagem_id && (!b.origem || String(x.origem).toUpperCase()===String(b.origem).toUpperCase()));
+   let ls=animais.filter(x=>x._pesagem_id===b.pesagem_id && (!b.origem || normOrig(x.origem)===normOrig(b.origem)));
+   /* Segurança para históricos antigos: se o evento inteiro possui um único abate,
+      aplica ao evento quando a nomenclatura antiga da origem não coincide exatamente. */
+   if(!ls.length){
+     const mesmoEvento=qb.data.filter(z=>z.pesagem_id===b.pesagem_id);
+     if(mesmoEvento.length===1) ls=animais.filter(x=>x._pesagem_id===b.pesagem_id);
+   }
    for(const x of ls){
-     const r=calcAbate(x,Number(b.carcaca_arrobas),Number(b.valor_arroba));
-     Object.assign(x,{pesoCarcacaArrobas:Number(b.carcaca_arrobas),valorArroba:Number(b.valor_arroba),
-       valorVenda:r.venda,resultado:r.resultado,pesoCarcacaKg:r.pesoCarcKg,rendimentoCarcaca:r.rendPct,
-       arrobasProduzidas:r.arrobasProd,gdc:r.gdc,diasPorArroba:r.dias1,kgProduzidos:r.kgProd,
-       custoArrobaProduzida:r.custoArroba,retornoCapitalPeriodo:r.retorno,apuradoArrobaProduzida:r.apuradoAt,
-       retornoCapitalMensal:r.retornoMensal,apuradoArrobasBoi:r.apuradoBoi,apuradoConfinamento:r.apuradoConf,
-       liquido:r.liquido,funrural:r.funrural,aReceber:r.receber,abateSalvoEm:b.atualizado_em||b.criado_em});
+     const ca=Number(b.carcaca_arrobas), va=Number(b.valor_arroba);
+     const r=calcAbate(x,ca,va);
+     Object.assign(x,{pesoCarcacaArrobas:ca,valorArroba:va,
+       valorVenda:Number.isFinite(Number(b.valor_venda))?Number(b.valor_venda):r.venda,
+       resultado:Number.isFinite(Number(b.resultado))?Number(b.resultado):r.resultado,
+       pesoCarcacaKg:Number.isFinite(Number(b.carcaca_kg))?Number(b.carcaca_kg):r.pesoCarcKg,
+       rendimentoCarcaca:Number.isFinite(Number(b.rendimento_carcaca))?Number(b.rendimento_carcaca)*100:r.rendPct,
+       arrobasProduzidas:Number.isFinite(Number(b.arrobas_produzidas))?Number(b.arrobas_produzidas):r.arrobasProd,
+       gdc:Number.isFinite(Number(b.gdc))?Number(b.gdc):r.gdc,
+       diasPorArroba:Number.isFinite(Number(b.dias_por_arroba))?Number(b.dias_por_arroba):r.dias1,
+       kgProduzidos:Number.isFinite(Number(b.kg_produzidos))?Number(b.kg_produzidos):r.kgProd,
+       custoArrobaProduzida:Number.isFinite(Number(b.custo_arroba_produzida))?Number(b.custo_arroba_produzida):r.custoArroba,
+       retornoCapitalPeriodo:Number.isFinite(Number(b.retorno_capital_periodo))?Number(b.retorno_capital_periodo):r.retorno,
+       apuradoArrobaProduzida:Number.isFinite(Number(b.apurado_arroba_produzida))?Number(b.apurado_arroba_produzida):r.apuradoAt,
+       retornoCapitalMensal:Number.isFinite(Number(b.retorno_capital_mensal))?Number(b.retorno_capital_mensal):r.retornoMensal,
+       apuradoArrobasBoi:Number.isFinite(Number(b.apurado_arroba_boi))?Number(b.apurado_arroba_boi):r.apuradoBoi,
+       apuradoConfinamento:Number.isFinite(Number(b.apurado_confinamento))?Number(b.apurado_confinamento):r.apuradoConf,
+       liquido:Number.isFinite(Number(b.liquido))?Number(b.liquido):r.liquido,
+       funrural:Number.isFinite(Number(b.funrural))?Number(b.funrural):r.funrural,
+       aReceber:Number.isFinite(Number(b.a_receber))?Number(b.a_receber):r.receber,
+       abateSalvoEm:b.data_abate||b.atualizado_em||b.criado_em});
    }
  }
  localStorage.setItem('pesagem_saida_etapa1_v2',JSON.stringify(animais));
@@ -233,13 +401,17 @@ async function pesagemIdPara(x){
 }
 addAnimal=async function(){
  try{
-  calc();let x={entrada:$('l_entrada').value,saida:$('l_saida').value,destino:$('l_destino').value,diaria:parseFloat($('l_diaria').value)||0,origemCompra:$('l_oc').value,compra:parseFloat($('l_compra').value)||0,brinco:$('a_brinco').value.trim(),origem:$('a_origem').value.trim(),pe:parseFloat($('a_pe').value),ps:parseFloat($('a_ps').value),dias:parseInt($('a_dias').value),gmd:parseFloat($('a_gmd').value),custoAtual:parseFloat($('a_atual').value)||0,custoAcumulado:parseFloat($('a_acum').value)||0,custoAcumuladoAnterior:parseFloat($('a_acum').value)||0,custoAnimal:parseFloat($('a_custo').value)||0};
+  calc();let x={entrada:$('l_entrada').value,saida:$('l_saida').value,destino:$('l_destino').value,diaria:parseFloat($('l_diaria').value)||0,origemCompra:$('l_oc').value,compra:parseFloat($('l_compra').value)||0,brinco:$('a_brinco').value.trim(),origem:$('a_origem').value.trim(),pe:parseFloat($('a_pe').value),ps:parseFloat($('a_ps').value),dias:parseInt($('a_dias').value),gmd:parseFloat($('a_gmd').value),custoAtual:parseFloat($('a_atual').value)||0,custoAcumulado:parseFloat($('a_acum').value)||0,custoAcumuladoAnterior:parseFloat($('a_acum').value)||0,custoAnimal:parseFloat($('a_custo').value)||0,status:'VENDA',tipoEvento:'VENDA'};
   if(!x.brinco||!x.origem||!isFinite(x.pe)||!isFinite(x.ps)){toast('PREENCHA BRINCO, ORIGEM, PESO DE ENTRADA E PESO DE SAÍDA.');return}
   if(animais.some(a=>String(a.brinco||'').trim().toUpperCase()===x.brinco.toUpperCase())){toast('BRINCO JÁ LANÇADO. LANÇAMENTO BLOQUEADO.');return}
   const pid=await pesagemIdPara(x);
+  const eventoExistente=animais.find(a=>a._pesagem_id===pid && a.eventoId)?.eventoId;
+  const eventoId=eventoExistente||crypto.randomUUID();
+  const cicloId=crypto.randomUUID();
   const row={pesagem_id:pid,brinco:x.brinco,origem:x.origem,data_entrada:x.entrada||null,data_saida:x.saida||null,destino:x.destino,
     peso_entrada:x.pe,peso_saida:x.ps,qtd_dias:x.dias,gmd:x.gmd,valor_diaria:x.diaria,origem_compra:x.origemCompra,
-    preco_compra:x.compra,custo_atual:x.custoAtual,custo_acumulado:x.custoAcumulado,custo_animal:x.custoAnimal};
+    preco_compra:x.compra,custo_atual:x.custoAtual,custo_acumulado:x.custoAcumulado,custo_animal:x.custoAnimal,
+    status:'VENDA',tipo_evento:'VENDA',evento_id:eventoId,ciclo_id:cicloId};
   const ins=await supa.from('animais').insert(row).select('*').single(); if(ins.error)throw ins.error;
   animais.push(dbToAnimal(ins.data));localStorage.setItem('pesagem_saida_etapa1_v2',JSON.stringify(animais));
   $('a_brinco').value='';$('a_origem').value='';$('a_pe').value='';$('a_ps').value='';$('a_acum').value=$('l_acum').value||0;calc();renderAll();

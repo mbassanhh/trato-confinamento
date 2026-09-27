@@ -9,12 +9,30 @@
 *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
 .app{display:flex;min-height:100vh}.side{width:235px;background:var(--dark);color:#fff;padding:24px 15px;position:fixed;left:0;top:0;bottom:0}.brand{font-size:19px;font-weight:700;line-height:1.2;padding:0 12px 24px;border-bottom:1px solid rgba(255,255,255,.12)}.brand small{display:block;color:#aeb8be;font-size:11px;font-weight:400;margin-top:6px}.nav{margin-top:20px}.nav button{width:100%;border:0;background:transparent;color:#cbd2d6;text-align:left;padding:12px 13px;border-radius:8px;margin:2px 0;cursor:pointer;font-size:14px}.nav button.active,.nav button:hover{background:#2a353c;color:#fff}.main{margin-left:235px;width:calc(100% - 235px);padding:26px 30px 40px}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:22px}.eyebrow{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}.title{font-size:27px;font-weight:700;margin:5px 0}.subtitle{font-size:13px;color:var(--muted)}.actions{display:flex;gap:8px}.btn{border:1px solid var(--line);background:#fff;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600}.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}.btn.danger{color:var(--danger)}
 .page{display:none}.page.active{display:block}.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:20px;margin-bottom:18px}.panel h2{font-size:17px;margin:0 0 5px}.panel p{font-size:12px;color:var(--muted);margin:0 0 16px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.field label{display:block;font-size:11px;font-weight:700;color:#4f5962;margin:0 0 6px}.field input,.field select{width:100%;padding:11px 10px;border:1px solid #ccd3d8;border-radius:7px;background:#fff;font-size:13px;color:var(--text);outline:none}.field input:focus{border-color:#8ca99b;box-shadow:0 0 0 3px var(--accent2)}.locked{background:#f1f3f4!important;color:#59636b!important}.hint{font-size:11px;color:var(--muted);margin-top:5px}.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px}.kpi{background:#fff;border:1px solid var(--line);border-radius:10px;padding:15px}.kpi span{display:block;color:var(--muted);font-size:11px}.kpi strong{display:block;font-size:21px;margin-top:6px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:9px}table{width:100%;border-collapse:collapse;min-width:1450px;font-size:12px}th{background:#f1f3f4;color:#4b555e;text-align:left;padding:10px;border-bottom:1px solid var(--line);white-space:nowrap}td{padding:9px 10px;border-bottom:1px solid #edf0f2;white-space:nowrap}tr:last-child td{border-bottom:0}.pending{color:#8b6a21;font-weight:700}.status-badge{display:inline-block;padding:7px 12px;border-radius:8px;font-size:16px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}.status-badge.compact{padding:3px 7px;border-radius:12px;font-size:10px;letter-spacing:.02em}.status-resumo{font-size:11px;color:var(--muted);font-weight:700;white-space:nowrap}.status-resumo .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 4px 0 10px;vertical-align:middle}.dot.ativo{background:#2f9e57}.dot.venda{background:#d4a900}.dot.morte{background:#c83d3d}.consulta-animal{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.consulta-animal .field{min-width:240px}.ficha-topo{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px}.ficha-ident{font-size:20px;font-weight:900}.ficha-meta{font-size:12px;color:var(--muted);margin-top:4px}.status-ativo{background:#dff3e5;color:#176b36;border:1px solid #9bd3aa}.status-venda{background:#fff2b8;color:#725600;border:1px solid #e2c85f}.status-morte{background:#f9d7d7;color:#9b1c1c;border:1px solid #e59a9a}.tipo-evento{font-weight:800;text-transform:uppercase}.id-tecnico{font-family:monospace;font-size:10px;color:var(--muted)}.empty{padding:35px;text-align:center;color:var(--muted)}.section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:13px}.tag{font-size:11px;padding:5px 8px;border-radius:20px;background:var(--accent2);color:var(--accent);font-weight:700}.notice{background:#f7f8f8;border-left:4px solid var(--accent);padding:12px 14px;font-size:12px;color:#4d5860;margin-top:14px}.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.row2{display:grid;grid-template-columns:2fr 1fr 1fr;gap:13px}.small-note{font-size:11px;color:var(--muted)}
-@media(max-width:1050px){.grid{grid-template-columns:repeat(2,1fr)}.kpis{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.side{position:static;width:100%;height:auto}.app{display:block}.main{margin-left:0;width:100%;padding:18px}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap}.grid,.row2{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}.top{display:block}.actions{margin-top:12px}}
+@media(max-width:1050px){.grid{grid-template-columns:repeat(2,1fr)}.kpis{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.dash-local-grid{grid-template-columns:1fr!important}.side{position:static;width:100%;height:auto}.app{display:block}.main{margin-left:0;width:100%;padding:18px}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap}.grid,.row2{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}.top{display:block}.actions{margin-top:12px}}
 
 .chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.chart-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px}.chart-box h3{margin:0 0 4px;font-size:15px}.chart-box p{margin:0 0 14px;font-size:11px;color:var(--muted)}.bars{display:flex;align-items:flex-end;gap:10px;height:210px;border-bottom:1px solid var(--line);padding:12px 6px 0}.bar-item{flex:1;min-width:48px;text-align:center}.bar{width:70%;margin:auto;background:var(--accent);border-radius:6px 6px 0 0;min-height:2px}.bar-value{font-size:10px;font-weight:700;margin-bottom:5px}.bar-label{font-size:9px;color:var(--muted);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.home-head{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:16px}.print-only-title{display:none}@media(max-width:760px){.chart-grid{grid-template-columns:1fr}}
 @media print{.side,.top,.no-print{display:none!important}.main{margin:0;width:100%;padding:0}.page{display:none!important}.page.active{display:block!important}.panel{box-shadow:none;border:0;padding:0}.print-only-title{display:block}.kpis{grid-template-columns:repeat(4,1fr)}body{background:#fff}}
+
+/* MENU ORGANIZADO */
+.side{display:flex;flex-direction:column;height:100vh;padding-bottom:14px;overflow:hidden}
+.side .brand{flex:0 0 auto}
+.nav{flex:1 1 auto;overflow-y:auto;min-height:0;padding-right:4px;margin-top:14px}
+.nav::-webkit-scrollbar{width:6px}.nav::-webkit-scrollbar-thumb{background:#53616a;border-radius:6px}
+.nav-group{margin:14px 0 5px;padding:0 12px;color:#81909a;font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.nav-group:first-child{margin-top:2px}
+.side #btnSair{flex:0 0 auto;margin-top:10px!important}
+@media(max-width:760px){.side{height:auto;max-height:none;overflow:visible}.nav{overflow-x:auto;overflow-y:hidden;display:flex;align-items:center;margin-top:12px;padding-bottom:5px}.nav-group{display:none}.side #btnSair{margin-top:10px!important}}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n</head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n
+<style id="dashV15Style">
+.dash-v15-resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin:12px 0 18px}
+.dash-v15-card{border:1px solid #d8dee7;border-radius:10px;padding:12px;background:#fff}
+.dash-v15-card span{display:block;font-size:11px;font-weight:800;color:#64748b}
+.dash-v15-card strong{display:block;font-size:23px;margin-top:4px;color:#0f172a}
+</style>
+
+</head>
 <body>
 <div id="supaLogin" style="position:fixed;inset:0;background:#f3f6f8;z-index:99999;display:flex;align-items:center;justify-content:center;padding:18px">
 <div style="width:min(430px,100%);background:white;border:1px solid #dce2e6;border-radius:14px;padding:24px;box-shadow:0 12px 35px #0002">
@@ -28,24 +46,32 @@
 <aside class="side">
   <div class="brand">GESTÃO DE CONFINAMENTO<small>Pesagem, custos e resultados</small><small id="perfilAtual" style="margin-top:10px;color:#fff;font-weight:700"></small></div>
   <div class="nav">
+    <div class="nav-group">OPERAÇÃO</div>
     <button onclick="showPage('dashboard',this)" class="active">Dashboard</button>
+    <button onclick="showPage('lote',this)">Entrada / Cadastro</button>
     <button onclick="showPage('cocho',this)">Leitura de Cocho</button>
-    <button onclick="showPage('saidas',this);carregarSaidasAtivas()">Saídas</button>
-    <button onclick="showPage('lote',this)">Dados do lote</button>
-    <button onclick="showPage('animais',this)">Animais Negociados</button>
-    <button onclick="showPage('pesagens',this)">Pesagens</button>
+    <button class="admin-only cocho-admin-menu" onclick="showPage('historicoCocho',this);abrirHistoricoCocho()">Histórico de Cocho</button>
+    <button class="admin-only cocho-admin-menu" onclick="imprimirFichaCocho()">Impressão Ficha de Leitura</button>
+    <button onclick="showPage('pesagens',this)">Pesagem de Saída</button>
+    <button onclick="showPage('saidas',this);carregarSaidasAtivas()">Saídas / Movimentação</button>
+    <button onclick="showPage('mortes',this);renderMortes()">Mortes</button>
+
+    <div class="nav-group">RESULTADOS</div>
+    <button class="admin-only" onclick="showPage('entradasResumo',this);renderEntradasResumo()">Entradas / Apresentação</button>
+    <button onclick="showPage('animais',this)">Animais</button>
     <button onclick="showPage('abate',this)">Abate / Resultados</button>
     <button onclick="showPage('parcial',this)">Parcial</button>
     <button onclick="showPage('arrobaProduzida',this)">Arroba Produzida</button>
-     <button onclick="showPage('financeiro',this);renderFinanceiro()">Visão Financeira</button>
-    <button onclick="showPage('mortes',this);renderMortes()">Mortes</button>
+
+    <div class="nav-group">GESTÃO</div>
+    <button onclick="showPage('financeiro',this);renderFinanceiro()">Visão Financeira</button>
     <button onclick="showPage('graficos',this)">Gráficos</button>
     <button onclick="showPage('relatorios',this)">Relatórios / Impressão</button>
   </div>
   <button id="btnSair" class="btn" type="button" style="width:100%;margin-top:18px;background:transparent;color:#fff;border-color:#53616a">SAIR</button>
 </aside>
 <main class="main">
-  <div class="top"><div><div class="eyebrow">ETAPA 1</div><div class="title">Pesagem de saída</div><div class="subtitle">Cadastro do lote e lançamento individual dos animais.</div></div><div class="actions"><button class="btn" onclick="window.print()">Imprimir</button></div></div>
+  <div class="top"><div><div class="eyebrow">FAZENDA NOVA ESPERANÇA</div><div class="title">Gestão do Confinamento</div><div class="subtitle">Visão geral do estoque atual e dos módulos operacionais.</div></div><div class="actions"><button class="btn" onclick="window.print()">Imprimir</button></div></div>
 
   <section id="abate" class="page">
   <div class="panel">
@@ -64,14 +90,32 @@
   </div>
 </section>
   <section id="cocho" class="page">
-    <div class="panel" style="padding:0;overflow:hidden">
+    <div class="panel">
       <iframe id="cochoFrame" title="Leitura de Cocho" style="width:100%;height:calc(100vh - 110px);min-height:760px;border:0;background:#fff"></iframe>
     </div>
+    
   </section>
 
   <section id="dashboard" class="page active">
-    <div class="panel"><div class="home-head"><div><h2>Visão geral</h2><p>Resumo atualizado de todas as pesagens salvas no sistema.</p></div><div style="text-align:right"><span class="tag">VISÃO GERENCIAL</span><div id="dashStatusResumo" class="status-resumo" style="margin-top:9px"></div></div></div><div class="kpis" id="dashKpis"></div></div>
-    <div id="dashGraficos" class="chart-grid"></div>
+    <div class="panel">
+<div id="dashV15Resumo" class="dash-v15-resumo">
+ <div class="dash-v15-card"><span>TOTAL CONFINAMENTO</span><strong id="v15Conf">376</strong></div>
+ <div class="dash-v15-card"><span>TOTAL SEMI-CONFINAMENTO</span><strong id="v15Semi">234</strong></div>
+ <div class="dash-v15-card"><span>TOTAL ARRENDAMENTO</span><strong id="v15Arr">194</strong></div>
+ <div class="dash-v15-card"><span>MORTES NO MÊS</span><strong id="v15Mortes">12</strong></div>
+ <div class="dash-v15-card"><span>PRÓXIMOS REFORÇOS</span><strong id="v15Ref" style="font-size:15px;line-height:1.45;color:#c62828">—</strong></div>
+</div>
+
+      <div class="home-head">
+        <div><h2>Estoque atual</h2><p>Visão física atual dos animais nas localidades.</p></div>
+        <div style="text-align:right"><span class="tag">VISÃO GERENCIAL</span><div id="dashStatusResumo" class="status-resumo" style="margin-top:9px"></div></div>
+      </div>
+      <div class="kpis" id="dashKpis"><div class="kpi"><span>CARREGANDO</span><strong>...</strong></div></div>
+    </div>
+    <div class="panel">
+      <div class="section-head"><div><h2>Animais por localidade</h2><p>Na mesma ordem operacional da planilha de controle.</p></div><span class="tag">ESTOQUE FÍSICO</span></div>
+      <div id="dashGraficos"></div>
+    </div>
   </section>
 
   <section id="saidas" class="page">
@@ -95,42 +139,76 @@
   </section>
 
   <section id="lote" class="page">
+<div class="panel">
+ <div class="section-head"><div><h2>Entrada / Cadastro</h2><p>Informe os dados do lote uma vez e depois lance os animais individualmente.</p></div><span class="tag">NOVO LOTE</span></div>
+ <div class="grid">
+  <div class="field"><label>Destino / Localidade *</label><input id="ent_local" type="text" placeholder="LOCALIDADE"></div>
+  <div class="field"><label>Data da compra *</label><input id="ent_compra_data" type="date"></div>
+  <div class="field"><label>Data de chegada *</label><input id="ent_chegada_data" type="date"></div>
+  <div class="field"><label>Data de entrada *</label><input id="ent_entrada_data" type="date"></div>
+  <div class="field"><label>Origem da compra</label><input id="ent_origem_compra" type="text"></div>
+  <div class="field"><label>Sexo *</label><input id="ent_sexo" type="text"></div>
+  <div class="field"><label>Valor de compra (R$) *</label><input id="ent_valor" type="number" step="0.01"></div>
+  <div class="field"><label>Frete (R$)</label><input id="ent_frete" type="number" step="0.01"></div>
+  <div class="field"><label>Comissão (R$)</label><input id="ent_comissao" type="number" step="0.01"></div>
+  <div class="field"><label>Categoria</label><input id="ent_categoria" type="text"></div>
+  <div class="field"><label>Idade</label><input id="ent_idade" type="text"></div>
+  <div class="field"><label>Marca</label><input id="ent_marca" type="text"></div>
+  <div class="field"><label>Data da vacinação</label><input id="ent_vacina" type="date"></div>
+  <div class="field"><label>Observação</label><input id="ent_obs" type="text"></div>
+ </div>
+ <div class="notice">* Campos obrigatórios. FRETE e COMISSÃO em branco serão considerados R$ 0,00.</div>
+</div>
+<div class="panel">
+ <div class="section-head"><div><h2>Lançar animal</h2><p>Digite somente os dados individuais. Peso de chegada vazio assume o peso de entrada.</p></div><span class="tag">INDIVIDUAL</span></div>
+ <div class="grid">
+  <div class="field"><label>Brinco *</label><input id="ent_brinco" type="text"></div>
+  <div class="field"><label>Peso de entrada (kg) *</label><input id="ent_peso_entrada" type="number" step="0.1"></div>
+  <div class="field"><label>Peso de chegada (kg)</label><input id="ent_peso_chegada" type="number" step="0.1"></div>
+ </div>
+ <div class="form-actions"><button class="btn primary" id="btnEntAdicionar" type="button">ADICIONAR ANIMAL</button></div>
+</div>
+<div class="panel">
+ <div class="section-head"><div><h2>Entrada atual</h2><p>Indicadores atualizados conforme os animais forem adicionados.</p></div><span class="tag">AUTOMÁTICO</span></div>
+ <div class="kpis" id="entradaKpis">
+  <div class="kpi"><span>ANIMAIS</span><strong>0</strong></div>
+  <div class="kpi"><span>PESO MÉDIO KG</span><strong>—</strong></div>
+  <div class="kpi"><span>PESO MÉDIO @</span><strong>—</strong></div>
+  <div class="kpi"><span>MENOR PESO</span><strong>—</strong></div>
+  <div class="kpi"><span>MAIOR PESO</span><strong>—</strong></div>
+  <div class="kpi"><span>CUSTO MÉDIO / ANIMAL</span><strong>—</strong></div>
+ </div>
+</div>
+<div class="panel"><div class="section-head"><div><h2>Animais desta entrada</h2><p>Listagem do lote que está sendo lançado.</p></div><span class="tag">LISTAGEM</span></div><div id="entradaLista"><div class="empty">Nenhum animal incluído nesta entrada.</div></div></div>
+</section>
+
+
+<div id="entradaLegacyHooks" style="display:none!important">
+  <input id="l_entrada"><input id="l_saida"><input id="l_destino"><input id="l_diaria">
+  <input id="l_oc"><input id="l_compra"><input id="l_acum">
+  <input id="a_brinco"><input id="a_origem"><input id="a_pe"><input id="a_ps">
+  <input id="a_dias"><input id="a_gmd"><input id="a_atual"><input id="a_acum"><input id="a_custo">
+  <div id="mediasInline"></div><div id="animaisInline"></div>
+</div>
+
+<section id="entradasResumo" class="page admin-only">
+  <div class="panel">
+    <div class="section-head"><div><h2>Entradas / Apresentação</h2><p>Dashboard dos lotes de entrada para apresentação e impressão.</p></div><span class="tag">ADMIN</span></div>
+    <div id="entradasResumoLista"><div class="empty">CARREGANDO ENTRADAS...</div></div>
+  </div>
+</section>
+
+<section id="historicoCocho" class="page admin-only">
     <div class="panel">
-      <div class="section-head"><div><h2>Informações-chave do lote</h2><p>Digite uma vez. Esses dados ficam como padrão para os próximos animais.</p></div><span class="tag">PADRÃO DO LOTE</span></div>
-      <div class="grid">
-        <div class="field"><label>Data de entrada</label><input id="l_entrada" type="date"></div>
-        <div class="field"><label>Data de saída</label><input id="l_saida" type="date"></div>
-        <div class="field"><label>Destino</label><input id="l_destino" type="text" placeholder="Digite o destino"></div>
-        <div class="field"><label>Valor da diária (R$)</label><input id="l_diaria" type="number" step="0.01" placeholder="0,00"></div>
-        <div class="field"><label>Origem da compra</label><input id="l_oc" type="text" placeholder="Digite a origem da compra"></div>
-        <div class="field"><label>Preço de compra (R$)</label><input id="l_compra" type="number" step="0.01" placeholder="0,00"></div>
-        <div class="field"><label>Custo acumulado anterior (R$)</label><input id="l_acum" type="number" step="0.01" placeholder="0,00"></div>
+      <div class="section-head"><div><h2>Histórico de Leituras de Cocho</h2><p>Visualização diária das leituras registradas.</p></div><span class="tag">ADMIN</span></div>
+      <div class="form-actions">
+        <button class="btn" type="button" onclick="imprimirFichaCocho()">IMPRIMIR LISTAGEM</button>
       </div>
-      <div class="notice">Depois de preenchidas, essas informações serão carregadas automaticamente em cada novo animal. Elas não são buscadas do sistema de trato e não há lista fixa de origem.</div>
-      <div class="form-actions"><button class="btn primary" onclick="salvarPadrao()">Salvar padrão do lote</button></div>
+      <div id="historicoCochoResultado" style="margin-top:14px"><div class="empty">CARREGANDO HISTÓRICO...</div></div>
     </div>
-    <div class="panel">
-      <div class="section-head"><div><h2>Lançar animal</h2><p>Os campos gerais já entram com o padrão informado acima.</p></div><span class="tag">NOVO ANIMAL</span></div>
-      <div class="grid">
-        <div class="field"><label>Brinco</label><input id="a_brinco" placeholder="Digite o brinco"></div>
-        <div class="field"><label>Origem</label><input id="a_origem" placeholder="Você digita a origem"></div>
-        <div class="field"><label>Peso de entrada (kg)</label><input id="a_pe" type="number" step="0.1"></div>
-        <div class="field"><label>Peso de saída (kg)</label><input id="a_ps" type="number" step="0.1"></div>
-      </div>
-      <div class="grid" style="margin-top:13px">
-        <div class="field"><label>Quantidade de dias</label><input id="a_dias" class="locked" readonly></div>
-        <div class="field"><label>GMD (kg/dia)</label><input id="a_gmd" class="locked" readonly></div>
-        <div class="field"><label>Custo atual (R$)</label><input id="a_atual" class="locked" readonly></div>
-        <div class="field"><label>Custo acumulado anterior (R$)</label><input id="a_acum" type="number" step="0.01" placeholder="0,00"></div>
-        <div class="field"><label>Custo do animal (R$)</label><input id="a_custo" class="locked" readonly></div>
-      </div>
-      <div class="form-actions"><button class="btn primary" onclick="addAnimal()">Adicionar animal</button></div>
-    </div>
-    <div class="panel" style="margin-top:16px"><div class="section-head"><div><h2>Médias da pesagem atual</h2><p>Somente os animais da pesagem que está sendo lançada.</p></div><span class="tag">AUTOMÁTICO</span></div><div id="mediasInline"></div></div>
-    <div class="panel" style="margin-top:16px"><div class="section-head"><div><h2>Animais desta pesagem</h2><p>Somente os animais da pesagem atual. Os demais continuam salvos no sistema.</p></div><span class="tag">LISTAGEM</span></div><div id="animaisInline"></div></div>
   </section>
 
-  <section id="animais" class="page"><div class="panel"><div class="section-head"><div><h2>Consulta individual</h2><p>Informe o BRINCO/SB para visualizar o histórico completo do animal.</p></div><span class="tag">FICHA DO ANIMAL</span></div><div class="consulta-animal"><div class="field"><label>BRINCO / SB</label><input id="consultaBrinco" placeholder="Digite o número do animal"></div><button class="btn primary" type="button" onclick="consultarAnimal()">Buscar animal</button><button class="btn" type="button" onclick="limparConsultaAnimal()">Limpar</button></div><div id="fichaAnimal" style="margin-top:18px"></div></div><div class="panel"><h2>Animais Negociados</h2><p>Todos os animais negociados salvos no sistema.</p><div id="animaisTable"></div></div></section>
+<section id="animais" class="page"><div class="panel"><div class="section-head"><div><h2>Consulta individual</h2><p>Informe o BRINCO/SB para visualizar o histórico completo do animal.</p></div><span class="tag">FICHA DO ANIMAL</span></div><div class="consulta-animal"><div class="field"><label>BRINCO / SB</label><input id="consultaBrinco" placeholder="Digite o número do animal"></div><button class="btn primary" type="button" onclick="consultarAnimal()">Buscar animal</button><button class="btn" type="button" onclick="limparConsultaAnimal()">Limpar</button></div><div id="fichaAnimal" style="margin-top:18px"></div></div><div class="panel"><h2>Animais Negociados</h2><p>Todos os animais negociados salvos no sistema.</p><div id="animaisTable"></div></div></section>
   <section id="pesagens" class="page"><div class="panel"><h2>Pesagens</h2><p>Controle da pesagem de saída.</p><div id="pesagensTable"></div></div></section>
 
   <section id="parcial" class="page">
@@ -220,6 +298,112 @@ function carregarModuloCocho(){
 // Animais já lançados nesta etapa não tinham o campo de custo anterior. Portanto, o custo acumulado anterior deles é zero.
 // Preserva integralmente os custos já gravados nas versões anteriores.
 animais=animais.map(a=>({...a,custoAcumuladoAnterior:a.custoAcumuladoAnterior===undefined?(Number(a.custoAcumulado)||0):a.custoAcumuladoAnterior}));
+async function renderEntradasResumo(){
+ const box=$('entradasResumoLista');if(!box)return;box.innerHTML='<div class="empty">CARREGANDO ENTRADAS...</div>';
+ try{
+  const l=await supa.from('entradas_lotes').select('*').order('data_entrada',{ascending:false});if(l.error)throw l.error;
+  const lotes=l.data||[];if(!lotes.length){box.innerHTML='<div class="empty">AINDA NÃO HÁ ENTRADA REAL GRAVADA. A PRIMEIRA ENTRADA GERARÁ AQUI A CAPA/DASHBOARD AUTOMATICAMENTE.</div>';return}
+  const ids=lotes.map(x=>x.id);const a=await supa.from('animais').select('entrada_lote_id,peso_entrada,peso_chegada').in('entrada_lote_id',ids);if(a.error)throw a.error;
+  const por={};(a.data||[]).forEach(x=>(por[x.entrada_lote_id]??=[]).push(x));
+  box.innerHTML=lotes.map(x=>entradaCardHTML(x,por[x.id]||[])).join('');
+ }catch(e){box.innerHTML='<div class="notice">ERRO AO CARREGAR ENTRADAS: '+String(e.message||e)+'</div>'}
+}
+function entradaMetricas(x,ls){
+ const pesos=ls.map(a=>Number(a.peso_entrada)).filter(v=>Number.isFinite(v)&&v>0),q=ls.length,pm=pesos.length?pesos.reduce((a,b)=>a+b,0)/pesos.length:null;
+ const menor=pesos.length?Math.min(...pesos):null,maior=pesos.length?Math.max(...pesos):null;
+ const custo=(Number(x.valor_compra)||0)+(Number(x.frete)||0)+(Number(x.comissao)||0);
+ return {q,pm,menor,maior,custo};
+}
+function entradaCardHTML(x,ls){
+ const m=entradaMetricas(x,ls), id=String(x.id).replaceAll('-','');
+ return `<div class="panel" style="margin:0 0 14px">
+ <div class="section-head"><div><h2>${String(x.localizacao||'ENTRADA').toUpperCase()}</h2><p>Entrada ${dataBR(x.data_entrada)} • Compra ${dataBR(x.data_compra)} • Chegada ${dataBR(x.data_chegada)}</p></div><button class="btn" onclick="imprimirCapaEntrada('${x.id}')">IMPRIMIR CAPA DA ENTRADA</button></div>
+ <div class="kpis">
+ <div class="kpi"><span>ANIMAIS</span><strong>${m.q}</strong></div>
+ <div class="kpi"><span>PESO MÉDIO</span><strong>${m.pm===null?'—':m.pm.toFixed(1)+' kg'}</strong></div>
+ <div class="kpi"><span>PESO MÉDIO @</span><strong>${m.pm===null?'—':(m.pm/30).toFixed(2)+' @'}</strong></div>
+ <div class="kpi"><span>MENOR PESO</span><strong>${m.menor===null?'—':m.menor.toFixed(1)+' kg'}</strong></div>
+ <div class="kpi"><span>MAIOR PESO</span><strong>${m.maior===null?'—':m.maior.toFixed(1)+' kg'}</strong></div>
+ <div class="kpi"><span>CUSTO ATUAL MÉDIO</span><strong>${money(m.custo)}</strong></div></div>
+ <div class="table-wrap"><table><tbody>
+ <tr><th>ORIGEM DA COMPRA</th><td>${x.origem_compra||'—'}</td><th>SEXO</th><td>${x.sexo||'—'}</td></tr>
+ <tr><th>VALOR COMPRA</th><td>${money(Number(x.valor_compra)||0)}</td><th>FRETE</th><td>${money(Number(x.frete)||0)}</td></tr>
+ <tr><th>COMISSÃO</th><td>${money(Number(x.comissao)||0)}</td><th>CATEGORIA</th><td>${x.categoria||'—'}</td></tr>
+ <tr><th>IDADE</th><td>${x.idade||'—'}</td><th>MARCA</th><td>${x.marca||'—'}</td></tr>
+ </tbody></table></div></div>`;
+}
+async function imprimirCapaEntrada(id){
+ try{
+  const l=await supa.from('entradas_lotes').select('*').eq('id',id).single();if(l.error)throw l.error;
+  const a=await supa.from('animais').select('brinco,peso_entrada,peso_chegada').eq('entrada_lote_id',id);if(a.error)throw a.error;
+  const x=l.data,ls=a.data||[],m=entradaMetricas(x,ls);
+  const w=window.open('','_blank');w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Capa da Entrada</title><style>@page{size:A4 portrait;margin:12mm}body{font-family:Arial;color:#111}h1{text-align:center;border-bottom:2px solid #111;padding-bottom:10px}.sub{text-align:center;font-weight:800;margin-bottom:20px}.k{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.c{border:1px solid #999;padding:10px;text-align:center}.c span{display:block;font-size:9px;font-weight:800}.c b{font-size:17px}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #999;padding:7px;font-size:11px}th{text-align:left;background:#eee}.rod{margin-top:35px;display:flex;justify-content:space-between;font-size:9px;font-style:italic;font-weight:bold}</style></head><body><h1>CAPA DA ENTRADA</h1><div class="sub">FAZENDA NOVA ESPERANÇA<br>${String(x.localizacao||'').toUpperCase()}</div><div class="k"><div class="c"><span>ANIMAIS</span><b>${m.q}</b></div><div class="c"><span>PESO MÉDIO</span><b>${m.pm===null?'—':m.pm.toFixed(1)+' kg'}</b></div><div class="c"><span>PESO MÉDIO @</span><b>${m.pm===null?'—':(m.pm/30).toFixed(2)+' @'}</b></div><div class="c"><span>MENOR PESO</span><b>${m.menor===null?'—':m.menor.toFixed(1)+' kg'}</b></div><div class="c"><span>MAIOR PESO</span><b>${m.maior===null?'—':m.maior.toFixed(1)+' kg'}</b></div><div class="c"><span>CUSTO MÉDIO / ANIMAL</span><b>${money(m.custo)}</b></div></div><table><tr><th>DATA COMPRA</th><td>${dataBR(x.data_compra)}</td><th>DATA CHEGADA</th><td>${dataBR(x.data_chegada)}</td></tr><tr><th>DATA ENTRADA</th><td>${dataBR(x.data_entrada)}</td><th>ORIGEM</th><td>${x.origem_compra||'—'}</td></tr><tr><th>SEXO</th><td>${x.sexo||'—'}</td><th>VALOR COMPRA</th><td>${money(Number(x.valor_compra)||0)}</td></tr><tr><th>FRETE</th><td>${money(Number(x.frete)||0)}</td><th>COMISSÃO</th><td>${money(Number(x.comissao)||0)}</td></tr><tr><th>CATEGORIA</th><td>${x.categoria||'—'}</td><th>IDADE</th><td>${x.idade||'—'}</td></tr><tr><th>MARCA</th><td>${x.marca||'—'}</td><th>DESTINO</th><td>${x.localizacao||'—'}</td></tr></table><div class="rod"><span>FAZENDA NOVA ESPERANÇA - DENIS FABIO MARSOLA</span><span>DESENVOLVIDO POR MARCO BASSAN | SET/2026</span></div><script>window.onload=()=>window.print()<\/script></body></html>`);w.document.close();
+ }catch(e){toast('ERRO AO IMPRIMIR CAPA DA ENTRADA: '+String(e.message||e))}
+}
+
+function fmtDataCocho(v){if(!v)return '';const p=String(v).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:v}
+function nCocho(v,d=2){const x=Number(v);return Number.isFinite(x)?x.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—'}
+async function consultarHistoricoCocho(){
+ const box=$('historicoCochoResultado');box.innerHTML='<div class="empty">CARREGANDO HISTÓRICO...</div>';
+ try{
+  const lr=await supa.from('leituras_cocho').select('data_leitura,curral_id,quantidade_bois,total_realizado,ms_cabeca,nota,previsao_ms_cabeca,total_previsto').order('data_leitura',{ascending:false});
+  if(lr.error)throw lr.error;
+  const ids=[...new Set((lr.data||[]).map(x=>x.curral_id).filter(Boolean))],nomes={};
+  if(ids.length){const c=await supa.from('currais').select('id,codigo').in('id',ids);if(!c.error)(c.data||[]).forEach(x=>nomes[x.id]=x.codigo)}
+  const rows=lr.data||[];window.__historicoCocho={rows,nomes};
+  if(!rows.length){box.innerHTML='<div class="empty">NENHUMA LEITURA GRAVADA.</div>';return}
+  const por={};rows.forEach(x=>(por[x.data_leitura]??=[]).push(x));
+  let html='';
+  Object.keys(por).sort().reverse().forEach(data=>{
+   html+=`<div style="margin:18px 0 7px;font-size:16px;font-weight:900">DATA: ${fmtDataCocho(data)}</div><div class="table-wrap"><table><thead><tr><th>CURRAL</th><th>BOIS</th><th>TOTAL REALIZADO</th><th>MS/CAB</th><th>LEITURA</th><th>PREVISÃO MS/CAB</th><th>TOTAL PREVISTO</th></tr></thead><tbody>`;
+   por[data].sort((a,b)=>String(nomes[a.curral_id]||'').localeCompare(String(nomes[b.curral_id]||''))).forEach(x=>html+=`<tr><td><b>${nomes[x.curral_id]||'—'}</b></td><td>${x.quantidade_bois??0}</td><td>${nCocho(x.total_realizado,0)}</td><td>${nCocho(x.ms_cabeca,3)}</td><td><b>${x.nota??0}</b></td><td>${nCocho(x.previsao_ms_cabeca,3)}</td><td>${nCocho(x.total_previsto,0)}</td></tr>`);
+   html+='</tbody></table></div>';
+  });
+  box.innerHTML=html;
+ }catch(e){box.innerHTML='<div class="notice">ERRO AO CONSULTAR: '+String(e.message||e)+'</div>'}
+}
+function imprimirFichaCocho(){
+ const currais=['A01','A02','A03','A04','A05','B01','B02','B03','B04','B05','VINHAÇA','CASINHA CARLINHOS'];
+ const linhas=currais.map(c=>`<tr><td class="nome">${c}</td><td></td><td></td><td></td><td></td><td></td></tr>`).join('');
+ const legenda=[
+ ['-3','FALTOU MUITO (COCHO LAMBIDO BOIADA NO COCHO)'],
+ ['-2','FALTOU UM POUCO (COCHO LAMBIDO POUCOS BOIS NO COCHO)'],
+ ['-1','FALTOU POUCO (COCHO LAMBIDO SEM BOIS NO COCHO)'],
+ ['0','IDEAL (SEM SOBRAS BOIADA DEITADA)'],
+ ['1','SOBROU POUCO (POUCA RAÇÃO NO COCHO)'],
+ ['2','SOBROU UM POUCO A MAIS (COCHO COM SOBRA A MAIS)'],
+ ['3','SOBROU MUITO (COCHO COM MUITA RAÇÃO)']
+ ].map(x=>`<tr><td class="nota">${x[0]}</td><td>${x[1]}</td></tr>`).join('');
+ const w=window.open('','_blank');
+ w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Impressão Ficha de Leitura</title>
+ <style>
+ @page{size:A4 portrait;margin:11mm}
+ *{box-sizing:border-box} body{font-family:Arial,sans-serif;color:#000;margin:0}
+ .folha{width:100%;min-height:270mm;border:2px solid #000;padding:0 18mm 12mm}
+ h1{text-align:center;font-size:27px;margin:0 -18mm 52px;padding:8px 0;border-bottom:2px solid #000;letter-spacing:.3px}
+ .data{display:flex;justify-content:center;align-items:center;gap:5px;font-weight:800;margin-bottom:58px}
+ .campo-data{width:160px;height:28px;border:2px solid #000}
+ table.ficha{width:100%;border-collapse:collapse;table-layout:fixed;margin-bottom:44px}
+ table.ficha td{height:27px;border:1.4px solid #000}
+ table.ficha td.nome{font-weight:800;width:24%;padding-left:5px}
+ table.leg{width:100%;border-collapse:collapse;font-size:11px}
+ table.leg th{text-align:left;font-size:13px;padding:0 0 5px;border:0}
+ table.leg td{padding:3px 4px;vertical-align:top}
+ table.leg td.nota{font-weight:800;width:32px;text-align:center}
+ .rodape{margin-top:26px;display:flex;justify-content:space-between;font-size:9px;font-style:italic;font-weight:bold}
+ </style></head><body>
+ <div class="folha"><h1>LEITURA DE COCHO</h1>
+ <div class="data">DATA <div class="campo-data"></div></div>
+ <table class="ficha"><tbody>${linhas}</tbody></table>
+ <table class="leg"><thead><tr><th colspan="2">LEGENDA</th></tr></thead><tbody>${legenda}</tbody></table>
+ <div class="rodape"><span>FAZENDA NOVA ESPERANÇA - DENIS FABIO MARSOLA</span><span>DESENVOLVIDO POR MARCO BASSAN | SET/2026</span></div>
+ </div><script>window.onload=()=>window.print()<\/script></body></html>`);
+ w.document.close();
+}
+async function abrirHistoricoCocho(imprimir=false){
+ await consultarHistoricoCocho();
+ if(imprimir)setTimeout(imprimirFichaCocho,200);
+}
 function showPage(id,btn){const anterior=document.querySelector('.page.active')?.id;document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');if(id==='lote'&&anterior!=='lote')limparNovaPesagem();if(id==='cocho')carregarModuloCocho();renderAll()}
 function pad(n){return String(n).padStart(2,'0')}
 function dias(){let e=$('l_entrada').value,s=$('l_saida').value;if(!e||!s)return '';let a=new Date(e+'T00:00:00'),b=new Date(s+'T00:00:00');return Math.max(0,Math.round((b-a)/86400000))}
@@ -442,7 +626,108 @@ async function buscarBrincoMorte(){const b=String($('m_brinco')?.value||'').trim
 async function salvarMorte(){try{const b=String($('m_brinco')?.value||'').trim(),d=$('m_data')?.value,c=String($('m_causa')?.value||'').trim().toUpperCase();if(!b||!d||!c){toast('PREENCHA BRINCO, DATA DA MORTE E CAUSA.');return}const {error}=await supa.rpc('registrar_morte',{p_brinco:b,p_data_morte:d,p_causa:c});if(error)throw error;toast('MORTE REGISTRADA. ANIMAL RETIRADO DO ESTOQUE.');$('m_brinco').value='';$('m_data').value='';$('m_causa').value='';$('m_preview').textContent='DIGITE O BRINCO PARA LOCALIZAR O ANIMAL ATIVO.';await carregarSupabase();renderMortes()}catch(e){toast(String(e.message||e).toUpperCase())}}
 function renderMortes(){const el=$('mortesConteudo');if(!el)return;const hoje=new Date();if($('m_mes')&&!$('m_mes').value)$('m_mes').value=`${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;const anos=[...new Set(mortesDB.map(x=>String(x.data_morte||'').slice(0,4)).filter(x=>/^\d{4}$/.test(x)))];if(!anos.includes(String(hoje.getFullYear())))anos.push(String(hoje.getFullYear()));anos.sort().reverse();const sa=$('m_ano');if(sa&&!sa.options.length)sa.innerHTML=anos.map(a=>`<option>${a}</option>`).join('');ajustarFiltroMortes();const{ini,fim}=periodoMortesDatas();const ls=mortesDB.filter(x=>{const d=new Date(String(x.data_morte)+'T12:00:00');return d>=ini&&d<fim});const custo=ls.reduce((s,x)=>s+numFin(x.custo_total),0),media=ls.length?custo/ls.length:0;let h=`<div class="kpis"><div class="kpi"><span>TOTAL DE MORTES</span><strong>${ls.length}</strong></div><div class="kpi"><span>CUSTO TOTAL DAS MORTES</span><strong>${money0(custo)}</strong></div><div class="kpi"><span>CUSTO MÉDIO POR MORTE</span><strong>${money0(media)}</strong></div></div>`;h+='<div class="table-wrap"><table style="min-width:1200px"><thead><tr><th>Data</th><th>Brinco</th><th>Sistema</th><th>Local</th><th>Dias</th><th>Compra</th><th>Custo atual</th><th>Acumulado</th><th>Custo total</th><th>Causa</th></tr></thead><tbody>';ls.forEach(x=>h+=`<tr><td>${dataBR(x.data_morte)}</td><td><b>${x.brinco}</b></td><td>${x.sistema||'—'}</td><td>${x.local||'—'}</td><td>${x.qtd_dias}</td><td>${money0(x.preco_compra)}</td><td>${money0(x.custo_atual)}</td><td>${money0(x.custo_acumulado)}</td><td><b>${money0(x.custo_total)}</b></td><td>${x.causa_morte}</td></tr>`);h+='</tbody></table></div>';el.innerHTML=h}
 
-function renderAll(){renderTable('animaisTable');preencherGruposAbate();renderPesagens();renderMediasInline();renderAnimaisInline();const n=animais.length,avg=k=>{const v=animais.map(x=>Number(x[k])).filter(Number.isFinite);return v.length?v.reduce((s,a)=>s+a,0)/v.length:0},ae=avg('pe'),as=avg('ps'),ag=avg('gmd'),ad=avg('dias'),pes=gruposAbate().length;const nAtivo=animais.filter(x=>x.status==='ATIVO').length,nVenda=animais.filter(x=>x.status==='VENDA').length,nMorte=mortesDB.length;$('dashKpis').innerHTML=`<div class="kpi"><span>ANIMAIS NEGOCIADOS</span><strong>${n}</strong></div><div class="kpi"><span>PESAGENS</span><strong>${pes}</strong></div><div class="kpi"><span>PESO MÉDIO ENTRADA</span><strong>${n?ae.toFixed(1):'—'} kg / ${n?((ae/2)/15).toFixed(2):'—'} @</strong></div><div class="kpi"><span>PESO MÉDIO SAÍDA</span><strong>${n?as.toFixed(1):'—'} kg / ${n?((as/2)/15).toFixed(2):'—'} @</strong></div><div class="kpi"><span>GMD MÉDIO</span><strong>${n?ag.toFixed(3):'—'}</strong></div><div class="kpi"><span>DIAS MÉDIOS</span><strong>${n?Math.round(ad):'—'}</strong></div>`;const ds=$('dashStatusResumo');if(ds)ds.innerHTML=`<span class="dot ativo"></span>ATIVO ${nAtivo}<span class="dot venda"></span>VENDA ${nVenda}<span class="dot morte"></span>MORTE ${nMorte}`;renderGraficos();renderParcial();preencherMesArroba();renderArrobaProduzida();renderFinanceiro();renderMortes()}
+function renderAll(){renderTable('animaisTable');preencherGruposAbate();renderPesagens();renderMediasInline();renderAnimaisInline();renderDashboardEstoque();renderParcial();preencherMesArroba();renderArrobaProduzida();renderFinanceiro();renderMortes()}
+function visivelOperacionalLocal(localizacao){return String(localizacao||'').trim().toUpperCase()!=='REPOSITÓRIO'}
+function projecaoSaidaConfinamento(nome,ativos,norm){
+ const ls=(ativos||[]).filter(x=>norm(x.localizacao)===nome && x.data_entrada);
+ if(!ls.length)return null;
+ const grupos=[];
+ const machos=ls.filter(x=>/^M($|ASC|ACHO)/i.test(String(x.sexo||'').trim()));
+ const femeas=ls.filter(x=>/^F($|EM|ÊM)/i.test(String(x.sexo||'').trim()));
+ const calc=(arr,sexo)=>{
+  if(!arr.length)return null;
+  const pesos=arr.map(x=>Number(x.peso_entrada)).filter(x=>Number.isFinite(x)&&x>0);
+  if(!pesos.length)return null;
+  const pm=pesos.reduce((a,b)=>a+b,0)/pesos.length;
+  let max=90;
+  if(sexo==='M'){
+   if(pm<=330)max=160; else if(pm<=350)max=140; else if(pm<=380)max=120; else if(pm<=400)max=100; else if(pm<=450)max=90; else max=70;
+  }
+  // Different entry dates: highlight the nearest/earliest projection.
+  const ps=arr.map(x=>{const d=new Date(String(x.data_entrada)+'T12:00:00');d.setDate(d.getDate()+max);return d}).filter(d=>!isNaN(d));
+  if(!ps.length)return null;
+  const p=new Date(Math.min(...ps.map(d=>d.getTime())));
+  return {sexo,peso:pm,dias:max,data:p};
+ };
+ const m=calc(machos,'M'),f=calc(femeas,'F'); if(m)grupos.push(m);if(f)grupos.push(f);
+ // If legacy sex is unavailable, do not invent a projection.
+ if(!grupos.length)return null;
+ grupos.sort((a,b)=>a.data-b.data);return grupos;
+}
+function projHTML(projs){
+ if(!projs||!projs.length)return '<strong style="font-size:14px;font-weight:900;color:#18231e">—</strong>';
+ const hoje=new Date();hoje.setHours(12,0,0,0);
+ return projs.map(p=>{const dias=Math.ceil((p.data-hoje)/86400000);const cor=dias<=0?'#b42318':(dias<=15?'#b7791f':'#18231e');const rot=projs.length>1?(p.sexo==='M'?'♂ ':'♀ '):'';return `<div><strong style="font-size:14px;font-weight:900;color:${cor}">${rot}${String(p.data.getDate()).padStart(2,'0')}/${String(p.data.getMonth()+1).padStart(2,'0')}/${p.data.getFullYear()}</strong></div>`}).join('');
+}
+
+async function renderDashboardEstoque(){
+ const k=$('dashKpis'),g=$('dashGraficos'),st=$('dashStatusResumo'); if(!k||!g)return;
+ try{
+  const [q,m,v,ativos,vac]=await Promise.all([
+   supa.from('vw_dashboard_estoque_atual').select('localizacao,quantidade'),
+   supa.from('mortes').select('id',{count:'exact',head:true}),
+   supa.from('animais').select('id,origem,gmd,data_entrada,data_saida',{count:'exact'}).eq('status','VENDA'),
+   supa.from('animais').select('localizacao,gmd,data_entrada,peso_entrada,sexo').eq('status','ATIVO'),
+   supa.from('vw_avisos_reforco_vacinacao').select('localizacao,data_prevista_reforco,situacao_reforco')
+  ]);
+  if(q.error)throw q.error;if(m.error)throw m.error;if(v.error)throw v.error;if(ativos.error)throw ativos.error;
+  const rows=q.data||[], mapa=new Map(rows.map(x=>[String(x.localizacao||'').toUpperCase(),Number(x.quantidade)||0]));
+  const norm=n=>String(n||'').toUpperCase().replace(/^CONF /,'BAIA ');
+  const vendidosPor=new Map();(v.data||[]).forEach(x=>{const n=norm(x.origem);if(!vendidosPor.has(n))vendidosPor.set(n,[]);vendidosPor.get(n).push(x)});
+  const entradasAtuais=new Map();
+  (ativos.data||[]).forEach(x=>{
+    const n=norm(x.localizacao),d=x.data_entrada;
+    if(!entradasAtuais.has(n))entradasAtuais.set(n,[]);
+    if(d)entradasAtuais.get(n).push(String(d));
+  });
+  const gmds=new Map();
+  (v.data||[]).forEach(x=>{
+    const n=norm(x.origem),z=Number(x.gmd),ds=x.data_saida?String(x.data_saida):'';
+    if(!Number.isFinite(z) || z<=0)return;
+    let usar=true;
+    if(n==='VINHAÇA') usar=false;
+    if(n==='BAIA B4' || n==='BAIA B5'){
+      const ativosLocal=(ativos.data||[]).filter(a=>norm(a.localizacao)===n);
+      const ent=(entradasAtuais.get(n)||[]).slice().sort();
+      const datasCompletas=ativosLocal.length>0 && ent.length===ativosLocal.length;
+      const inicio=datasCompletas?ent[0]:'';
+      usar=!!(inicio && ds && ds>=inicio);
+    }
+    if(usar){if(!gmds.has(n))gmds.set(n,[]);gmds.get(n).push(z)}
+  });
+  const reforcos=new Map();if(!vac.error)(vac.data||[]).filter(x=>norm(x.localizacao)!=='REPOSITÓRIO').forEach(x=>{const n=norm(x.localizacao);if(!reforcos.has(n))reforcos.set(n,[]);reforcos.get(n).push(x)});const refTop=$('v15Ref');if(refTop&&!vac.error){
+  const hojeIso=new Date().toISOString().slice(0,10);
+  const lotesMap=new Map();
+  (vac.data||[])
+    .filter(x=>norm(x.localizacao)!=='REPOSITÓRIO' && x.data_prevista_reforco && (String(x.data_prevista_reforco)>=hojeIso || String(x.situacao_reforco||'')==='REFORÇO_PENDENTE'))
+    .forEach(x=>{const k=norm(x.localizacao)+'|'+String(x.data_prevista_reforco);if(!lotesMap.has(k))lotesMap.set(k,{local:norm(x.localizacao),data:String(x.data_prevista_reforco)});});
+  const lista=[...lotesMap.values()].sort((a,b)=>a.data.localeCompare(b.data)||a.local.localeCompare(b.local));
+  refTop.innerHTML=lista.length?lista.map(x=>{const p=x.data.split('-');return `${x.local} — ${p[2]}/${p[1]}`}).join('<br>'):'—';
+}
+  const pastos=['CASINHA','DIRCE','ABAIXO CASINHA','AROEIRA ALTO','AROEIRA MANGUEIRA','BELEI BAIXO','BELEI ALTO','BARRACÃO','SEDE PIQUETE','MOMBAÇA','PIQUETEAMENTO ASFALTO','PIQUETEAMENTO BAIXO','PASTO A1','PASTO A2','PASTO B1','PASTO B2','SÃO GUILHERME ALTO','SÃO GUILHERME BAIXO','AÇUDE','BELA VISTA','BELA VISTA AÇUDE'];
+  const conf=['CASINHA CARLINHO','VINHAÇA','BAIA A1','BAIA A2','BAIA A3','BAIA A4','BAIA A5','BAIA B1','BAIA B2','BAIA B3','BAIA B4','BAIA B5'];
+  const arr=['ESPIRITO SANTO DO TURVO','TIMBURI','KAFÉ'];
+  const grupos=[['PASTOS / FAZENDA',pastos,false],['CONFINAMENTO',conf,true],['ARRENDAMENTOS',arr,false]];
+  const total=[...pastos,...conf,...arr].reduce((s,n)=>s+(mapa.get(n)||0),0), vendas=Number(v.count)||0, mortes=Number(m.count)||0;
+  k.innerHTML=`<div class="kpi"><span>ESTOQUE FÍSICO ATUAL</span><strong>${total}</strong></div>`;
+  if(st)st.innerHTML=`<span class="dot ativo"></span>ATIVO ${total}<span class="dot venda"></span>VENDA ${vendas}<span class="dot morte"></span>MORTE ${mortes}`;
+  const card=(nome,isConf)=>{
+   const qtd=mapa.get(nome)||0;let extra='';
+   if(isConf && qtd>0){const gs=gmds.get(nome)||[],gm=(nome==='BAIA B5'?1.337:(gs.length?gs.reduce((a,b)=>a+b,0)/gs.length:null));const al=(ativos.data||[]).filter(x=>norm(x.localizacao)===nome);const pesos=al.map(x=>Number(x.peso_entrada)).filter(x=>Number.isFinite(x)&&x>0);const pesoMed=pesos.length?pesos.reduce((a,b)=>a+b,0)/pesos.length:null;const ds=al.map(x=>x.data_entrada).filter(Boolean).sort();const hoje=new Date();hoje.setHours(12,0,0,0);const diasLote=ds.length?Math.max(0,Math.round((hoje-new Date(ds[0]+'T12:00:00'))/86400000)):null;const projs=projecaoSaidaConfinamento(nome,ativos.data||[],norm);extra=`<div style="margin-top:9px;font-size:10px;line-height:1.9;color:#59636b">
+<div><span style="color:#315d4b;font-weight:800">PESO ENTRADA MÉDIO:</span> <strong style="font-size:14px;font-weight:900;color:#18231e">${pesoMed===null?'—':pesoMed.toFixed(1)+' kg'}</strong></div>
+<div><span style="color:#315d4b;font-weight:800">DIAS:</span> <strong style="font-size:14px;font-weight:900;color:#18231e">${diasLote===null?'—':diasLote}</strong></div>
+<div><span style="color:#315d4b;font-weight:800">GMD:</span> <strong style="font-size:14px;font-weight:900;color:#18231e">${gm===null?'—':gm.toFixed(3)}</strong></div>
+<div><span style="color:#315d4b;font-weight:800">CUSTO DIÁRIA:</span> <strong style="font-size:14px;font-weight:900;color:#18231e">—</strong></div>
+<div><span style="color:#315d4b;font-weight:800">CONSUMO MÉDIO:</span> <strong style="font-size:14px;font-weight:900;color:#18231e">—</strong></div>
+<div><span style="color:#315d4b;font-weight:800">JÁ SAÍRAM:</span> <strong style="font-size:14px;font-weight:900;color:#18231e">${(()=>{const vs=vendidosPor.get(nome)||[];if(nome==='BAIA B5')return vs.length;const datas=al.map(x=>String(x.data_entrada||'')).filter(Boolean).sort();if(!datas.length)return 0;const inicio=datas[0];return vs.filter(x=>x.data_saida&&String(x.data_saida)>=inicio).length})()}</strong></div>
+<div><span style="color:#315d4b;font-weight:800">PROJEÇÃO SAÍDA:</span> ${projHTML(projs)}</div>
+</div>`}
+   else{const rs=reforcos.get(nome)||[];if(rs.length){const p=rs.slice().sort((a,b)=>String(a.data_prevista_reforco).localeCompare(String(b.data_prevista_reforco)))[0];const alerta=String(p.situacao_reforco||'')!=='SEM_AVISO';extra=`<div style="margin-top:7px;font-size:10px;color:#b42318;font-weight:900">REFORÇO: ${String(p.data_prevista_reforco||'').split('-').reverse().join('/')}${alerta?' • '+String(p.situacao_reforco||'').replaceAll('_',' '):''}</div>`}}
+   return `<div style="border:1px solid var(--line);border-radius:10px;padding:12px 13px;background:#fff;min-height:${isConf?'82':'62'}px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><b style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nome}</b><strong style="font-size:20px;font-weight:900">${qtd}</strong></div>${extra}</div>`;
+  };
+  g.innerHTML=grupos.map(([t,ls,c])=>`<div style="margin-bottom:22px"><div style="font-size:12px;font-weight:900;letter-spacing:.06em;color:var(--accent);margin:0 0 9px">${t}</div><div class="dash-local-grid" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px">${ls.map(n=>card(n,c)).join('')}</div></div>`).join('');
+ }catch(e){k.innerHTML='<div class="notice">ERRO AO CARREGAR O ESTOQUE ATUAL: '+String(e.message||e)+'</div>';g.innerHTML=''}
+}
 
 const SUPA_URL="https://zswsyknzypheqblwnpih.supabase.co", SUPA_KEY="sb_publishable_RjmLrtFPaYK5lJiD30Uqqw_QbBm0BZg";
 const {createClient}=supabase;

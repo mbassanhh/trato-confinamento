@@ -480,6 +480,7 @@ function renderTable(target){const el=$(target);if(el)el.innerHTML=tabelaAnimais
 function pesagemAtualAnimais(){const e=$('l_entrada').value,s=$('l_saida').value,d=String($('l_destino').value||'').trim().toUpperCase();return animais.filter(x=>(x.entrada||'')===e&&(x.saida||'')===s&&String(x.destino||'').trim().toUpperCase()===d)}
 function renderAnimaisInline(){const el=$('animaisInline');if(!el)return;el.innerHTML=tabelaAnimais(pesagemAtualAnimais(),true)}
 let ordemPesagens='DESC';
+let pesagensLiberadasAbate=new Set();
 function alternarOrdemPesagens(v){ordemPesagens=v;renderPesagens()}
 function renderPesagens(){const el=$('pesagensTable');if(!el)return;let gs=[...gruposAbate()];if(ordemPesagens==='ASC')gs.reverse();if(!gs.length){el.innerHTML='<div class="empty">Nenhuma pesagem cadastrada.</div>';return}let h='<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><label style="font-size:12px;font-weight:800">ORDENAR&nbsp;<select onchange="alternarOrdemPesagens(this.value)" style="padding:7px 10px;border:1px solid #d1d5db;border-radius:7px"><option value="DESC" '+(ordemPesagens==='DESC'?'selected':'')+'>MAIS RECENTE PRIMEIRO</option><option value="ASC" '+(ordemPesagens==='ASC'?'selected':'')+'>MAIS ANTIGA PRIMEIRO</option></select></label></div><div class="table-wrap"><table style="min-width:850px"><thead><tr><th>Data saída</th><th>Data entrada</th><th>Destino</th><th>Origem</th><th>Animais</th><th>Peso médio saída</th></tr></thead><tbody>';gs.forEach(g=>{const a=g.base,ls=g.indices.map(i=>animais[i]),pm=ls.reduce((s,x)=>s+(Number(x.ps)||0),0)/ls.length;h+=`<tr><td>${dataBR(a.saida)}</td><td>${dataBR(a.entrada)}</td><td>${a.destino||'—'}</td><td>${a.origem||'SEM ORIGEM'}</td><td>${g.indices.length}</td><td>${pm.toFixed(2)} kg / ${((pm/2)/15).toFixed(2)} @</td></tr>`});el.innerHTML=h+'</tbody></table></div>'}
 function renderMediasInline(){let el=$('mediasInline');if(!el)return;const lista=pesagemAtualAnimais();if(!lista.length){el.innerHTML='<div class="empty">Nenhum animal lançado nesta pesagem.</div>';return}const avg=(k,a=lista)=>{let v=a.map(x=>Number(x[k])).filter(Number.isFinite);return v.length?v.reduce((s,n)=>s+n,0)/v.length:0};const cards=a=>`<div class="kpis"><div class="kpi"><span>ANIMAIS</span><strong>${a.length}</strong></div><div class="kpi"><span>PESO MÉDIO ENTRADA</span><strong>${avg('pe',a).toFixed(1)} kg / ${((avg('pe',a)/2)/15).toFixed(2)} @</strong></div><div class="kpi"><span>PESO MÉDIO SAÍDA</span><strong>${avg('ps',a).toFixed(1)} kg / ${((avg('ps',a)/2)/15).toFixed(2)} @</strong></div><div class="kpi"><span>GMD MÉDIO</span><strong>${avg('gmd',a).toFixed(3)}</strong></div><div class="kpi"><span>DIAS MÉDIOS</span><strong>${avg('dias',a).toFixed(1)}</strong></div><div class="kpi"><span>DIÁRIA MÉDIA</span><strong>${money(avg('diaria',a))}</strong></div><div class="kpi"><span>PREÇO COMPRA MÉDIO</span><strong>${money(avg('compra',a))}</strong></div><div class="kpi"><span>CUSTO MÉDIO ANIMAL</span><strong>${money(avg('custoAnimal',a))}</strong></div></div>`;let h='<h3>MÉDIA GERAL DA PESAGEM ATUAL</h3>'+cards(lista);let g={};lista.forEach(x=>{let o=(x.origem||'SEM ORIGEM').toUpperCase();(g[o]??=[]).push(x)});Object.entries(g).forEach(([o,a])=>h+=`<div style="margin-top:18px"><h3>ORIGEM: ${o}</h3>${cards(a)}</div>`);el.innerHTML=h}
@@ -489,8 +490,9 @@ function grupoLabel(x){return `${origemAbate(x)} — SAÍDA ${dataBR(x.saida)} �
 function gruposAbate(){
  const m={};
  animais.forEach((x,i)=>{
-   /* Grupo de abate nasce de uma PESAGEM DE SAÍDA gravada:
-      precisa ter data de saída e peso de saída. Não depende do texto do status. */
+   /* ABATE: somente pesagens destinadas ao abate.
+      Movimentação e comercialização ficam fora deste combo. */
+   if(!x._pesagem_id || !pesagensLiberadasAbate.has(String(x._pesagem_id))) return;
    if(!x.saida || !Number.isFinite(Number(x.ps)) || Number(x.ps)<=0) return;
    const k=grupoKey(x);
    if(!m[k])m[k]={key:k,base:x,indices:[]};
@@ -917,8 +919,16 @@ async function carregarSupabase(){
  animais=todasLinhas.map(dbToAnimal);
  const qm=await supa.from('mortes').select('*').order('data_morte',{ascending:false}); if(qm.error) throw qm.error; mortesDB=qm.data||[];
  const qt=await supa.from('tratamentos_animais').select('*').order('data_aplicacao',{ascending:false}); if(qt.error) throw qt.error; tratamentosDB=qt.data||[];
+ const qp=await supa.from('pesagens').select('id,observacoes,destino,data_saida').order('data_saida',{ascending:false});
+ if(qp.error) throw qp.error;
  const qb=await supa.from('abates').select('*').order('data_abate',{ascending:false});
  if(qb.error) throw qb.error;
+ pesagensLiberadasAbate=new Set((qb.data||[]).map(b=>String(b.pesagem_id||'')).filter(Boolean));
+ (qp.data||[]).forEach(p=>{
+   const o=String(p.observacoes||'').trim().toUpperCase();
+   if(o.startsWith('PESAGEM DE SAÍDA') || o.startsWith('PESAGEM DE ABATE'))
+     pesagensLiberadasAbate.add(String(p.id));
+ });
  const normOrig=v=>String(v||'').trim().toUpperCase()
    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
    .replace(/\s+/g,' ');
@@ -960,12 +970,12 @@ async function carregarSupabase(){
 async function pesagemIdPara(x){
  const existente=animais.find(a=>grupoKey(a)===grupoKey(x) && a._pesagem_id);
  if(existente)return existente._pesagem_id;
- const obs='SISTEMA SUPABASE | GRUPO: '+grupoKey(x);
+ const obs='PESAGEM DE ABATE | GRUPO: '+grupoKey(x);
  const q=await supa.from('pesagens').select('id,observacoes').eq('observacoes',obs).limit(1);
  if(q.error)throw q.error;
  if(q.data.length)return q.data[0].id;
  const ins=await supa.from('pesagens').insert({data_saida:x.saida,destino:x.destino,observacoes:obs}).select('id').single();
- if(ins.error)throw ins.error; return ins.data.id;
+ if(ins.error)throw ins.error; pesagensLiberadasAbate.add(String(ins.data.id)); return ins.data.id;
 }
 addAnimal=async function(){
  try{

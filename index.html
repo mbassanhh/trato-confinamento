@@ -821,16 +821,33 @@ function projHTML(projs){
 async function renderDashboardEstoque(){
  const k=$('dashKpis'),g=$('dashGraficos'),st=$('dashStatusResumo'); if(!k||!g)return;
  try{
-  const [q,m,v,ativos,vac]=await Promise.all([
+  const ativosTodos=[];
+  for(let ini=0;;ini+=1000){
+   const pg=await supa.from('animais').select('localizacao,gmd,data_entrada,peso_entrada,sexo,categoria_animal').eq('status','ATIVO').range(ini,ini+999);
+   if(pg.error)throw pg.error;
+   ativosTodos.push(...(pg.data||[]));
+   if((pg.data||[]).length<1000)break;
+  }
+  const [q,m,v,vac]=await Promise.all([
    supa.from('vw_dashboard_estoque_atual').select('localizacao,quantidade'),
    supa.from('mortes').select('id',{count:'exact',head:true}),
    supa.from('animais').select('id,origem,gmd,data_entrada,data_saida',{count:'exact'}).eq('status','VENDA'),
-   supa.from('animais').select('localizacao,gmd,data_entrada,peso_entrada,sexo').eq('status','ATIVO'),
    supa.from('vw_avisos_reforco_vacinacao').select('localizacao,data_prevista_reforco,situacao_reforco')
   ]);
-  if(q.error)throw q.error;if(m.error)throw m.error;if(v.error)throw v.error;if(ativos.error)throw ativos.error;
+  if(q.error)throw q.error;if(m.error)throw m.error;if(v.error)throw v.error;
+  const ativos={data:ativosTodos};
   const rows=q.data||[], mapa=new Map(rows.map(x=>[String(x.localizacao||'').toUpperCase(),Number(x.quantidade)||0]));
   const norm=n=>String(n||'').toUpperCase().replace(/^CONF /,'BAIA ');
+  const categoriasOrdem=['VACA','BEZERRO','BEZERRA','GARROTE','BOI','NOVILHA'];
+  const categoriasLabel={VACA:'VACAS',BEZERRO:'BEZERROS',BEZERRA:'BEZERRAS',GARROTE:'GARROTES',BOI:'BOIS',NOVILHA:'NOVILHAS'};
+  const categoriasPorLocal=new Map(),totaisCategoria=new Map(categoriasOrdem.map(c=>[c,0]));
+  (ativos.data||[]).filter(x=>norm(x.localizacao)!=='REPOSITÓRIO').forEach(x=>{
+    const local=norm(x.localizacao),cat=String(x.categoria_animal||'').trim().toUpperCase();
+    if(!categoriasOrdem.includes(cat))return;
+    if(!categoriasPorLocal.has(local))categoriasPorLocal.set(local,new Map());
+    const cm=categoriasPorLocal.get(local);cm.set(cat,(cm.get(cat)||0)+1);
+    if(!/^BAIA [AB][1-5]$/.test(local)) totaisCategoria.set(cat,(totaisCategoria.get(cat)||0)+1);
+  });
   const vendidosPor=new Map();(v.data||[]).forEach(x=>{const n=norm(x.origem);if(!vendidosPor.has(n))vendidosPor.set(n,[]);vendidosPor.get(n).push(x)});
   const entradasAtuais=new Map();
   (ativos.data||[]).forEach(x=>{
@@ -867,7 +884,10 @@ async function renderDashboardEstoque(){
   const arr=['ESPIRITO SANTO DO TURVO','TIMBURI','KAFÉ'];
   const grupos=[['PASTOS / FAZENDA',pastos,false],['CONFINAMENTO',conf,true],['ARRENDAMENTOS',arr,false]];
   const total=[...pastos,...conf,...arr].reduce((s,n)=>s+(mapa.get(n)||0),0), vendas=Number(v.count)||0, mortes=Number(m.count)||0;
-  k.innerHTML=`<div class="kpi"><span>ESTOQUE FÍSICO ATUAL</span><strong>${total}</strong></div>`;
+  const machosConfinamento=conf.reduce((s,n)=>s+(mapa.get(n)||0),0);
+  k.innerHTML=`<div class="kpi"><span>ESTOQUE FÍSICO ATUAL</span><strong>${total}</strong></div>`+
+   `<div class="kpi"><span>MACHOS CONFINAMENTO</span><strong>${machosConfinamento}</strong></div>`+
+   categoriasOrdem.map(c=>`<div class="kpi"><span>${categoriasLabel[c]}</span><strong>${totaisCategoria.get(c)||0}</strong></div>`).join('');
   if(st)st.innerHTML=`<span class="dot ativo"></span>ATIVO ${total}<span class="dot venda"></span>VENDA ${vendas}<span class="dot morte"></span>MORTE ${mortes}`;
   const card=(nome,isConf)=>{
    const qtd=mapa.get(nome)||0;let extra='';
@@ -881,7 +901,10 @@ async function renderDashboardEstoque(){
 <div><span style="color:#315d4b;font-weight:800">PROJEÇÃO SAÍDA:</span> ${projHTML(projs)}</div>
 </div>`}
    else{const rs=reforcos.get(nome)||[];if(rs.length){const p=rs.slice().sort((a,b)=>String(a.data_prevista_reforco).localeCompare(String(b.data_prevista_reforco)))[0];const alerta=String(p.situacao_reforco||'')!=='SEM_AVISO';extra=`<div style="margin-top:7px;font-size:10px;color:#b42318;font-weight:900">REFORÇO: ${String(p.data_prevista_reforco||'').split('-').reverse().join('/')}${alerta?' • '+String(p.situacao_reforco||'').replaceAll('_',' '):''}</div>`}}
-   return `<div style="border:1px solid var(--line);border-radius:10px;padding:12px 13px;background:#fff;min-height:${isConf?'82':'62'}px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><b style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nome}</b><strong style="font-size:20px;font-weight:900">${qtd}</strong></div>${extra}</div>`;
+   const cm=categoriasPorLocal.get(nome)||new Map();
+   const cats=isConf?'':categoriasOrdem.filter(c=>(cm.get(c)||0)>0).map(c=>`<span style="white-space:nowrap"><b>${categoriasLabel[c]}:</b> ${cm.get(c)}</span>`).join('<span style="color:#a8b0ac"> • </span>');
+   const catHtml=cats?`<div style="margin-top:7px;padding-top:7px;border-top:1px solid #edf0ee;font-size:10px;line-height:1.6;color:#315d4b;font-weight:700">${cats}</div>`:'';
+   return `<div style="border:1px solid var(--line);border-radius:10px;padding:12px 13px;background:#fff;min-height:${isConf?'82':'62'}px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><b style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nome}</b><strong style="font-size:20px;font-weight:900">${qtd}</strong></div>${catHtml}${extra}</div>`;
   };
   g.innerHTML=grupos.map(([t,ls,c])=>`<div style="margin-bottom:22px"><div style="font-size:12px;font-weight:900;letter-spacing:.06em;color:var(--accent);margin:0 0 9px">${t}</div><div class="dash-local-grid" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px">${ls.map(n=>card(n,c)).join('')}</div></div>`).join('');
  }catch(e){k.innerHTML='<div class="notice">ERRO AO CARREGAR O ESTOQUE ATUAL: '+String(e.message||e)+'</div>';g.innerHTML=''}

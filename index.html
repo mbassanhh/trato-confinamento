@@ -107,10 +107,57 @@
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// Fechamento idempotente: usa exclusivamente insumos, tratos e lotações da data.
+// Sobras de vagão: custo médio histórico por kg de MS; nunca cria carregamento.
+async function nutriGravarDiariasHistoricas(dia){
+ const [tr,lc,sl,cur,h,ja]=await Promise.all([
+  supa.from('tratos_realizados').select('localizacao,sistema,trato_1,trato_2,trato_3,trato_4').eq('data_trato',dia),
+  supa.from('leituras_cocho').select('curral_id,quantidade_bois').eq('data_leitura',dia),
+  supa.from('semi_leituras_cocho').select('localizacao,quantidade_bois').eq('data_leitura',dia),
+  supa.from('currais').select('id,codigo'),
+  supa.from('nutri_custos_ingredientes_historico').select('sistema,custo_ingrediente,ms_kg,carregado_kg').eq('data_trato',dia),
+  supa.from('nutri_custos_diarios').select('localizacao,sistema').eq('data_trato',dia)
+ ]);
+ for(const r of [tr,lc,sl,cur,h,ja])if(r.error)throw r.error;
+ if(!(tr.data||[]).length)return 0;
+ const norm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();
+ const codigo=new Map((cur.data||[]).map(x=>[String(x.id),x.codigo]));
+ const animais=new Map();
+ for(const x of lc.data||[]){const c=codigo.get(String(x.curral_id));if(!c)continue;animais.set(norm(/^[AB][1-5]$/.test(c)?'BAIA '+c:c),Number(x.quantidade_bois));}
+ for(const x of sl.data||[])animais.set(norm(x.localizacao),Number(x.quantidade_bois));
+ const custos={};for(const x of h.data||[]){const k=norm(x.sistema);const c=custos[k]??={custo:0,ms:0,kg:0};c.custo+=Number(x.custo_ingrediente)||0;c.ms+=Number(x.ms_kg)||0;c.kg+=Number(x.carregado_kg)||0;}
+ const faltam=(tr.data||[]).filter(x=>!(ja.data||[]).some(y=>norm(y.localizacao)===norm(x.localizacao)&&norm(y.sistema)===norm(x.sistema)));
+ if(!faltam.length)return 0;
+ // Não inventar preços: para sobra usar última média histórica disponível antes da data.
+ const precisaMedia=faltam.some(x=>{const c=custos[norm(x.sistema)];return !c||c.kg<=0;});
+ let medias={};
+ if(precisaMedia){
+  const anteriores=await supa.from('nutri_custos_ingredientes_historico').select('data_trato,sistema,custo_ingrediente,ms_kg,carregado_kg').lt('data_trato',dia).order('data_trato',{ascending:false}).limit(300);
+  if(anteriores.error)throw anteriores.error;
+  const agrupados={};for(const x of anteriores.data||[]){const k=norm(x.sistema);if(!agrupados[k])agrupados[k]={custo:0,ms:0,kg:0};agrupados[k].custo+=Number(x.custo_ingrediente)||0;agrupados[k].ms+=Number(x.ms_kg)||0;agrupados[k].kg+=Number(x.carregado_kg)||0;}
+  medias=agrupados;
+ }
+ const linhas=[];
+ for(const x of faltam){
+  const si=norm(x.sistema),local=norm(x.localizacao),kg=[1,2,3,4].reduce((v,i)=>v+(Number(x['trato_'+i])||0),0),n=animais.get(local);
+  if(n===undefined||n<=0)throw Error('SEM QUANTIDADE HISTÓRICA VÁLIDA: '+x.localizacao+' '+dia);
+  const c=custos[si],m=c&&c.kg>0?c:medias[si];
+  if(!m||m.kg<=0||m.ms<=0||m.custo<=0)throw Error('SEM CUSTO HISTÓRICO KG MS: '+si+' '+dia);
+  const fracao=m.ms/m.kg,custoKgMs=m.custo/m.ms,ms=kg*fracao,custo=ms*custoKgMs;
+  linhas.push({data_trato:dia,sistema:x.sistema,localizacao:x.localizacao,quantidade_animais:n,mn_distribuida_kg:kg,ms_distribuida_kg:Number(ms.toFixed(3)),custo_distribuido:Number(custo.toFixed(2)),custo_diaria_cabeca:Number((custo/n).toFixed(4)),origem_calculo:c&&c.kg>0?'CUSTO_INGREDIENTES_HISTORICO':'MEDIA_HISTORICA_MS_SOBRA_VAGAO',fechado:true});
+ }
+ // Não reescrever históricos existentes nem duplicar registros.
+ const salvo=await supa.from('nutri_custos_diarios').upsert(linhas,{onConflict:'data_trato,sistema,localizacao',ignoreDuplicates:true});
+ if(salvo.error)throw salvo.error;
+ return linhas.length;
+}
+
 async function diariasConferir(){
  const el=document.getElementById('diarias_resultado');if(!el)return;
  const campo=document.getElementById('diarias_data');if(!campo.value)campo.value=trHojeISO();
  const dia=campo.value;el.innerHTML='<div class="notice">CONSULTANDO CUSTOS HISTÓRICOS FECHADOS...</div>';
+ // Grava automaticamente o custo do dia ao conferir, quando os insumos históricos estão disponíveis.
+ if(dia===trHojeISO()){try{await nutriGravarDiariasHistoricas(dia);}catch(e){console.warn('DIÁRIAS NÃO FECHADAS:',e);el.textContent='CUSTO DO DIA PENDENTE: '+String(e.message||e);return;}}
  try{
  // Valores históricos são imutáveis na conferência: nunca recalcular usando dieta ativa.
  const historico=await supa.from('nutri_custos_diarios').select('data_trato,sistema,localizacao,quantidade_animais,mn_distribuida_kg,ms_distribuida_kg,custo_distribuido,custo_diaria_cabeca,fechado,origem_calculo').eq('data_trato',dia).order('sistema').order('localizacao');
@@ -120,6 +167,7 @@ async function diariasConferir(){
   const reais=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
   const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const rows=historico.data;
+  const nomeExibicao=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase()==='VINHACA'?'VINHAÇA':x;
   const total=rows.reduce((a,x)=>a+Number(x.custo_distribuido||0),0);
   let h='<div class="notice"><b>HISTÓRICO DE CUSTOS REGISTRADOS — '+esc(dia.split('-').reverse().join('/'))+'</b>. CUSTOS CONGELADOS POR DATA: AJUSTES POSTERIORES DE MS OU PREÇO NÃO ALTERAM ESTES VALORES. '+rows.length+' LOCALIDADES • TOTAL '+reais(total)+'.</div>';
   h+='<div class="diarias-scroll"><table><thead><tr><th>SISTEMA</th><th>LOCAL</th><th>ANIMAIS</th><th>MN KG</th><th>MS KG</th><th>CUSTO TOTAL</th><th>DIÁRIA/CAB</th><th>SITUAÇÃO</th></tr></thead><tbody>';
@@ -242,7 +290,8 @@ async function postoKafeComposicaoConferencia(dia,container){
  }catch(e){div.innerHTML='<h3>POSTO KAFÉ — COMPOSIÇÃO DA DIÁRIA</h3><div class="notice">ERRO AO CARREGAR COMPOSIÇÃO: '+esc(e.message||e)+'</div>';}
 }
 
-const MEDIA_HISTORICA_REFERENCIA_22_10={"CONFINAMENTO|PASTO A1":{"media":7.5,"dias":72,"origem":"A1"},"CONFINAMENTO|PASTO A2":{"media":4.57,"dias":69,"origem":"A2"},"CONFINAMENTO|PASTO B2":{"media":9.28,"dias":76,"origem":"B2"},"CONFINAMENTO|PASTO B1":{"media":4.77,"dias":83,"origem":"B1"},"CONFINAMENTO|BARRACAO":{"media":8.91,"dias":186,"origem":"BARRACÃO"},"CONFINAMENTO|SEDE PIQUETE":{"media":6.8,"dias":83,"origem":"SEDE PIQUETE"},"CONFINAMENTO|PIQUETEAMENTO ASFALTO":{"media":10.22,"dias":82,"origem":"PIQUETEAMENTO ASFALTO"},"CONFINAMENTO|PIQUETEAMENTO BAIXO":{"media":8.62,"dias":68,"origem":"PIQUETEAMENTO BAIXO"},"CONFINAMENTO|MOMBACA":{"media":3.74,"dias":182,"origem":"MOMBAÇA"},"SEMI|BELA VISTA":{"media":3.69,"dias":104,"origem":"BELA VISTA"},"SEMI|BELA VISTA ACUDE":{"media":3.48,"dias":92,"origem":"BELA VISTA AÇUDE"},"SEMI|SAO GUILHERME ACIMA":{"media":6.84,"dias":177,"origem":"SÃO GUILHERME ACIMA"},"SEMI|SAO GUILHERME BAIXO":{"media":5.27,"dias":118,"origem":"SÃO GUILHERME BAIXO"},"SEMI|BELEI BAIXO":{"media":9.6,"dias":173,"origem":"BELEI BAIXO"},"SEMI|BELEI ALTO":{"media":7.21,"dias":187,"origem":"BELEI ALTO"},"SEMI|CASINHA":{"media":7.7,"dias":131,"origem":"CASINHA"},"SEMI|DIRCE":{"media":5.36,"dias":188,"origem":"DIRCE"},"SEMI|ABAIXO CASINHA":{"media":10.54,"dias":185,"origem":"ABAIXO CASINHA"},"SEMI|AROEIRA ALTO":{"media":5.39,"dias":183,"origem":"AROREIRA ALTO"},"SEMI|AROEIRA MANGUEIRA":{"media":0,"dias":40,"origem":"AROEIRA MANGUEIRA"},"SEMI|ACUDE":{"media":0.23,"dias":81,"origem":"AÇUDE"},"CONFINAMENTO|BAIA B1":{"media":11.29,"dias":169,"origem":"CONF B01"},"CONFINAMENTO|BAIA B2":{"media":13.03,"dias":161,"origem":"CONF B02"},"CONFINAMENTO|BAIA A5":{"media":11.64,"dias":157,"origem":"CONF A05"},"CONFINAMENTO|BAIA B3":{"media":12.73,"dias":176,"origem":"CONF B03"},"CONFINAMENTO|BAIA B4":{"media":13.22,"dias":162,"origem":"CONF B04"},"CONFINAMENTO|BAIA B5":{"media":12.32,"dias":167,"origem":"CONF B05"},"CONFINAMENTO|BAIA A1":{"media":11.8,"dias":143,"origem":"CONF A01"},"CONFINAMENTO|BAIA A2":{"media":10.7,"dias":134,"origem":"CONF A02"},"CONFINAMENTO|BAIA A3":{"media":13.08,"dias":152,"origem":"CONF A03"},"CONFINAMENTO|BAIA A4":{"media":11.26,"dias":165,"origem":"CONF A04"},"CONFINAMENTO|VINHACA":{"media":8.48,"dias":155,"origem":"VINHAÇA"},"CONFINAMENTO|CASINHA CARLINHOS":{"media":4.05,"dias":172,"origem":"CASINHA CARLINHO"},"SEMI|PASTO A1":{"media":7.5,"dias":72,"origem":"A1"},"SEMI|PASTO A2":{"media":4.57,"dias":69,"origem":"A2"},"SEMI|PASTO B1":{"media":4.77,"dias":83,"origem":"B1"},"SEMI|PASTO B2":{"media":9.28,"dias":76,"origem":"B2"}};
+const DIARIAS_OFICIAIS_PLANILHA_26_10={"PASTO A1":{"2026-10-19":3.448122724352109,"2026-10-20":6.892928073000537,"2026-10-21":7.238850785874668,"2026-10-22":7.310594137320479,"2026-10-23":7.3588055691255505,"2026-10-24":8.631264520411552,"2026-10-25":8.453799050767016},"PASTO A2":{"2026-10-19":2.1243321689953425,"2026-10-20":3.9083702633269106,"2026-10-21":4.2941666666666665,"2026-10-22":4.586477987421384,"2026-10-23":4.807268310911809,"2026-10-24":5.595737913486005,"2026-10-25":5.605892857142857},"PASTO B2":{"2026-10-19":4.702936507936508,"2026-10-20":6.942920049485812,"2026-10-21":7.603031967328545,"2026-10-22":7.887923351158646,"2026-10-23":8.662930443987795,"2026-10-24":9.546203852553797,"2026-10-25":9.462015139873074},"PASTO B1":{"2026-10-19":2.141513485205551,"2026-10-20":2.9138931297709925,"2026-10-21":2.52483870967742,"2026-10-22":2.889038863757965,"2026-10-23":3.0637472283813745,"2026-10-24":3.7569930069930075,"2026-10-25":3.738681208294468},"BARRACAO":{"2026-10-19":1.812471264367816,"2026-10-20":4.269679245283019,"2026-10-21":4.1718817204301075,"2026-10-22":3.8874163437830225,"2026-10-23":3.667391304347826,"2026-10-24":7.536578839028407,"2026-10-25":7.5577175697865355},"SEDE PIQUETE":{"2026-10-19":3.5640151515151515,"2026-10-20":3.5589049586776857,"2026-10-21":2.136516393442623,"2026-10-22":2.275,"2026-10-23":2.7218253968253965,"2026-10-24":2.4041353383458643,"2026-10-25":2.5153218694885364},"PIQUETEAMENTO ASFALTO":{"2026-10-19":2.35965872156013,"2026-10-20":5.908333333333334,"2026-10-21":7.8,"2026-10-22":10.3995487752471,"2026-10-23":12.722687050990011,"2026-10-24":15.33751814223512,"2026-10-25":15.2225065808716},"PIQUETEAMENTO BAIXO":{"2026-10-19":3.6780263157894737,"2026-10-20":7.443980532786885,"2026-10-21":8.52520439550642,"2026-10-22":10.396863471906924,"2026-10-23":11.899303836633663,"2026-10-24":13.73062272386461,"2026-10-25":13.590567505411256},"MOMBACA":{"2026-10-19":2.5782212885154063,"2026-10-20":4.874049773755655,"2026-10-21":5.400669371196754,"2026-10-22":5.909182757072294,"2026-10-23":6.817724458204334,"2026-10-24":8.057418119602412,"2026-10-25":8.03562091503268},"BELA VISTA":{"2026-10-19":0.0,"2026-10-20":0.0,"2026-10-21":0.0,"2026-10-22":0.0,"2026-10-23":0.0,"2026-10-24":0.0,"2026-10-25":0.0},"BELA VISTA ACUDE":{"2026-10-19":0.0,"2026-10-20":0.0,"2026-10-21":0.0,"2026-10-22":0.0,"2026-10-23":0.0,"2026-10-24":0.0,"2026-10-25":0.0},"SAO GUILHERME ACIMA":{"2026-10-19":7.485548795209812,"2026-10-20":0.0,"2026-10-21":0.0,"2026-10-22":0.0,"2026-10-23":0.0,"2026-10-24":0.0,"2026-10-25":0.0},"SAO GUILHERME BAIXO":{"2026-10-19":4.508809523809524,"2026-10-20":0.0,"2026-10-21":0.0,"2026-10-22":0.0,"2026-10-23":0.0,"2026-10-24":0.0,"2026-10-25":0.0},"BELEI BAIXO":{"2026-10-19":9.24611111111111,"2026-10-20":11.722549019607843,"2026-10-21":9.74018430753028,"2026-10-22":0.0,"2026-10-23":12.4,"2026-10-24":12.083772708069285,"2026-10-25":12.174109014675054},"BELEI ALTO":{"2026-10-19":5.17,"2026-10-20":5.109654419515134,"2026-10-21":3.736676425937974,"2026-10-22":0.0,"2026-10-23":5.716524430834776,"2026-10-24":5.635209601081812,"2026-10-25":5.5844443496073755},"CASINHA":{"2026-10-19":9.567786299009049,"2026-10-20":9.47957894736842,"2026-10-21":9.259167557932264,"2026-10-22":0.0,"2026-10-23":9.369353731014748,"2026-10-24":9.193075196408529,"2026-10-25":9.281201600355635},"DIRCE":{"2026-10-19":6.906926829268293,"2026-10-20":6.667873417721519,"2026-10-21":5.744105610561056,"2026-10-22":0.0,"2026-10-23":6.112333333333333,"2026-10-24":6.3500000000000005,"2026-10-25":6.429368421052631},"ABAIXO CASINHA":{"2026-10-19":9.425686274509804,"2026-10-20":11.384090909090908,"2026-10-21":9.897540792540793,"2026-10-22":0.0,"2026-10-23":10.944398002103048,"2026-10-24":10.538866120218579,"2026-10-25":10.538866120218579},"AROEIRA ALTO":{"2026-10-19":6.463404539385848,"2026-10-20":9.271758241758242,"2026-10-21":4.6728571428571435,"2026-10-22":0.0,"2026-10-23":9.069847775175644,"2026-10-24":9.21405529953917,"2026-10-25":9.185208044382803},"AROEIRA MANGUEIRA":{"2026-10-19":0.0,"2026-10-20":0.0,"2026-10-21":0.0,"2026-10-22":0.0,"2026-10-23":0.0,"2026-10-24":0.0,"2026-10-25":0.0},"ACUDE":{"2026-10-19":0.0,"2026-10-20":0.0,"2026-10-21":0.0,"2026-10-22":0.0,"2026-10-23":0.0,"2026-10-24":0.0,"2026-10-25":0.0},"BAIA B1":{"2026-10-19":13.862030102790015,"2026-10-20":14.043379204892968,"2026-10-21":14.41411930294906,"2026-10-22":14.04111930294906,"2026-10-23":15.286720672682527,"2026-10-24":14.028667262969588,"2026-10-25":13.991311659192824},"BAIA B2":{"2026-10-19":18.202592926045014,"2026-10-20":17.999281646655234,"2026-10-21":14.222347826086956,"2026-10-22":13.854347826086956,"2026-10-23":16.63520795660036,"2026-10-24":18.819936102236422,"2026-10-25":18.55051863857374},"BAIA A5":{"2026-10-19":0.0,"2026-10-20":0.0,"2026-10-21":0.0,"2026-10-22":0.0,"2026-10-23":0.0,"2026-10-24":0.0,"2026-10-25":0.0},"BAIA B3":{"2026-10-19":15.54818720106696,"2026-10-20":12.921275286482693,"2026-10-21":12.526151061776062,"2026-10-22":12.202401061776062,"2026-10-23":11.771095314064064,"2026-10-24":10.804243995633188,"2026-10-25":10.885745361592633},"BAIA B4":{"2026-10-19":23.2454465408805,"2026-10-20":22.39523526170799,"2026-10-21":20.73480238095238,"2026-10-22":20.19720238095238,"2026-10-23":13.46592841163311,"2026-10-24":13.137339449541287,"2026-10-25":13.31656108597285},"BAIA B5":{"2026-10-19":18.251663335554074,"2026-10-20":16.742958610117526,"2026-10-21":15.732779817761458,"2026-10-22":15.325411396708827,"2026-10-23":13.83075705021867,"2026-10-24":13.516244790862787,"2026-10-25":13.398318280909375},"BAIA A1":{"2026-10-19":13.63695708801755,"2026-10-20":12.464584257206209,"2026-10-21":13.258333333333333,"2026-10-22":12.915476190476191,"2026-10-23":14.863132911392405,"2026-10-24":17.908050439066184,"2026-10-25":17.881327756327757},"BAIA A2":{"2026-10-19":13.374315025113045,"2026-10-20":14.405945037991842,"2026-10-21":15.009673514560419,"2026-10-22":14.621148924396485,"2026-10-23":15.099016929176042,"2026-10-24":14.817184450116704,"2026-10-25":14.817184450116704},"BAIA A3":{"2026-10-19":16.475830632700223,"2026-10-20":16.37925166514301,"2026-10-21":16.433131282451804,"2026-10-22":16.00751724736408,"2026-10-23":14.2239774226653,"2026-10-24":14.709061702730796,"2026-10-25":14.774622548327924},"BAIA A4":{"2026-10-19":0.0,"2026-10-20":0.0,"2026-10-21":0.0,"2026-10-22":0.0,"2026-10-23":0.0,"2026-10-24":0.0},"VINHACA":{"2026-10-19":6.299546850998463,"2026-10-20":13.161187127350557,"2026-10-21":12.716166545316407,"2026-10-22":12.38745686789705,"2026-10-23":14.218268780474366,"2026-10-24":15.339373213556552,"2026-10-25":7.719380440348182},"CASINHA CARLINHOS":{"2026-10-19":2.1544871794871794,"2026-10-20":0.0,"2026-10-21":0.0,"2026-10-22":0.0,"2026-10-23":6.995274527452746,"2026-10-24":3.8533347493627863,"2026-10-25":3.8855218855218854}};
+const MEDIA_HISTORICA_REFERENCIA_22_10={"CONFINAMENTO|PASTO A1":{"media":7.565717097677758,"dias":31,"origem":"A1","ate":"2026-10-25"},"CONFINAMENTO|PASTO A2":{"media":4.628376482821133,"dias":37,"origem":"A2","ate":"2026-10-25"},"CONFINAMENTO|PASTO B2":{"media":9.27203782104596,"dias":38,"origem":"B2","ate":"2026-10-25"},"CONFINAMENTO|PASTO B1":{"media":4.6512017849656315,"dias":32,"origem":"B1","ate":"2026-10-25"},"CONFINAMENTO|BARRACAO":{"media":8.81676886524059,"dias":87,"origem":"BARRACÃO","ate":"2026-10-25"},"CONFINAMENTO|SEDE PIQUETE":{"media":6.653407913689442,"dias":83,"origem":"SEDE PIQUETE","ate":"2026-10-25"},"CONFINAMENTO|PIQUETEAMENTO ASFALTO":{"media":10.3690451384356,"dias":87,"origem":"PIQUETEAMENTO ASFALTO","ate":"2026-10-25"},"CONFINAMENTO|PIQUETEAMENTO BAIXO":{"media":8.838108730813012,"dias":60,"origem":"PIQUETEAMENTO BAIXO","ate":"2026-10-25"},"CONFINAMENTO|MOMBACA":{"media":4.13310371555908,"dias":30,"origem":"MOMBAÇA","ate":"2026-10-25"},"SEMI|BELA VISTA":{"media":3.6935557677695665,"dias":61,"origem":"BELA VISTA","ate":"2026-09-29"},"SEMI|BELA VISTA ACUDE":{"media":3.484204323008445,"dias":50,"origem":"BELA VISTA AÇUDE","ate":"2026-09-18"},"SEMI|SAO GUILHERME ACIMA":{"media":6.842977118056396,"dias":3,"origem":"SÃO GUILHERME ACIMA","ate":"2026-10-19"},"SEMI|SAO GUILHERME BAIXO":{"media":5.270511876295234,"dias":3,"origem":"SÃO GUILHERME BAIXO","ate":"2026-10-19"},"SEMI|BELEI BAIXO":{"media":9.69172646257247,"dias":173,"origem":"BELEI BAIXO","ate":"2026-10-25"},"SEMI|BELEI ALTO":{"media":7.154184171963319,"dias":187,"origem":"BELEI ALTO","ate":"2026-10-25"},"SEMI|CASINHA":{"media":8.171037499608222,"dias":10,"origem":"CASINHA","ate":"2026-10-25"},"SEMI|DIRCE":{"media":5.643168871806349,"dias":10,"origem":"DIRCE","ate":"2026-10-25"},"SEMI|ABAIXO CASINHA":{"media":10.54840132496199,"dias":185,"origem":"ABAIXO CASINHA","ate":"2026-10-25"},"SEMI|AROEIRA ALTO":{"media":6.521019931985134,"dias":10,"origem":"AROREIRA ALTO","ate":"2026-10-25"},"SEMI|AROEIRA MANGUEIRA":{"media":0.0,"dias":10,"origem":"AROEIRA MANGUEIRA","ate":"2026-10-25"},"SEMI|ACUDE":{"media":0.22160919540229881,"dias":81,"origem":"AÇUDE","ate":"2026-10-25"},"CONFINAMENTO|BAIA B1":{"media":11.651434474112733,"dias":26,"origem":"CONF B01","ate":"2026-10-25"},"CONFINAMENTO|BAIA B2":{"media":13.199688584888364,"dias":87,"origem":"CONF B02","ate":"2026-10-25"},"CONFINAMENTO|BAIA A5":{"media":11.64371088397851,"dias":8,"origem":"CONF A05","ate":"2026-10-13"},"CONFINAMENTO|BAIA B3":{"media":12.66730789964177,"dias":75,"origem":"CONF B03","ate":"2026-10-25"},"CONFINAMENTO|BAIA B4":{"media":13.22455186093401,"dias":162,"origem":"CONF B04","ate":"2026-10-25"},"CONFINAMENTO|BAIA B5":{"media":12.332874865010924,"dias":82,"origem":"CONF B05","ate":"2026-10-25"},"CONFINAMENTO|BAIA A1":{"media":11.971471901269478,"dias":143,"origem":"CONF A01","ate":"2026-10-25"},"CONFINAMENTO|BAIA A2":{"media":11.182705339700155,"dias":26,"origem":"CONF A02","ate":"2026-10-25"},"CONFINAMENTO|BAIA A3":{"media":13.038954871377396,"dias":12,"origem":"CONF A03","ate":"2026-10-25"},"CONFINAMENTO|BAIA A4":{"media":11.258737136553316,"dias":75,"origem":"CONF A04","ate":"2026-10-13"},"CONFINAMENTO|VINHACA":{"media":8.889791697263245,"dias":29,"origem":"VINHAÇA","ate":"2026-10-25"},"CONFINAMENTO|CASINHA CARLINHOS":{"media":4.048365873502618,"dias":18,"origem":"CASINHA CARLINHO","ate":"2026-10-19"},"SEMI|PASTO A1":{"media":7.565717097677758,"dias":31,"origem":"A1","ate":"2026-10-25"},"SEMI|PASTO A2":{"media":4.628376482821133,"dias":37,"origem":"A2","ate":"2026-10-25"},"SEMI|PASTO B1":{"media":4.6512017849656315,"dias":32,"origem":"B1","ate":"2026-10-25"},"SEMI|PASTO B2":{"media":9.27203782104596,"dias":38,"origem":"B2","ate":"2026-10-25"}};
 
 // Relatório mensal: agrega somente snapshots fechados; não reconstrói preços nem quantidade histórica.
 async function relatorioMensalLote(){
@@ -314,9 +363,11 @@ async function diariasHistorico(){
    const qtd=Number(ani.count||0),dias=new Date(Number(mes.slice(0,4)),Number(mes.slice(5,7)),0).getDate();
    if(qtd>0){const diaria=(vinha+frete+aluguel)/qtd/dias;kafeValores={atual:diaria,media:diaria};}
   }catch(err){console.warn('DIÁRIA KAFÉ NÃO DISPONÍVEL:',err);}
-  const datas=[...new Set(rows.map(x=>x.data_trato))].sort().reverse();
+  const datas=[]; // preenchidas depois de carregar tratos e custos
   const tratos=[];for(let inicio=0;inicio<100000;inicio+=1000){const r=await supa.from('tratos_realizados').select('data_trato,sistema,localizacao,trato_1,trato_2,trato_3,trato_4').order('data_trato',{ascending:false}).range(inicio,inicio+999);if(r.error)throw r.error;tratos.push(...(r.data||[]));if(!r.data||r.data.length<1000)break;}
   const totalTrato=x=>[x.trato_1,x.trato_2,x.trato_3,x.trato_4].reduce((a,v)=>a+(Number(v)||0),0);
+  datas.push(...new Set([...rows.map(x=>x.data_trato),...tratos.map(x=>x.data_trato)].filter(x=>x<='2026-10-25'))); datas.sort().reverse(); // incluir datas com trato sem custo fechado
+  const diasExibidos=[...new Set([...datas,...rows.map(x=>x.data_trato),...tratos.map(x=>x.data_trato)])].sort().reverse();
   if(!rows.length){el.innerHTML='<div class="notice">SEM DIÁRIAS INDIVIDUAIS FECHADAS; AS MÉDIAS HISTÓRICAS DE REFERÊNCIA CONTINUAM DISPONÍVEIS.</div>';}
   let html='';
   for(const si of ['CONFINAMENTO','SEMI']){
@@ -325,27 +376,34 @@ async function diariasHistorico(){
    const locaisAtivos=locais.filter(local=>(qtdAtiva.get(normLocal(local))||0)>0&&!(si==='SEMI'&&/^PASTO [AB][12]$/.test(local)));
    if(si==='SEMI'&&kafeValores)locaisAtivos.push('KAFE');
    if(!locaisAtivos.length)continue;
-   html+='<h3>'+(si==='SEMI'?'SEMICONFINAMENTO':'CONFINAMENTO')+'</h3><div class="diarias-scroll diarias-historico" tabindex="0"><table><thead><tr><th>CURRAL / LOCAL</th><th>DIÁRIA ATUAL (R$)</th><th>MÉDIA HISTÓRICA (R$)</th>';
-   for(const dia of datas)html+='<th>'+dia.slice(8,10)+'/'+dia.slice(5,7)+'</th>';
+   html+='<h3>'+(si==='SEMI'?'SEMICONFINAMENTO':'CONFINAMENTO')+'</h3><div class="diarias-scroll diarias-historico" tabindex="0"><table><thead><tr><th>CURRAL / LOCAL</th><th>DIÁRIA ATUAL (R$)</th><th>MÉDIA HISTÓRICA ATUALIZADA (R$)</th>';
+   for(const dia of diasExibidos)html+='<th>'+dia.slice(8,10)+'/'+dia.slice(5,7)+'</th>';
    html+='</tr></thead><tbody>';
    for(const local of locaisAtivos){
     if(local==='KAFE'){
      html+='<tr><td><b>POSTO KAFÉ</b></td><td><b>'+dinheiro(kafeValores.atual)+'</b></td><td><b>'+dinheiro(kafeValores.media)+'</b></td>';
-     for(const dia of datas)html+='<td>—</td>';
+     for(const dia of diasExibidos)html+='<td>—</td>';
      html+='</tr>';
      continue;
     }
     const historico=rows.filter(x=>norm(x.localizacao)===local&&(norm(x.sistema)===si||(si==='CONFINAMENTO'&&/^PASTO [AB][12]$/.test(local)&&norm(x.sistema)==='SEMI')));
-    const validos=historico.filter(x=>Number.isFinite(Number(x.custo_diaria_cabeca))&&Number(x.quantidade_animais)>0&&Number(x.mn_distribuida_kg)>0);
-    const mediaParcial=validos.length?validos.reduce((a,x)=>a+Number(x.custo_diaria_cabeca),0)/validos.length:null;
-    const ref=MEDIA_HISTORICA_REFERENCIA_22_10[si+'|'+local];
-    const posteriores=validos.filter(x=>x.data_trato>'2026-10-23');
-    const somaNovos=posteriores.reduce((a,x)=>a+Number(x.custo_diaria_cabeca),0);
-    const media=ref&&ref.dias>0?(ref.media*ref.dias+somaNovos)/(ref.dias+posteriores.length):ref?ref.media:mediaParcial;
+    const validos=historico.filter(x=>Number.isFinite(Number(x.custo_diaria_cabeca))&&Number(x.quantidade_animais)>0);
+    // A planilha CONTROLE DE INSUMOS / CONSUMO DIARIO é a base oficial.
+    // Cada referência traz a média, a quantidade de dias e a última data já incluída.
+    // Acrescentar SOMENTE dias posteriores, com animais, sem duplicar o histórico.
+    const ref=MEDIA_HISTORICA_REFERENCIA_22_10[si+'|'+local]||null;
+    const diasBase=ref&&Number(ref.dias)>0?Number(ref.dias):0;
+    const posteriores=validos.filter(x=>ref&&x.data_trato>ref.ate);
+    const media=diasBase
+      ?(Number(ref.media)*diasBase+posteriores.reduce((acc,x)=>acc+Number(x.custo_diaria_cabeca),0))/(diasBase+posteriores.length)
+      :(validos.length?validos.reduce((acc,x)=>acc+Number(x.custo_diaria_cabeca),0)/validos.length:null);
     const ultima=validos.slice().sort((a,b)=>b.data_trato.localeCompare(a.data_trato))[0];
-    const atual=ultima&&ultima.data_trato>'2026-10-23'?Number(ultima.custo_diaria_cabeca):ref?Number(ref.media):ultima?Number(ultima.custo_diaria_cabeca):null;
-    html+='<tr><td>'+esc(local)+'</td><td><b>'+(atual===null?'—':dinheiro(atual))+'</b></td><td><b>'+(media===null?'—':dinheiro(media))+'</b></td>';
-    for(const dia of datas){const r=historico.find(x=>x.data_trato===dia);const t=tratos.find(x=>x.data_trato===dia&&norm(x.localizacao)===local&&(norm(x.sistema)===si||(si==='CONFINAMENTO'&&/^PASTO [AB][12]$/.test(local)&&norm(x.sistema)==='SEMI')));const kg=t?totalTrato(t):0;html+='<td>'+(r&&Number(r.mn_distribuida_kg)>0?dinheiro(r.custo_diaria_cabeca):t&&kg>0?'<strong style="color:#b45309" title="Existe trato realizado ('+kg.toLocaleString('pt-BR')+' kg), mas não há diária financeira fechada correspondente">CUSTO PENDENTE ('+kg.toLocaleString('pt-BR')+' KG)</strong>':t?'<span title="Trato lançado com distribuição zero">0 KG REGISTRADO</span>':'<span title="Não existe lançamento de trato realizado para este local nesta data">SEM LANÇAMENTO</span>')+'</td>';}
+    const planilhaLocal=DIARIAS_OFICIAIS_PLANILHA_26_10[local]||{};
+    const ultimaPlanilha=Object.keys(planilhaLocal).sort().reverse()[0];
+    const ultimaData=ultima?ultima.data_trato:null;
+    const atual=ultimaData&&(!ultimaPlanilha||ultimaData>ultimaPlanilha)?Number(ultima.custo_diaria_cabeca):(ultimaPlanilha?planilhaLocal[ultimaPlanilha]:(ultima?Number(ultima.custo_diaria_cabeca):null));
+    html+='<tr><td>'+esc(local==='VINHACA'?'VINHAÇA':local)+'</td><td><b>'+(atual===null?'—':dinheiro(atual))+'</b></td><td><b>'+(media===null?'—':dinheiro(media))+'</b></td>';
+    for(const dia of diasExibidos){const r=historico.find(x=>x.data_trato===dia);const t=tratos.find(x=>x.data_trato===dia&&norm(x.localizacao)===local&&(norm(x.sistema)===si||(si==='CONFINAMENTO'&&/^PASTO [AB][12]$/.test(local)&&norm(x.sistema)==='SEMI')));const kg=t?totalTrato(t):0;html+='<td>'+(Object.prototype.hasOwnProperty.call(planilhaLocal,dia)?'<span title="VALOR CONFERIDO NA PLANILHA CONSUMO DIARIO">'+dinheiro(planilhaLocal[dia])+'</span>':r&&Number.isFinite(Number(r.custo_diaria_cabeca))?dinheiro(r.custo_diaria_cabeca):t&&kg>0?'<strong style="color:#b45309" title="Existe trato realizado ('+kg.toLocaleString('pt-BR')+' kg), mas não há diária financeira fechada correspondente">CUSTO PENDENTE ('+kg.toLocaleString('pt-BR')+' KG)</strong>':t?'<span title="Trato lançado com distribuição zero">0 KG REGISTRADO</span>':'<span title="Não existe lançamento de trato realizado para este local nesta data">SEM LANÇAMENTO</span>')+'</td>';}
     html+='</tr>';
    }
    html+='</tbody></table></div>';
@@ -511,7 +569,7 @@ async function consumoPrepararDia(){
    x.qtd=lista.length;
    // Referências de peso médio do lote confirmadas pelo responsável em 22/10/2026.
    // Somente usadas quando não há nenhum peso individual válido no lote.
-   const pesosReferenciaLote={'BELEI BAIXO':330,'PIQUETEAMENTO ASFALTO':375};
+   const pesosReferenciaLote={'BELEI BAIXO':330,'PIQUETEAMENTO ASFALTO':375,'CASINHA CARLINHOS':350};
    const pesoReferencia=pesosReferenciaLote[consumoDataNorm(x.local)];
    x.pesoMedio=validos>0?soma/validos:(pesoReferencia>0?pesoReferencia:null);
    if(!validos&&pesoReferencia>0)pendencias.push('PESO MÉDIO DE REFERÊNCIA DO LOTE: '+pesoReferencia+' KG');
@@ -665,7 +723,7 @@ async function consumoHistoricoRender(){
   }
   // Exibição operacional: somente localidades com animais ativos.
   // Histórico das desocupadas continua armazenado no Supabase.
-  const localVisivel=loc=>locaisComAnimais.has(loc);
+  const localVisivel=loc=>true; // Histórico completo, inclusive localidades atualmente sem animais
   // A planilha é a referência até que os valores tenham sido efetivamente importados.
   const porChave=new Map();
   for(const x of CONSUMO_PLANILHA_DADOS)porChave.set(x.indicador+'|'+consumoNorm(x.localizacao)+'|'+x.data_referencia,x);
@@ -687,7 +745,17 @@ async function consumoHistoricoRender(){
    for(const [loc,ref] of keys){
     if(!localVisivel(loc))continue;
     const vs=subset.map(d=>m.get(loc+'|'+d)).filter(x=>x!==undefined);
-    const media=ref.media!==null?ref.media:(vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null);
+    // Média inicial da planilha ponderada pelos dias originais; acrescenta apenas
+    // datas do SISTEMA posteriores à última data histórica da respectiva localidade.
+    // Assim não duplica a data de transição e preserva os zeros registrados.
+    const historicoPlanilha=CONSUMO_PLANILHA_DADOS.filter(x=>x.indicador===kind&&consumoNorm(x.localizacao)===loc);
+    const datasBase=new Set(historicoPlanilha.map(x=>x.data_referencia));
+    const ultimaDataBase=historicoPlanilha.map(x=>x.data_referencia).sort().at(-1)||'';
+    const novosDias=dados.filter(x=>x.indicador===kind&&consumoNorm(x.localizacao)===loc&&x.data_referencia>ultimaDataBase&&!datasBase.has(x.data_referencia));
+    const baseValida=ref.media!==null&&ref.media!==undefined&&Number.isFinite(Number(ref.media));
+    const qtdBase=historicoPlanilha.length;
+    const media=baseValida&&qtdBase ? (Number(ref.media)*qtdBase+novosDias.reduce((a,x)=>a+Number(x.valor),0))/(qtdBase+novosDias.length)
+      : (vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null);
     html+='<tr><td>'+String(ref.localizacao).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</td><td><b>'+fmt(media,kind)+'</b></td>';
     for(const dia of subset){const v=m.get(loc+'|'+dia);html+='<td>'+(v===undefined?'—':fmt(v,kind))+'</td>';}
     html+='</tr>';
@@ -888,8 +956,9 @@ body{background:#f4f8f7}
   const [liquido,compra,diarias,mortes,resultado]=cards.map(moeda),custos=compra+diarias+mortes;
   const setores=[['Vendas líquidas',liquido,'#087052'],['Compras',compra,'#e5a943'],['Diárias e acumulados',diarias,'#57a6c7'],['Prejuízo com mortes',mortes,'#cb7862'],['Custos totais',custos,'#8b78c6'],[cards[4].querySelector('span')?.textContent||'Resultado',resultado,resultado>=0?'#26a887':'#ad3434']];
   const money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-  const total=setores.reduce((a,x)=>a+Math.abs(x[1]),0);let pos=0;
-  const fatias=setores.map(([n,v,c])=>{let ini=pos;pos+=total?Math.abs(v)/total*100:0;return c+' '+ini.toFixed(4)+'% '+pos.toFixed(4)+'%'}).join(',');
+  const setoresPizza=setores.slice(0,4); // Não duplicar custos totais nem resultado nas fatias
+  const total=setoresPizza.reduce((a,x)=>a+Math.abs(x[1]),0);let pos=0;
+  const fatias=setoresPizza.map(([n,v,c])=>{let ini=pos;pos+=total?Math.abs(v)/total*100:0;return c+' '+ini.toFixed(4)+'% '+pos.toFixed(4)+'%'}).join(',');
   box.innerHTML='<div class="dash-fin-pizza-layout"><div class="dash-fin-pizza" style="background:'+(total?'conic-gradient('+fatias+')':'#e6eee9')+'"></div><div class="dash-fin-pizza-legenda">'+setores.map(([n,v,c])=>'<div class="dash-fin-pizza-item"><i style="background:'+c+'"></i><span>'+n+'</span><strong style="color:'+(n.toLowerCase().includes('resultado')?(v>=0?'#087052':'#b4232b'):(n.toLowerCase().includes('vendas')?'#087052':'#b4232b'))+'">'+money(v)+'</strong></div>').join('')+'</div></div><div class="dash-fin-aviso">Valores da Visão Financeira de '+periodo.slice(5)+'/'+periodo.slice(0,4)+'. Custos totais e resultado são indicadores derivados.</div>';
   const label=document.getElementById('dashFinPeriodoLabel');if(label)label.textContent='Mês corrente · '+periodo.slice(5)+'/'+periodo.slice(0,4);
   const footer=document.getElementById('dashFinResultado');if(footer)footer.textContent='Consolidado oficial · Visão Financeira';
@@ -1004,6 +1073,8 @@ body{background:#f4f8f7}
 <button onclick="showPage('financeiro',this);atualizarFinanceiro()">VISÃO FINANCEIRA</button>
 <div class="nav-group">TRATOS E INSUMOS</div>
 <button onclick="showPage('tratamentos',this);renderTratamentos()">TRATAMENTO / MEDICAÇÃO</button>
+<button class="admin-only" onclick="farmaciaAbrir(this)">CONTROLE DE FARMÁCIA</button>
+<button class="admin-only" onclick="farmaciaCotacaoAbrir(this)">COTAÇÃO DE MEDICAMENTOS</button>
 <button class="admin-only" onclick="showPage('dietasMs',this);carregarDietasMS();carregarEstoqueInsumos();nutriDashboardReal();carregarControleSilos()">DIETAS / MS / ESTOQUE INSUMOS</button>
 <button class="admin-only" onclick="showPage('diariasConferencia',this);diariasConferir();consumoHistoricoRender();diariasHistorico();zooCarregar()">DIÁRIAS / CNS MN / CNS %MS</button>
 <button class="admin-only" onclick="showPage('tratosCadastro',this);tratosRender().then(()=>trCargaRender())">TRATOS REALIZADOS</button>
@@ -1060,6 +1131,7 @@ body{background:#f4f8f7}
     <div class="panel" id="estoqueInsumosPanel">
       
       <div class="section-head"><div><h2>Estoque de insumos — GERAL - INSUMOS</h2><p>Entradas, consumo automático dos carregamentos (incluindo 3% de perda) e saldo disponível.</p></div><button class="btn" type="button" onclick="event.preventDefault();event.stopPropagation();carregarEstoqueInsumos();return false;">RECARREGAR SALDOS</button></div>
+      <div style="margin:12px 0 18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px;border:1px solid #a9c8a9;background:#f0f9f0;border-radius:8px"><button class="btn" type="button" style="background:#18733c;color:white;font-weight:700;font-size:15px;padding:12px 20px" onclick="imprimirInsumosEmUso()">🖨 IMPRIMIR INSUMOS EM USO</button><span style="font-size:13px">Imprime apenas os insumos com consumo registrado, conforme a tabela de estoque.</span></div>
       <div id="estoqueInsumosKpis" class="kpis"></div>
       <div id="estoqueInsumosTabela"><div class="empty">Carregando estoque...</div></div>
       <div class="section-head" style="margin-top:22px"><div><h3>REGISTRAR MOVIMENTAÇÃO MANUAL</h3><p>Use apenas para compras ou correções de inventário. O consumo dos tratos é automático.</p></div></div>
@@ -1106,11 +1178,11 @@ body{background:#f4f8f7}
   </section>
 
 <section id="tratosCadastro" class="page admin-only"><div class="panel"><div class="section-head"><div><h2>DISTRIBUIÇÃO DIÁRIA DE TRATOS</h2><p>LANÇAMENTO TRATO A TRATO — PADRÃO DA PLANILHA</p></div><span class="tag">ETAPA 20 — CARREGAMENTO E CONFERÊNCIA</span></div><div class="grid" style="margin-bottom:12px"><div class="field"><label>DATA DA DISTRIBUIÇÃO</label><input id="tr_data" type="date" onchange="tratosRender().then(()=>trCargaRender())"></div></div><div class="notice">CURRAIS DO CONFINAMENTO E SEMI: CONFIGURAÇÃO DO MANEJO EXISTENTE. TOTAL DO DIA ANTERIOR: SUPABASE. PREVISÕES POR TRATO: PERCENTUAIS DO MANEJO (20/30/30/20 OU CONFIGURADO); CONFINAMENTO ESPECIAL: DOIS TRATOS CONFORME MANEJO. SEMICONFINAMENTO: UM TRATO, 100% NO TRATO 1. APENAS REAL É EDITÁVEL.</div><div id="tr_db_aviso" class="notice">AGUARDANDO CONSULTA AO BANCO.</div><div class="table-wrap"><table class="tratos-compacta" style="width:100%;min-width:0;font-size:10px;table-layout:fixed"><thead><tr><th>CURRAL</th><th>DIAS</th><th>TOTAL</th><th>BOIS</th><th>TRATO 1</th><th>REAL</th><th>TRATO 2</th><th>REAL</th><th>TRATO 3</th><th>REAL</th><th>TRATO 4</th><th>REAL</th><th>SALDO PENDENTE</th><th>REALIZADO</th><th>DESVIO</th><th>DESVIO %</th></tr></thead><tbody id="tr_grade_body"></tbody><tfoot id="tr_grade_total"></tfoot></table></div><div class="form-actions"><button class="btn primary" onclick="tratosSalvarDistribuicao()">SALVAR DISTRIBUIÇÃO</button></div><div class="notice">REAL POR TRATO: GRAVADO NO SUPABASE POR DATA E LOCALIDADE. LANÇAMENTOS PARCIAIS SÃO PRESERVADOS. SALDO DO DIA É REDISTRIBUÍDO ENTRE OS TRATOS RESTANTES. DADOS JÁ SALVOS FICAM BLOQUEADOS.</div></div><div class="panel" id="tr_carga_painel"><div class="section-head"><div><h2>CARREGAMENTO — INGREDIENTES E CONFERÊNCIA</h2><p>DESVIOS POR INGREDIENTE, GERAL E DIFERENÇA CARREGADO × DISTRIBUÍDO</p></div></div>
-<div class="grid tr-carga-cabecalho" style="margin-bottom:10px"><div class="field"><label>DATA DO CARREGAMENTO — SELECIONE O DIA A LANÇAR</label><input id="tr_carga_data" type="date" onchange="trCargaRender()"></div><div class="field"><label>SISTEMA</label><select id="tr_carga_sistema" onchange="trCargaRender()"><option value="CONFINAMENTO">CONFINAMENTO</option><option value="SEMI">SEMICONFINAMENTO</option></select></div><input id="tr_carga_num" type="hidden" value="CONSOLIDADO"><div class="field"><label>LANÇAMENTO</label><strong>CONSOLIDADO DIÁRIO</strong></div></div>
+<div class="grid tr-carga-cabecalho" style="margin-bottom:10px"><div class="field"><label>DATA DO CARREGAMENTO — SELECIONE O DIA A LANÇAR</label><input id="tr_carga_data" type="date" onchange="trCargaRender()"></div><div class="field"><label>SISTEMA</label><select id="tr_carga_sistema" onchange="trCargaRender()"><option value="CONFINAMENTO">CONFINAMENTO</option><option value="SEMI">SEMICONFINAMENTO</option></select></div><div class="field"><label>CARGA / TRATO</label><select id="tr_carga_num" onchange="trCargaRender()"><option value="CONSOLIDADO">CONSOLIDADO (HISTÓRICO)</option><option value="1">CARGA 1</option><option value="2">CARGA 2</option><option value="3">CARGA 3</option><option value="4">CARGA 4</option></select></div></div>
 <div class="notice" id="tr_carga_aviso">SELECIONE A DATA E A CARGA. O PREVISTO POR INGREDIENTE USA A DIETA ATIVA COMO REFERÊNCIA; INFORME A QUANTIDADE REAL CARREGADA.</div>
 <div class="notice" id="tr_carga_data_destaque" style="font-size:15px;font-weight:800;border:2px solid #64748b;padding:12px;margin:10px 0">CONFIRMANDO DATA DO CARREGAMENTO...</div><input id="tr_carga_total_previsto" type="hidden" value="0"><input id="tr_carga_bruto" type="hidden" value="0"><input id="tr_carga_sobra" type="hidden" value="0"><div class="notice" id="tr_carga_conciliacao" style="display:none"></div><div id="tr_carga_itens"></div><div id="tr_carga_resumo"></div>
-<div class="form-actions"><button class="btn primary" type="button" id="tr_carga_salvar_btn" onclick="trCargaSalvar()">SALVAR CARREGAMENTO NO SUPABASE</button></div>
-<div class="notice">A RECEITA PADRÃO NÃO É A CARGA DO DIA. INFORME O TOTAL PROGRAMADO PARA GERAR OS PREVISTOS. DIFERENÇA CARREGADO × DISTRIBUÍDO SÓ É DEFINITIVA QUANDO TODAS AS CARGAS E TODOS OS TRATOS DO DIA ESTIVEREM LANÇADOS. NÃO ALTERA ESTOQUE AUTOMATICAMENTE.</div></div><div class="panel" style="margin-top:12px"><b>FECHAMENTO DEFINITIVO POR SISTEMA</b><p class="hint">CONFINAMENTO E SEMICONFINAMENTO SÃO INDEPENDENTES. APÓS FECHAR, NÃO É POSSÍVEL INSERIR, ALTERAR OU EXCLUIR TRATOS DA DATA E DO SISTEMA. NÃO FECHA AUTOMATICAMENTE.</p><div class="form-actions"><button class="btn" onclick="trFecharSistema('CONFINAMENTO')">FECHAR CONFINAMENTO</button><button class="btn" onclick="trFecharSistema('SEMI')">FECHAR SEMICONFINAMENTO</button><button class="btn" onclick="trConsultarFechamentos()">CONSULTAR FECHAMENTOS</button><button class="btn" onclick="trImprimirRelatorioOficial()">IMPRIMIR / SALVAR PDF DOS REALIZADOS</button></div><div id="tr_status_fechamentos" class="notice">CONSULTE O STATUS ANTES DE FECHAR.</div></div></section><section id="diariasConferencia" class="page admin-only"><div class="panel"><div class="section-head"><div><h2>CONFERÊNCIA DO CUSTO DIÁRIO POR CURRAL</h2><div style="display:flex;flex-wrap:wrap;gap:10px;margin:14px 0"><button type="button" class="btn primary" onclick="consumoHistoricoRender();document.getElementById('consumo_import_area').scrollIntoView({behavior:'smooth',block:'start'})">IR PARA CONSUMO DIÁRIO / %PV MS</button></div><p>PRÉVIA — NÃO ALTERA CUSTOS DOS ANIMAIS NEM FECHA DIÁRIAS</p></div></div><div class="grid"><div class="field"><label>DATA DO TRATO</label><input type="date" id="diarias_data"></div><div class="field" style="align-self:end"><button type="button" class="btn primary" onclick="diariasConferir()">CALCULAR PRÉVIA</button></div></div><div id="diarias_resultado"></div>
+<div class="form-actions"><button class="btn" type="button" onclick="trImprimirPrevisaoConferida()">IMPRIMIR PREVISÃO DOS CARREGAMENTOS</button><button class="btn primary" type="button" id="tr_carga_salvar_btn" onclick="trCargaSalvar()">SALVAR CARREGAMENTO NO SUPABASE</button></div>
+<div class="notice">A RECEITA PADRÃO NÃO É A CARGA DO DIA. INFORME O TOTAL PROGRAMADO PARA GERAR OS PREVISTOS. DIFERENÇA CARREGADO × DISTRIBUÍDO SÓ É DEFINITIVA QUANDO TODAS AS CARGAS E TODOS OS TRATOS DO DIA ESTIVEREM LANÇADOS. A BAIXA DO ESTOQUE SEGUE AS REGRAS DO BANCO DE DADOS.</div></div><div class="panel" style="margin-top:12px"><b>FECHAMENTO DEFINITIVO POR SISTEMA</b><p class="hint">CONFINAMENTO E SEMICONFINAMENTO SÃO INDEPENDENTES. APÓS FECHAR, NÃO É POSSÍVEL INSERIR, ALTERAR OU EXCLUIR TRATOS DA DATA E DO SISTEMA. NÃO FECHA AUTOMATICAMENTE.</p><div class="form-actions"><button class="btn" onclick="trFecharSistema('CONFINAMENTO')">FECHAR CONFINAMENTO</button><button class="btn" onclick="trFecharSistema('SEMI')">FECHAR SEMICONFINAMENTO</button><button class="btn" onclick="trConsultarFechamentos()">CONSULTAR FECHAMENTOS</button><button class="btn" onclick="trImprimirRelatorioOficial()">IMPRIMIR / SALVAR PDF DOS REALIZADOS</button></div><div id="tr_status_fechamentos" class="notice">CONSULTE O STATUS ANTES DE FECHAR.</div></div></section><section id="diariasConferencia" class="page admin-only"><div class="panel"><div class="section-head"><div><h2>CONFERÊNCIA DO CUSTO DIÁRIO POR CURRAL</h2><div style="display:flex;flex-wrap:wrap;gap:10px;margin:14px 0"><button type="button" class="btn primary" onclick="consumoHistoricoRender();document.getElementById('consumo_import_area').scrollIntoView({behavior:'smooth',block:'start'})">IR PARA CONSUMO DIÁRIO / %PV MS</button></div><p>PRÉVIA — NÃO ALTERA CUSTOS DOS ANIMAIS NEM FECHA DIÁRIAS</p></div></div><div class="grid"><div class="field"><label>DATA DO TRATO</label><input type="date" id="diarias_data"></div><div class="field" style="align-self:end"><button type="button" class="btn primary" onclick="diariasConferir()">CALCULAR PRÉVIA</button></div></div><div id="diarias_resultado"></div>
 <hr style="margin:24px 0">
 
 
@@ -1365,6 +1437,34 @@ body{background:#f4f8f7}
       </div>
     </section>
 
+
+    
+<section id="farmaciaCotacao" class="page admin-only">
+ <div class="panel"><div class="section-head"><div><h2>COTAÇÃO DE MEDICAMENTOS</h2><p>Selecione os medicamentos que deseja comprar, ajuste as quantidades e compare três fornecedores. A seleção fica salva no Supabase.</p></div><span class="tag">ADMINISTRADOR</span></div>
+ <div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0"><button class="btn" style="background:#187344;color:white;font-weight:700" onclick="farmaciaCotacaoSalvarTodas()">💾 SALVAR SELEÇÃO E COTAÇÕES</button><button class="btn" onclick="farmaciaCotacaoCarregar()" title="Consultar novamente os estoques e cotações salvas no Supabase">↻ RECARREGAR DO BANCO</button><button class="btn" onclick="farmaciaImprimirCompras()">🖨 LISTA PARA FORNECEDORES</button><button class="btn" onclick="farmaciaCotacaoImprimir()">🖨 COMPARATIVO DE COTAÇÕES</button></div>
+ <div id="farm_cot_fornecedores" style="background:#eef6f2;border:1px solid #b5d6c5;padding:16px;border-radius:10px;margin:12px 0"></div><p id="farm_cot_status" class="notice">Carregando medicamentos para compra...</p><div id="farm_cot_tabela"></div>
+ </div>
+</section>
+<section id="farmacia" class="page admin-only">
+ <div class="panel">
+  <div class="section-head"><div><h2>CONTROLE DE FARMÁCIA</h2><p>Estoque, entradas, retiradas e ficha de medicamentos. Acesso exclusivo do administrador.</p></div><span class="tag">FAZENDA NOVA ESPERANÇA</span></div>
+  <div class="grid">
+   <div class="field"><label>Medicamento</label><select id="farm_med"></select></div>
+   <div class="field"><label>Data</label><input id="farm_data" type="date"></div>
+   <div class="field"><label>Movimentação</label><select id="farm_tipo"><option value="RETIRADA">RETIRADA</option><option value="ENTRADA">ENTRADA</option><option value="AJUSTE_POSITIVO">AJUSTE POSITIVO</option><option value="AJUSTE_NEGATIVO">AJUSTE NEGATIVO</option></select></div>
+   <div class="field"><label>Quantidade</label><input id="farm_qtd" type="number" min="0.001" step="0.001" inputmode="decimal"></div>
+   <div class="field" style="grid-column:span 2"><label>Motivo / Observação</label><input id="farm_motivo" maxlength="300" oninput="this.value=this.value.toUpperCase()" placeholder="INFORME O MOTIVO DA RETIRADA OU A ORIGEM DA ENTRADA"></div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px"><button class="btn" id="farm_salvar" onclick="farmaciaSalvar()">SALVAR MOVIMENTAÇÃO</button><button class="btn" onclick="farmaciaCarregar()">ATUALIZAR ESTOQUE</button><button class="btn" onclick="farmaciaImprimirFicha()">IMPRIMIR FICHA DE RETIRADA</button></div>
+  <p class="notice" id="farm_status">Os saldos iniciais foram importados da planilha CONTROLE FARMACIA.</p>
+ </div>
+ <div class="panel"><div class="section-head"><div><h2>ESTOQUE DE MEDICAMENTOS</h2><p>Saldos atualizados pelo Supabase. Verde: 10 ou mais; amarelo: 5 a 9; vermelho: 4 ou menos.</p></div></div><div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:12px 0"><button class="btn" type="button" onclick="farmaciaImprimirCompras()" style="background:#18733c;color:white;font-weight:700;padding:12px 18px">🖨 IMPRIMIR MEDICAMENTOS PARA COMPRA</button><span style="font-size:13px">Imprime apenas medicamentos selecionados na Cotação, com quantidades definidas pelo administrador.</span></div><div class="table-wrap" id="farm_estoque"></div></div>
+ <div class="panel"><div class="section-head"><div><h2>HISTÓRICO DE MOVIMENTAÇÕES</h2><p>Registro de entradas, retiradas e ajustes.</p></div></div><div class="table-wrap" id="farm_historico"></div></div>
+ <div class="panel"><div class="section-head"><div><h2>CADASTRAR MEDICAMENTO</h2><p>Novos produtos, sem alterar os já importados.</p></div></div>
+  <div class="grid"><div class="field"><label>Nome</label><input id="farm_novo_nome" oninput="this.value=this.value.toUpperCase()"></div><div class="field"><label>Tratamento / Finalidade</label><input id="farm_novo_trat" oninput="this.value=this.value.toUpperCase()"></div><div class="field"><label>Estoque inicial</label><input id="farm_novo_saldo" type="number" step="0.001" value="0"></div><div class="field"><label>Estoque mínimo</label><input id="farm_novo_necessidade" type="number" min="0" step="0.001" value="10"></div></div>
+  <button class="btn" onclick="farmaciaCadastrar()">CADASTRAR NOVO MEDICAMENTO</button>
+ </div>
+</section>
 
     <section id="tratamentos" class="page">
       <div class="panel">
@@ -2096,12 +2196,12 @@ async function renderDashboardEstoque(){
   ]);
   if(q.error)throw q.error;if(m.error)throw m.error;if(v.error)throw v.error;
   const ativos={data:ativosTodos};
-  const rows=q.data||[], mapa=new Map(); (ativos.data||[]).forEach(x=>{const n=String(x.localizacao||'').trim().toUpperCase();if(n&&n!=='REPOSITÓRIO')mapa.set(n,(mapa.get(n)||0)+1);});
-  const norm=n=>String(n||'').trim().toUpperCase().replace(/^CONF /,'BAIA ');
+  const norm=n=>String(n||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/^CONF /,'BAIA ');
+  const rows=q.data||[], mapa=new Map(); (ativos.data||[]).forEach(x=>{const n=norm(x.localizacao);if(n&&n!=='REPOSITORIO')mapa.set(n,(mapa.get(n)||0)+1);});
   const categoriasOrdem=['VACA','BEZERRO','BEZERRA','GARROTE','BOI','NOVILHA'];
   const categoriasLabel={VACA:'VACAS',BEZERRO:'BEZERROS',BEZERRA:'BEZERRAS',GARROTE:'GARROTES',BOI:'BOIS',NOVILHA:'NOVILHAS'};
   const categoriasPorLocal=new Map(),totaisCategoria=new Map(categoriasOrdem.map(c=>[c,0]));
-  (ativos.data||[]).filter(x=>norm(x.localizacao)!=='REPOSITÓRIO').forEach(x=>{
+  (ativos.data||[]).filter(x=>norm(x.localizacao)!=='REPOSITORIO').forEach(x=>{
     const local=norm(x.localizacao),cat=String(x.categoria_animal||'').trim().toUpperCase();
     if(!categoriasOrdem.includes(cat))return;
     if(!categoriasPorLocal.has(local))categoriasPorLocal.set(local,new Map());
@@ -2122,21 +2222,21 @@ async function renderDashboardEstoque(){
   const entradasAtuais=new Map();
   (ativos.data||[]).forEach(x=>{const n=norm(x.localizacao),d=x.data_entrada;if(!entradasAtuais.has(n))entradasAtuais.set(n,[]);if(d)entradasAtuais.get(n).push(String(d));});
   const vacAtuais=(()=>{const ult=new Map(),ativosPorId=new Map((ativos.data||[]).map(a=>[String(a.id),a]));for(const r of (vac.data||[])){const k=String(r.animal_id||''),a=ativosPorId.get(k);if(!a)continue;const registro={...r,localizacao:a.localizacao};const ant=ult.get(k);if(!ant||String(registro.data_vacinacao||'')>String(ant.data_vacinacao||''))ult.set(k,registro)}return [...ult.values()]})();
-  const reforcos=new Map();if(!vac.error)vacAtuais.filter(x=>norm(x.localizacao)!=='REPOSITÓRIO').forEach(x=>{const n=norm(x.localizacao);if(!reforcos.has(n))reforcos.set(n,[]);reforcos.get(n).push(x)});const refTop=$('v15Ref');if(refTop&&!vac.error){
+  const reforcos=new Map();if(!vac.error)vacAtuais.filter(x=>norm(x.localizacao)!=='REPOSITORIO').forEach(x=>{const n=norm(x.localizacao);if(!reforcos.has(n))reforcos.set(n,[]);reforcos.get(n).push(x)});const refTop=$('v15Ref');if(refTop&&!vac.error){
   const hojeIso=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
   const lotesMap=new Map();
   vacAtuais
-    .filter(x=>norm(x.localizacao)!=='REPOSITÓRIO' && (mapa.get(norm(x.localizacao))||0)>0 && x.data_prevista_reforco )
+    .filter(x=>norm(x.localizacao)!=='REPOSITORIO' && (mapa.get(norm(x.localizacao))||0)>0 && x.data_prevista_reforco )
     .forEach(x=>{const k=norm(x.localizacao),dt=String(x.data_prevista_reforco);if(!lotesMap.has(k)||dt<lotesMap.get(k).data)lotesMap.set(k,{local:k,data:dt});});
   const lista=[...lotesMap.values()].sort((a,b)=>a.data.localeCompare(b.data)||a.local.localeCompare(b.local));
   refTop.innerHTML=lista.length?lista.map(x=>{const p=x.data.split('-');return `${x.local} — ${p[2]}/${p[1]}`}).join('<br>'):'—';
 }
   const pastos=['CASINHA','DIRCE','ABAIXO CASINHA','AROEIRA ALTO','AROEIRA MANGUEIRA','BELEI BAIXO','BELEI ALTO','BARRACÃO','SEDE PIQUETE','MOMBAÇA','PIQUETEAMENTO ASFALTO','PIQUETEAMENTO BAIXO','PASTO A1','PASTO A2','PASTO B1','PASTO B2','SÃO GUILHERME ALTO','SÃO GUILHERME BAIXO','AÇUDE','BELA VISTA','BELA VISTA AÇUDE','PASTO A1 LD CONFINAMENTO'];
-  const conf=['VINHAÇA','BAIA A1','BAIA A2','BAIA A3','BAIA A4','BAIA A5','BAIA B1','BAIA B2','BAIA B3','BAIA B4','BAIA B5','PASTO A1','PASTO A2','PASTO B2','PASTO B1','BARRACÃO','SEDE PIQUETE','PIQUETEAMENTO BAIXO','PIQUETEAMENTO ASFALTO','MOMBAÇA','CASINHA CARLINHOS'];
+  const conf=['VINHAÇA','BAIA A1','BAIA A2','BAIA A3','BAIA A4','BAIA A5','BAIA B1','BAIA B2','BAIA B3','BAIA B4','BAIA B5','PASTO A1','PASTO A2','PASTO B2','PASTO B1','BARRACÃO','SEDE PIQUETE','PIQUETEAMENTO BAIXO','PIQUETEAMENTO ASFALTO','MOMBAÇA','CASINHA CARLINHOS','PASTO A1 LD CONFINAMENTO'];
   const arr=['ESPIRITO SANTO DO TURVO','TIMBURI','KAFÉ'];
   const grupos=[['SEMICONFINAMENTO FORA / DEMAIS LOCALIDADES',pastos.filter(n=>!conf.includes(n)),false],['CONFINAMENTO',conf,true],['ARRENDAMENTOS',arr,false]];
   // ESTOQUE FÍSICO = todos os animais ATIVOS, exceto REPOSITÓRIO.
-  const fisicos=(ativos.data||[]).filter(x=>norm(x.localizacao)!=='REPOSITÓRIO');
+  const fisicos=(ativos.data||[]).filter(x=>norm(x.localizacao)!=='REPOSITORIO');
   const total=fisicos.length, vendas=Number(v.count)||0, mortes=Number(m.count)||0;
   // CONFINAMENTO = VINHAÇA + baias A/B; ARRENDAMENTO = Espírito Santo + Timburi + Kafé; demais físicos = SEMI.
   const totalConfinamento=conf.reduce((s,n)=>s+(mapa.get(n)||0),0);
@@ -2227,6 +2327,28 @@ let estoqueInsumosCache=[];
 const estoqueNomeCanonico = nome => ['CANA IN NATURA PICADA','SILAGEM DE CANA'].includes(String(nome||'').trim().toUpperCase()) ? 'SILAGEM DE CANA' : String(nome||'');
 const estoqueFmt=v=>Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:3});
 function estoqueEscape(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function imprimirInsumosEmUso(){
+ const tabela=document.querySelector('#estoqueInsumosTabela table');
+ if(!tabela){alert('CARREGUE O ESTOQUE ANTES DE IMPRIMIR.');return;}
+ const linhas=[...tabela.querySelectorAll('tbody tr')].filter(tr=>{
+   const cols=tr.querySelectorAll('td');
+   if(cols.length<7)return false;
+   const nome=cols[0].textContent.trim().toUpperCase();
+   // Apenas insumos efetivamente consumidos: evita silos de reserva e água.
+   if(nome==='ÁGUA'||/^SILAGEM DE CANA\s*-\s*SILO\s*\d+/.test(nome))return false;
+   const texto=cols[3].textContent.trim().replace(/\./g,'').replace(',','.');
+   return Number(texto)>0;
+ });
+ if(!linhas.length){alert('NÃO HÁ INSUMOS COM CONSUMO AUTOMÁTICO REGISTRADO.');return;}
+ const cabecalho=[...tabela.querySelectorAll('thead th')].map(th=>'<th>'+th.textContent+'</th>').join('');
+ const corpo=linhas.map(tr=>'<tr>'+[...tr.querySelectorAll('td')].map(td=>'<td>'+td.textContent.trim().replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</td>').join('')+'</tr>').join('');
+ const data=new Date().toLocaleDateString('pt-BR');
+ const html='<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><title>INSUMOS EM USO</title><style>@page{size:A4 landscape;margin:12mm}body{font-family:Arial,sans-serif;color:#111}h2{margin:0 0 5px;font-size:17px}p{margin:0 0 15px;font-size:11px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #aaa;padding:7px 5px;text-align:right}th:first-child,td:first-child{text-align:left}th{background:#e8edf0}tr:nth-child(even){background:#f6f7f8}footer{margin-top:16px;font-size:10px;font-style:italic}@media print{button{display:none}}</style></head><body><h2>FAZENDA NOVA ESPERANÇA — INSUMOS EM USO</h2><p>POSIÇÃO DO ESTOQUE: '+data+' | SOMENTE INSUMOS COM CONSUMO AUTOMÁTICO REGISTRADO</p><table><thead><tr>'+cabecalho+'</tr></thead><tbody>'+corpo+'</tbody></table><footer>FAZENDA NOVA ESPERANÇA — DENIS FABIO MARSOLA</footer><script>window.onload=()=>window.print();<\/script></body></html>';
+ const janela=window.open('','_blank');
+ if(!janela){alert('PERMITA POP-UPS PARA IMPRIMIR OS INSUMOS.');return;}
+ janela.document.open();janela.document.write(html);janela.document.close();
+}
+
 async function carregarEstoqueInsumos(){
  const tabela=$('estoqueInsumosTabela');if(!tabela)return;
  tabela.innerHTML='<div class="notice">CONSULTANDO ESTOQUE...</div>';
@@ -2288,12 +2410,15 @@ async function carregarEstoqueInsumos(){
   const estoqueInsumosVisiveis=estoqueInsumosCache.filter(x=>ativos.has(x.nome));
   // Manter os nove silos juntos, imediatamente após o último insumo ativo comum.
   // Não altera estoque, cálculos, seleção de dieta nem a ordem dos demais insumos.
-  const ehSilo=x=>/^SILAGEM DE CANA - SILO [1-9]$/i.test(x.nome);
+  const ehSilo=x=>/^SILAGEM DE CANA\s*-\s*SILO\s*[1-9]$/i.test(String(x.nome).trim());
   const demaisInsumos=estoqueInsumosVisiveis.filter(x=>!ehSilo(x));
   const silosOrdenados=estoqueInsumosVisiveis.filter(ehSilo).sort((a,b)=>Number(a.nome.match(/[1-9]$/)[0])-Number(b.nome.match(/[1-9]$/)[0]));
+  // SILAGEM DE CANA em uso deve preceder os nove silos reservados.
+  const silagemAtual=demaisInsumos.findIndex(x=>String(x.nome).trim().toUpperCase()==='SILAGEM DE CANA');
+  const atualItem=silagemAtual>=0?demaisInsumos.splice(silagemAtual,1)[0]:null;
   const posUreia=demaisInsumos.findIndex(x=>String(x.nome).trim().toUpperCase()==='UREIA');
-  if(posUreia>=0) demaisInsumos.splice(posUreia+1,0,...silosOrdenados);
-  else demaisInsumos.push(...silosOrdenados);
+  const inicio=posUreia>=0?posUreia+1:demaisInsumos.length;
+  demaisInsumos.splice(inicio,0,...(atualItem?[atualItem]:[]),...silosOrdenados);
   const kafe=demaisInsumos.findIndex(x=>x.nome==='VINHAÇA DE SORGO E MILHO');
   if(kafe>=0){const item=demaisInsumos.splice(kafe,1)[0];const fimSilos=demaisInsumos.findIndex(x=>x.nome==='SILAGEM DE CANA - SILO 9');demaisInsumos.splice(fimSilos>=0?fimSilos+1:demaisInsumos.length,0,item);}
   estoqueInsumosVisiveis.splice(0,estoqueInsumosVisiveis.length,...demaisInsumos);
@@ -2312,21 +2437,52 @@ async function carregarEstoqueInsumos(){
   $('estoqueInsumosHistorico').innerHTML=(m.data||[]).length?`<div class="table-responsive"><table><thead><tr><th>DATA</th><th>INSUMO</th><th>MOVIMENTAÇÃO</th><th>QUANTIDADE (KG)</th><th>DETALHES</th></tr></thead><tbody>${(m.data||[]).slice(0,50).map(x=>`<tr><td>${estoqueEscape(x.data_movimento)}</td><td>${estoqueEscape(estoqueNomeCanonico(x.insumo_nome))}</td><td>${nomeMov(x)}</td><td>${estoqueFmt(x.quantidade_kg)}</td><td>${estoqueEscape(obsMov(x))}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Nenhuma movimentação registrada.</div>';
  }catch(e){tabela.innerHTML='<div class="notice">NÃO FOI POSSÍVEL CONSULTAR O ESTOQUE: '+estoqueEscape(e.message||e)+'</div>';}
 }
+// Posto Kafé: baixa física de 500 KG/dia, a partir da primeira entrada.
+// Histórico existente é preservado; nunca descontar dias anteriores à entrada.
+let __kafeBaixaEmAndamento=false;
+async function postoKafeBaixaDiaria(){
+ if(__kafeBaixaEmAndamento)return;
+ __kafeBaixaEmAndamento=true;
+ try{
+  const nome='VINHAÇA DE SORGO E MILHO';
+  const r=await supa.from('nutri_estoque_movimentos').select('data_movimento,tipo,quantidade_kg,observacao').eq('insumo_nome',nome).order('data_movimento',{ascending:true}).limit(10000);
+  if(r.error)throw r.error;
+  const mov=r.data||[];
+  const entradas=mov.filter(x=>x.tipo==='ENTRADA'&&Number(x.quantidade_kg)>0);
+  if(!entradas.length)return;
+  const inicio=entradas[0].data_movimento;
+  const hoje=trHojeISO();
+  const jaBaixados=new Set(mov.filter(x=>/^CONSUMO_AUTO_POSTO_KAFE_(200|500)KG_DIA:/.test(String(x.observacao||''))).map(x=>String(x.observacao).split(':').slice(-1)[0]));
+  let saldo=mov.reduce((v,x)=>v+(x.tipo==='ENTRADA'||x.tipo==='AJUSTE_POSITIVO'?1:-1)*Number(x.quantidade_kg||0),0);
+  const d=new Date(inicio+'T12:00:00Z'),fim=new Date(hoje+'T12:00:00Z');
+  for(;d<=fim;d.setUTCDate(d.getUTCDate()+1)){
+   const dia=d.toISOString().slice(0,10);
+   if(jaBaixados.has(dia))continue;
+   // Nunca criar estoque negativo nem baixa fracionada não autorizada.
+   if(saldo<500)break;
+   // Confere novamente antes de gravar, inclusive movimentos feitos por outra sessão.
+   const chk=await supa.from('nutri_estoque_movimentos').select('id').eq('insumo_nome',nome).in('observacao',['CONSUMO_AUTO_POSTO_KAFE_200KG_DIA:'+dia,'CONSUMO_AUTO_POSTO_KAFE_500KG_DIA:'+dia]).limit(1);
+   if(chk.error)throw chk.error;
+   if((chk.data||[]).length){jaBaixados.add(dia);continue;}
+   const ins=await supa.from('nutri_estoque_movimentos').insert({insumo_nome:nome,data_movimento:dia,tipo:'AJUSTE_NEGATIVO',quantidade_kg:500,observacao:'CONSUMO_AUTO_POSTO_KAFE_500KG_DIA:'+dia});
+   if(ins.error)throw ins.error;
+   jaBaixados.add(dia);saldo-=500;
+  }
+ }finally{__kafeBaixaEmAndamento=false;}
+}
 async function postoKafeAtualizarConsumo(atualizarTela=false){
  const el=document.getElementById('kafe_consumo_fisico');
  try{
-  // BAIXA AUTOMÁTICA SUSPENSA ATÉ ATUALIZAÇÃO DA FUNÇÃO NO BANCO PARA 500 KG/DIA.
-  // EVITA GRAVAR 200 KG INDEVIDAMENTE.
-
-  const r=await supa.from('nutri_estoque_movimentos').select('data_movimento,tipo,quantidade_kg,observacao').eq('insumo_nome','VINHAÇA DE SORGO E MILHO').order('data_movimento',{ascending:false}).limit(1000);
+  await postoKafeBaixaDiaria();
+  const r=await supa.from('nutri_estoque_movimentos').select('data_movimento,tipo,quantidade_kg,observacao').eq('insumo_nome','VINHAÇA DE SORGO E MILHO').order('data_movimento',{ascending:false}).limit(10000);
   if(r.error)throw r.error;
   const mov=r.data||[];
   const entrada=mov.filter(x=>x.tipo==='ENTRADA'||x.tipo==='AJUSTE_POSITIVO').reduce((a,x)=>a+Number(x.quantidade_kg||0),0);
   const saida=mov.filter(x=>x.tipo==='AJUSTE_NEGATIVO').reduce((a,x)=>a+Number(x.quantidade_kg||0),0);
   const automaticas=mov.filter(x=>/^CONSUMO_AUTO_POSTO_KAFE_(200|500)KG_DIA:/.test(String(x.observacao||'')));
-  if(el)el.innerHTML='<b>ENTRADAS: '+estoqueFmt(entrada)+' KG | SAÍDAS: '+estoqueFmt(saida)+' KG | SALDO: '+estoqueFmt(entrada-saida)+' KG</b><br>CONSUMO PADRÃO: 500 KG/DIA | DIAS COM BAIXA AUTOMÁTICA: '+automaticas.length+'<br><small>BAIXAS POR DATA, SEM DUPLICAÇÃO. ESTE CONSUMO É APENAS FÍSICO E NÃO É SOMADO À DIÁRIA FINANCEIRA.</small>';
+  if(el)el.innerHTML='<b>ENTRADAS: '+estoqueFmt(entrada)+' KG | SAÍDAS: '+estoqueFmt(saida)+' KG | SALDO: '+estoqueFmt(entrada-saida)+' KG</b><br>CONSUMO PADRÃO: 500 KG/DIA | DIAS COM BAIXA AUTOMÁTICA: '+automaticas.length+'<br><small>BAIXAS POR DATA, SEM DUPLICAÇÃO. CONSUMO FÍSICO INDEPENDENTE DA DIÁRIA.</small>';
   if(atualizarTela)await carregarEstoqueInsumos();
- }catch(e){if(el)el.textContent='ERRO AO CONSULTAR CONSUMO: '+String(e.message||e);}
+ }catch(e){if(el)el.textContent='ERRO NA BAIXA/CONSULTA DO CONSUMO: '+String(e.message||e);console.error('POSTO KAFE:',e);}
 }
 async function salvarMovimentoEstoque(){
  try{
@@ -2368,7 +2524,7 @@ async function carregarDietasMS(){
 }
 function renderDietasMS(){
  const c=nutriCache;
- const isSiloNutri=i=>/^SILAGEM DE CANA - SILO [1-9]$/i.test(i.nome);
+ const isSiloNutri=i=>/^SILAGEM DE CANA\s*-\s*SILO\s*[1-9]$/i.test(String(i.nome).trim());
  const silosNutri=c.insumos.filter(isSiloNutri).sort((a,b)=>Number(a.nome.slice(-1))-Number(b.nome.slice(-1)));
  const outrosNutri=c.insumos.filter(i=>!isSiloNutri(i));
  const ureiaPos=outrosNutri.findIndex(i=>String(i.nome).trim().toUpperCase()==='UREIA');
@@ -3057,7 +3213,7 @@ function abrirApresentacaoControle(){
  if(!controleApresCache)return;
  const {ativos,ordem,categoriasOrdem,categoriasLabel,norm,tratamentos,reforcosDados}=controleApresCache;
  const catsTotal=new Map(categoriasOrdem.map(c=>[c,0]));
- ativos.filter(x=>norm(x.localizacao)!=='REPOSITÓRIO').forEach(x=>{const c=String(x.categoria_animal||'').trim().toUpperCase();if(catsTotal.has(c))catsTotal.set(c,catsTotal.get(c)+1)});
+ ativos.filter(x=>norm(x.localizacao)!=='REPOSITORIO').forEach(x=>{const c=String(x.categoria_animal||'').trim().toUpperCase();if(catsTotal.has(c))catsTotal.set(c,catsTotal.get(c)+1)});
  const total=ordem.reduce((a,n)=>a+ativos.filter(x=>norm(x.localizacao)===n).length,0);
  document.getElementById('controleApresCategorias').innerHTML=`<div class="ctrl-apres-cat"><span>TOTAL</span><strong>${total}</strong></div>`+categoriasOrdem.map(c=>`<div class="ctrl-apres-cat"><span>${categoriasLabel[c]}</span><strong>${catsTotal.get(c)||0}</strong></div>`).join('');
  const cab=['LOTE','ORIGEM','DATA COMPRA','QUANTIDADE','SEXO','VACAS','BEZERROS','BEZERRAS','GARROTES','BOIS','NOVILHAS','PESO DE ENTRADA','QTD DIAS','PESO ESTIMADO<br><span style="font-size:7px;font-weight:500;white-space:nowrap">SEMI 0,800/DIA • CONF. 1,300/DIA</span>','MARCA','DATA APLICAÇÃO','DATA REFORÇO','ÚLTIMO MEDICAMENTO'];
@@ -3108,7 +3264,7 @@ async function tratosAtualizarResumo(){
     const versao=dieta&&c.versoes.find(v=>String(v.dieta_id)===String(dieta.id));const preco=versao&&Number(versao.custo_mn);
     const ok=Number.isFinite(preco)&&preco>=0&&!!versao;
     const des=g.real-g.prev;
-    return `<tr><td>${esc(g.data)}</td><td>${esc(g.sistema)}</td><td>${esc(g.local)}</td><td>${g.tratos}</td><td>${fmt(g.prev)}</td><td>${fmt(g.real)}</td><td>${fmt(des)}</td><td>${g.prev?fmt(des/g.prev*100)+'%':'—'}</td><td>${n||'—'}</td><td>${n?fmt(g.real/n):'—'}</td><td>${ok?fmt(preco):'—'}</td><td>${ok?fmt(g.real*preco):'—'}</td><td>${ok&&n?fmt(g.real*preco/n):'—'}</td></tr>`;
+    return `<tr><td>${esc(g.data)}</td><td>${esc(g.sistema)}</td><td>${esc(g.local)}</td><td>${g.tratos}</td><td>${fmt(g.prev)}</td><td>${fmt(g.real)}</td><td>${fmt(des)}</td><td>${g.prev?fmt(des/g.prev*100)+'%':'—'}</td><td>${n||'—'}</td><td>${n?fmt(g.real/n):'—'}</td><td>${ok?fmt(preco):'—'}</td><td>${g.real===0?'0,00':ok?fmt(g.real*preco):'—'}</td><td>${g.real===0&&n?'0,00':ok&&n?fmt(g.real*preco/n):'—'}</td></tr>`;
   }).join('')+'</tbody></table></div>';
  }catch(e){out.innerHTML='<div class="notice">NÃO FOI POSSÍVEL CONSULTAR A PRÉVIA: '+String(e.message||e).replace(/</g,'&lt;')+'</div>'}
 }
@@ -3173,22 +3329,27 @@ async function tratosRender(){
   const [loc,conf,leit,semi,anim,leitSemi]=await Promise.all([
    supa.from('locais').select('nome,sistema_id,sistemas(nome)').eq('ativo',true),
    supa.from('currais').select('id,codigo,dias,quantidade_bois,data_referencia_dias'),
-   supa.from('leituras_cocho').select('curral_id,data_leitura,total_realizado,quantidade_bois,total_previsto,nota').lte('data_leitura',anterior).order('data_leitura',{ascending:false}).limit(3000),
+   supa.from('leituras_cocho').select('curral_id,data_leitura,total_realizado,quantidade_bois,total_previsto,nota').eq('data_leitura',data),
    supa.from('semi_confinamento').select('local_nome,local_tipo,quantidade_bois,trato_previsto,ativo'),
    (async()=>{const all=[];for(let start=0;start<10000;start+=1000){const q=await supa.from('animais').select('id,brinco,localizacao,status,data_entrada').eq('status','ATIVO').range(start,start+999);if(q.error)return q;all.push(...(q.data||[]));if((q.data||[]).length<1000)break}return {data:all,error:null}})(),
-   supa.from('semi_leituras_cocho').select('localizacao,data_leitura,total_realizado,quantidade_bois,total_previsto,nota').eq('data_leitura',anterior)
+   supa.from('semi_leituras_cocho').select('localizacao,data_leitura,total_realizado,quantidade_bois,total_previsto,nota').eq('data_leitura',data)
   ]);
   for(const x of [loc,conf,leit,semi,anim,leitSemi])if(x.error)throw x.error;
   cadastrado=new Map((loc.data||[]).map(x=>[String(x.nome||'').trim().toUpperCase(),String(x.sistemas?.nome||'').toUpperCase()]));
-  const leituras=new Map();for(const x of leit.data||[]){if(!leituras.has(String(x.curral_id)))leituras.set(String(x.curral_id),x)}
-  // Primeiro trato salvo na leitura da própria data: usar somente se não há previsão válida anterior.
-  // Nunca confundir previsão com realizado, nem alterar registros existentes.
-  const atuaisLeitura=await supa.from('leituras_cocho').select('curral_id,data_leitura,total_realizado,quantidade_bois,total_previsto,nota').eq('data_leitura',data).gt('total_previsto',0);
+  // FONTE ÚNICA: previsão oficial salva na leitura da DATA SELECIONADA.
+  const leituras=new Map();for(const x of leit.data||[]){leituras.set(String(x.curral_id),x)}
+  // A leitura da data selecionada é a fonte única; nenhum fallback histórico.
+  const atuaisLeitura=await supa.from('leituras_cocho').select('curral_id,data_leitura,total_realizado,quantidade_bois,total_previsto,nota').eq('data_leitura',data);
   if(atuaisLeitura.error)throw atuaisLeitura.error;
-  for(const x of atuaisLeitura.data||[]){const anteriorSalvo=leituras.get(String(x.curral_id));if((!anteriorSalvo||Number(anteriorSalvo.total_previsto)<=0)&&Number(x.total_realizado)===0){leituras.set(String(x.curral_id),x)}}
+  // A previsão da leitura DA MESMA DATA prevalece, inclusive quando é ZERO (nota zero é válida).
+  // Sem leitura da data, manter previsão ausente; zero é valor válido.
+  for(const x of atuaisLeitura.data||[]){leituras.set(String(x.curral_id),x)}
   leiturasCarregadas=leituras;confPorCodigoCarregado=new Map((conf.data||[]).map(c=>[String(c.codigo||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(),c]));
   const leituraPorNome=new Map();for(const x of conf.data||[]){const l=leituras.get(String(x.id));if(l)leituraPorNome.set(String(x.codigo||'').trim().toUpperCase(),l)}
   const leiturasSemiPorNome=new Map();for(const x of leitSemi.data||[])leiturasSemiPorNome.set(trNormNome(x.localizacao),x);
+  const atuaisSemi=await supa.from('semi_leituras_cocho').select('localizacao,data_leitura,total_realizado,quantidade_bois,total_previsto,nota').eq('data_leitura',data);
+  if(atuaisSemi.error)throw atuaisSemi.error;
+  for(const x of atuaisSemi.data||[])leiturasSemiPorNome.set(trNormNome(x.localizacao),x);
   const hoje=new Date(),dataHoje=hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0')+'-'+String(hoje.getDate()).padStart(2,'0');
   // Uma contagem atual não representa o estoque histórico de outra data.
   const atuais=ativosPorLocal;
@@ -3204,7 +3365,7 @@ async function tratosRender(){
    const qtdAtual=[...atuais.entries()].filter(([k])=>trNormNome(k)===trNormNome(nome)).reduce((n,[,v])=>n+v,0);
    if(qtdAtual===0)continue;
    const bois=contagemAtual(nome)??l?.quantidade_bois??null;
-   if(!l||Number(l.total_previsto)<=0)continue;
+   if(!l||l.total_previsto==null)continue;
    const grupo=(anim.data||[]).filter(a=>String(a.localizacao||'').trim().toUpperCase()===nome&&a.data_entrada);
    const dias=grupo.length?Math.round(grupo.reduce((acc,a)=>acc+Math.max(0,Math.round((new Date(data+'T12:00:00')-new Date(a.data_entrada+'T12:00:00'))/86400000)),0)/grupo.length):((x.data_referencia_dias===data)?x.dias:null);
    registros.push({local:nome,sistema:'CONFINAMENTO',bois,dias,total:l?.total_realizado??null,previsao:l?.total_previsto??null,nota:l?.nota??null,referencia:l?'LEITURA DE '+l.data_leitura:'SEM LEITURA ATÉ '+anterior});
@@ -3222,10 +3383,10 @@ async function tratosRender(){
    const grupoSemi=(anim.data||[]).filter(a=>String(a.localizacao||'').trim().toUpperCase()===exibicao&&a.data_entrada);
    const diasSemi=grupoSemi.length?Math.round(grupoSemi.reduce((acc,a)=>acc+Math.max(0,Math.round((new Date(data+'T12:00:00')-new Date(a.data_entrada+'T12:00:00'))/86400000)),0)/grupoSemi.length):null;
    const leituraSemi=leiturasSemiPorNome.get(trNormNome(exibicao))||leiturasSemiPorNome.get(trNormNome(nome));
-   const prevSemi=leituraSemi?(Number(leituraSemi.total_previsto)>0?leituraSemi.total_previsto:null):(x.trato_previsto!=null&&Number(x.trato_previsto)>0?x.trato_previsto:null);
+   const prevSemi=leituraSemi?(leituraSemi.total_previsto==null?null:Number(leituraSemi.total_previsto)):null;
    // Mostrar local sem previsão para conferência, sem fabricar valores.
    
-   registros.push({local:exibicao,sistema:'SEMI',bois:boisSemi??leituraSemi?.quantidade_bois??x.quantidade_bois,dias:diasSemi,total:leituraSemi?.total_realizado??null,previsao:prevSemi,nota:leituraSemi?.nota??null,referencia:leituraSemi?'LEITURA DE '+leituraSemi.data_leitura:'PREVISÃO CADASTRADA DO SEMI'});
+   registros.push({local:exibicao,sistema:'SEMI',bois:boisSemi??leituraSemi?.quantidade_bois??x.quantidade_bois,dias:diasSemi,total:leituraSemi?.total_realizado??null,previsao:prevSemi,nota:leituraSemi?.nota??null,referencia:leituraSemi?'LEITURA DE '+leituraSemi.data_leitura:'SEM PREVISÃO OFICIAL PARA '+data});
   }
   // Sem dieta/previsão vinculada, a localidade não participa do planejamento.
   // Não criar linhas apenas porque existem animais ativos no local.
@@ -3253,16 +3414,16 @@ async function tratosRender(){
    const encontrados=[...ativosPorLocal.entries()].filter(([k])=>chaveCadastro(k)===chaveCadastro(nome));
    const quantidade=encontrados.reduce((n,[,q])=>n+q,0);
    if(quantidade<=0)continue;
-   registros.push({local:nomeOficial,sistema:sistemaOficial,bois:quantidade,dias:null,total:null,previsao:null,nota:null,referencia:'SEM PREVISÃO ANTERIOR'});
+   registros.push({local:nomeOficial,sistema:sistemaOficial,bois:quantidade,dias:null,total:null,previsao:null,nota:null,referencia:'SEM PREVISÃO OFICIAL PARA '+data});
  }
   // Recuperação por código normalizado: VINHAÇA/VINHACA e SEDE PIQUETE.
   // A leitura original é a fonte, nunca o realizado ou uma previsão fabricada.
   const confPorCodigo=confPorCodigoCarregado;
   for(const r of registros){
-   if(r.sistema!=='CONFINAMENTO'||(r.previsao!=null&&Number(r.previsao)>0))continue;
+   if(r.sistema!=='CONFINAMENTO'||r.previsao!=null)continue;
    const curral=confPorCodigo.get(trChaveLocal(r.local).replace(/^BAIA /,''));
    const leitura=curral?leiturasCarregadas.get(String(curral.id)):null;
-   if(leitura&&Number(leitura.total_previsto)>0){
+   if(leitura&&leitura.total_previsto!=null){
     r.previsao=Number(leitura.total_previsto);
     r.total=leitura.total_realizado;
     r.nota=leitura.nota;
@@ -3279,17 +3440,7 @@ async function tratosRender(){
   if(!old||(preferido&&r.sistema===preferido&&old.sistema!==preferido))dedup.set(key,r);
  }
  registros=[...dedup.values()];
- // Ajustes excepcionais confirmados na Leitura de Cocho do dia anterior.
- try{
-  const aj=await supa.from('cocho_ajustes_previsao').select('localizacao,sistema,previsao_ajustada_kg,motivo').eq('data_leitura',anterior);
-  if(aj.error)throw aj.error;
-  for(const a of aj.data||[]){
-   const r=registros.find(x=>chaveCadastro(x.local)===chaveCadastro(a.localizacao)&&x.sistema===a.sistema);
-   if(!r)continue;
-   r.previsao=Number(a.previsao_ajustada_kg);
-   r.referencia='PREVISÃO AJUSTADA NA LEITURA DE COCHO DE '+anterior+' ('+a.motivo+')';
-  }
- }catch(e){erro=(erro?erro+' | ':'')+'AJUSTES DA LEITURA NÃO CARREGADOS: '+e.message}
+ // Previsões da leitura da data são oficiais: não sobrescrever com ajustes de dias anteriores.
  const fechamentosConsulta=await supa.from('tratos_fechamentos').select('sistema').eq('data_trato',data);
  if(fechamentosConsulta.error){if(aviso)aviso.textContent='ERRO AO VERIFICAR FECHAMENTOS: '+fechamentosConsulta.error.message;return;}
  if(trData()!==data)return;
@@ -3330,15 +3481,17 @@ async function tratosRender(){
   // O TOTAL da grade é o REALIZADO do dia anterior: essa é a meta-base
   // contra a qual se calcula o desvio. Não usar o 'total_previsto' da leitura
   // anterior, pois ele produz desvios incoerentes com a coluna TOTAL.
-  const baseDiaAnterior=db.total!=null&&Number(db.total)>0?Number(db.total):(db.previsao!=null&&Number(db.previsao)>0?Number(db.previsao):null);
+  const baseDiaAnterior=db.previsao!=null&&Number.isFinite(Number(db.previsao))?Number(db.previsao):null;
+  // A previsão oficial já foi calculada pela LEITURA DE COCHO.
+  // Não aplicar desconto adicional nem pedir segunda confirmação.
   const p=baseDiaAnterior===null?null:trDividir(baseDiaAnterior,pct);
   const ultimoAnterior=salvos.find(x=>x.data<data&&chaveCadastro(x.local)===chaveCadastro(local));
   const total=baseDiaAnterior===null?'—':trFmt(baseDiaAnterior),bois=db.bois==null?'—':trFmt(db.bois),dias=db.dias==null?'—':trFmt(db.dias);
-  let h='<tr style="'+separador+'" data-pct="'+trEsc(pct.join(','))+'" data-sistema="'+trEsc(r.sistema||db.sistema)+'" title="'+trEsc(ultimoAnterior?'ÚLTIMO REALIZADO: '+ultimoAnterior.data+' — '+ultimoAnterior.v.map((v,i)=>v!==''?'TRATO '+(i+1)+': '+v+' KG':'').filter(Boolean).join(' | '):'SEM REALIZADO ANTERIOR')+'" data-local="'+trEsc(local)+'" data-total="'+trEsc(baseDiaAnterior??'')+'"><td title="'+trEsc(db.sistema)+'"><b>'+trEsc(local)+'</b></td><td>'+dias+'</td><td data-c="total">'+total+'</td><td>'+bois+'</td>';
+  let h='<tr style="'+separador+'" data-pct="'+trEsc(pct.join(','))+'" data-sistema="'+trEsc(r.sistema||db.sistema)+'" title="'+trEsc(ultimoAnterior?'ÚLTIMO REALIZADO: '+ultimoAnterior.data+' — '+ultimoAnterior.v.map((v,i)=>v!==''?'TRATO '+(i+1)+': '+v+' KG':'').filter(Boolean).join(' | '):'SEM REALIZADO ANTERIOR')+'" data-local="'+trEsc(local)+'" data-total="'+trEsc(baseDiaAnterior??'')+'"><td title="'+trEsc(db.sistema)+'"><b>'+trEsc(local)+'</b>'+'</td><td>'+dias+'</td><td data-c="total">'+total+'</td><td>'+bois+'</td>';
   for(let i=0;i<4;i++)h+='<td data-prev="'+trEsc(p?.[i]??'')+'">'+(p===null?'—':trFmt(p[i]))+'</td>'+(indicesAtivos.includes(i)?trInput('v',i,r.v?.[i]!==undefined&&r.v?.[i]!==''?r.v[i]:'').replace('<input ','<input '+(sistemaFechado?'disabled title="SISTEMA FECHADO NO SUPABASE" ':r.v?.[i]!==undefined&&r.v?.[i]!==''?'disabled title="TRATO JÁ SALVO" ':'') ):'<td style="text-align:center;color:#889">—</td>');
   return h+'<td data-c="ajuste">—</td><td data-c="realizado">—</td><td data-c="desvio">—</td><td data-c="pct">—</td></tr>';
  }).join('');
- if(aviso)aviso.textContent=erro||('PREVISÃO: ÚLTIMA LEITURA DE COCHO DISPONÍVEL ATÉ O DIA ANTERIOR (CONFIRA A DATA AO PASSAR O MOUSE NO CURRAL). DISTRIBUIÇÃO: 20/30/30/20 OU PERCENTUAIS CONFIGURADOS; BAIAS A1 A B5: QUATRO TRATOS. DEMAIS CONFINAMENTO: DOIS TRATOS (1º E 4º). SEMI: UM TRATO. SEM LEITURA OU PREVISÃO COMPROVADA, MOSTRA —. SEMI USA SUA PRÓPRIA LEITURA DO DIA ANTERIOR. NÃO REPRODUZ AINDA REDISTRIBUIÇÕES POR NOTA. '+'');
+ if(aviso)aviso.textContent=erro||('PREVISÃO: ÚLTIMA LEITURA DE COCHO DISPONÍVEL ATÉ O DIA ANTERIOR (CONFIRA A DATA AO PASSAR O MOUSE NO CURRAL). DISTRIBUIÇÃO: 20/30/30/20 OU PERCENTUAIS CONFIGURADOS; BAIAS A1 A B5: QUATRO TRATOS. DEMAIS CONFINAMENTO: DOIS TRATOS (1º E 4º). SEMI: UM TRATO. SEM LEITURA OU PREVISÃO COMPROVADA, MOSTRA —. SEMI USA SUA PRÓPRIA LEITURA DO DIA ANTERIOR. A PREVISÃO E OS DESCONTOS SÃO DEFINIDOS EXCLUSIVAMENTE NA LEITURA DE COCHO. '+'');
  trCalc();
  const hist=salvos.sort((a,b)=>b.data.localeCompare(a.data));
  const trLista=document.getElementById('tr_listagem');if(trLista)trLista.innerHTML=hist.length?'<div class="table-wrap"><table><thead><tr><th>DATA</th><th>CURRAL</th><th>REALIZADO</th></tr></thead><tbody>'+hist.map(r=>'<tr><td>'+trEsc(r.data)+'</td><td>'+trEsc(r.local)+'</td><td>'+trFmt(r.v.reduce((a,b)=>a+trN(b),0))+'</td></tr>').join('')+'</tbody></table></div>':'<div class="empty">NENHUMA DISTRIBUIÇÃO SALVA.</div>';
@@ -3364,7 +3517,9 @@ function trCalc(){
  const rows=[...document.querySelectorAll('#tr_grade_body tr')];
  if(!document.getElementById('tr_grade_total'))return;
  rows.forEach(tr=>{
-  const r=trRead(tr),pct=(tr.dataset.pct||'20,30,30,20').split(',').map(Number);
+  const r=trRead(tr);
+  const pctOriginal=(tr.dataset.pct||'20,30,30,20').split(',').map(Number);
+  const pct=pctOriginal;
   const totalPrev=r.p.every(v=>v!=='')?r.p.reduce((a,b)=>a+trN(b),0):null;
   const inputs=[...tr.querySelectorAll('input[data-f="v"]')];
   const active=inputs.map(i=>Number(i.dataset.n));
@@ -3620,7 +3775,7 @@ let trCargaRenderSeq=0;
 async function trCargaRender(){
  const sequencia=++trCargaRenderSeq;
  const area=document.getElementById('tr_carga_itens'),res=document.getElementById('tr_carga_resumo'),av=document.getElementById('tr_carga_aviso');if(!area)return;
- const campoData=document.getElementById('tr_carga_data');if(!campoData.value)campoData.value=trData();const data=campoData.value,sistema=document.getElementById('tr_carga_sistema').value,carga='CONSOLIDADO';
+ const campoData=document.getElementById('tr_carga_data');if(!campoData.value)campoData.value=trData();const data=campoData.value,sistema=document.getElementById('tr_carga_sistema').value,carga=document.getElementById('tr_carga_num').value;
  area.textContent='CONSULTANDO DIETA E CARREGAMENTO...';res.textContent='';trCargaUltima=null;
  try{
   if(typeof supa==='undefined')throw Error('SUPABASE INDISPONÍVEL');
@@ -3666,33 +3821,77 @@ async function trCargaRender(){
   const anteriores=(consultaAnterior.data||[]).filter(r=>Number(r.quantidade_bois)>0&&r.total_previsto!==null&&r.total_previsto!==undefined&&Number.isFinite(Number(r.total_previsto)));
   const previstoAnterior=anteriores.reduce((n,r)=>n+Number(r.total_previsto),0);
   const tabelaHoje=sistema==='SEMI'?'semi_leituras_cocho':'leituras_cocho';
-  const hojeQ=await supa.from(tabelaHoje).select('quantidade_bois,total_previsto').eq('data_leitura',data);
+  const hojeQ=await supa.from(tabelaHoje).select(sistema==='SEMI'?'localizacao,quantidade_bois,total_previsto,nota':'curral_id,quantidade_bois,total_previsto,nota').eq('data_leitura',data);
   const hojeValidos=hojeQ.error?[]:(hojeQ.data||[]).filter(r=>Number(r.quantidade_bois)>0&&r.total_previsto!=null&&Number.isFinite(Number(r.total_previsto)));
+  if(!document.getElementById('tr_carga_nota2_plano')){const d=document.createElement('div');d.id='tr_carga_nota2_plano';d.className='notice';d.style.margin='10px 0';area.before(d)}
   const previstoHoje=hojeValidos.reduce((n,r)=>n+Number(r.total_previsto),0);
+  // As cargas individuais seguem EXATAMENTE a grade dos tratos, inclusive Nota 2.
+  // Nunca reconstruir percentuais com uma fonte diferente da impressão/distribuição.
+  let previstoCargaIndividual=null;
+  if(carga!=='CONSOLIDADO'){
+   if(document.getElementById('tr_data')?.value!==data)throw Error('A DATA DOS TRATOS DEVE SER IGUAL À DATA DA CARGA.');
+   trCalc();
+   const linhasGrade=[...document.querySelectorAll('#tr_grade_body tr')].filter(tr=>trNormNome(tr.dataset.sistema)===trNormNome(sistema));
+   if(!linhasGrade.length)throw Error('CARREGUE PRIMEIRO A GRADE DE TRATOS DESTA DATA.');
+   let soma=0,quantidade=0;
+   for(const tr of linhasGrade){
+    if(tr.dataset.total==='')continue;
+    const cel=tr.querySelectorAll('td[data-prev]')[Number(carga)-1];
+    if(!cel||cel.dataset.prev==='')throw Error('PREVISÃO NÃO DISPONÍVEL PARA '+tr.dataset.local);
+    const v=cel.dataset.ajustado===''?0:Number(cel.dataset.ajustado??cel.dataset.prev);
+    if(!Number.isFinite(v)||v<0)throw Error('PREVISÃO INVÁLIDA PARA '+tr.dataset.local);
+    soma+=v;quantidade++;
+   }
+   if(!quantidade)throw Error('NÃO EXISTEM PREVISÕES VÁLIDAS PARA ESTA CARGA.');
+   previstoCargaIndividual=soma;
+   if((todasCargas.data||[]).some(c=>c.carga==='CONSOLIDADO'))throw Error('ESTE DIA JÁ TEM CARREGAMENTO CONSOLIDADO. NÃO É PERMITIDO DUPLICAR EM CARGAS INDIVIDUAIS.');
+  }
+
+  // Planejamento usa exclusivamente a previsão oficial da leitura de cocho.
+  // É uma previsão visual; não modifica carregamentos históricos consolidados.
+  let nota2Plano=[];
+  if(sistema==='CONFINAMENTO'&&hojeValidos.length){
+   const curraisQ=await supa.from('currais').select('id,codigo');
+   if(curraisQ.error)throw curraisQ.error;
+   const nomesCurrais=new Map((curraisQ.data||[]).map(c=>[String(c.id),String(c.codigo||'')]));
+   const percentuais=Array.isArray(cfg?.pct)&&cfg.pct.length===4?cfg.pct:[20,30,30,20];
+   const somaPorTrato=[0,0,0,0];
+   for(const leitura of hojeValidos){
+    const local=nomesCurrais.get(String(leitura.curral_id))||'';
+    const quatro=/^[AB][1-5]$/.test(local.replace(/^BAIA\s+/i,''));
+    const pct=quatro?percentuais:[50,0,0,50];
+    const valores=trDividir(Number(leitura.total_previsto),pct);
+    for(let k=0;k<4;k++)somaPorTrato[k]+=Number(valores[k]||0);
+
+   }
+   const destino=document.getElementById('tr_carga_nota2_plano');
+   if(destino)destino.innerHTML='<strong>PLANEJAMENTO POR TRATO (KG):</strong> '+somaPorTrato.map((n,i)=>'TRATO '+(i+1)+': '+trFmt(n)).join(' | ')+'<br><small>SELECIONE CARGA 1, 2, 3 OU 4 PARA LANÇAR SEPARADAMENTE; NÃO DUPLIQUE UM CONSOLIDADO HISTÓRICO.</small>';
+  }
+
   if(hojeQ.error)throw hojeQ.error;
   // Referência operacional confirmada para 23/10: previsão bruta 11.616 e sobra 423.
   // A previsão desta carga não deve sofrer um segundo desconto de sobra anterior.
   const referencia2310=!registro&&sistema==='CONFINAMENTO'&&data==='2026-10-23';
   const brutoPlanejado=previstoHoje;
   const sobraPlanejada=0; // A sobra anterior já foi contabilizada no carregamento anterior.
-  const totalPlanejado=registro?Number(registro.previsto_kg):Math.max(0,brutoPlanejado-sobraPlanejada);
+  const totalPlanejado=registro?Number(registro.previsto_kg):(previstoCargaIndividual===null?Math.max(0,brutoPlanejado-sobraPlanejada):previstoCargaIndividual);
   const linhas=itens.map(i=>{const old=mapa.get(String(i.insumo_id));const parte=Number(i.batida_kg||i.quantidade_mn||0);return {id:String(i.insumo_id),nome:String(im.get(String(i.insumo_id))?.nome||i.insumo_id),proporcao:parte/somaReceita,prev:old?Number(old.previsto_kg):totalPlanejado*parte/somaReceita,real:old?Number(old.carregado_kg):null}});
   document.getElementById('tr_carga_total_previsto').value=Number(totalPlanejado.toFixed(3));
   document.getElementById('tr_carga_bruto').value=totalPlanejado;
   document.getElementById('tr_carga_sobra').value=0;
   document.getElementById('tr_carga_bruto').disabled=false;
   document.getElementById('tr_carga_sobra').disabled=false;
-  document.getElementById('tr_carga_conciliacao').textContent=registroCompleto?'CARREGAMENTO JÁ SALVO — VALORES REAIS BLOQUEADOS PARA PRESERVAR O HISTÓRICO.':registroPendente?'REGISTRO INCOMPLETO NO BANCO — PREENCHA OS INGREDIENTES E CONCLUA O SALVAMENTO.':'TOTAL PREVISTO PARA ESTE CARREGAMENTO: '+trFmt(totalPlanejado)+' KG. SOBRAS DE CARREGAMENTOS ANTERIORES NÃO SÃO DESCONTADAS NOVAMENTE.';
+  document.getElementById('tr_carga_conciliacao').textContent=registroCompleto?'CARREGAMENTO JÁ SALVO — VALORES REAIS BLOQUEADOS PARA PRESERVAR O HISTÓRICO.':registroPendente?'REGISTRO INCOMPLETO NO BANCO — PREENCHA OS INGREDIENTES E CONCLUA O SALVAMENTO.':'PREVISÃO DA '+(carga==='CONSOLIDADO'?'CARGA CONSOLIDADA':'CARGA '+carga)+': '+trFmt(totalPlanejado)+' KG. PREVISÃO ORIGINADA DA LEITURA DE COCHO.';
   const distribuido=(distribuicoes.data||[]).reduce((sum,x)=>sum+[x.trato_1,x.trato_2,x.trato_3,x.trato_4].reduce((a,b)=>a+Number(b||0),0),0);
-  const completas=(distribuicoes.data||[]).length>0&&(distribuicoes.data||[]).every(x=>sistema==='SEMI'?x.trato_1!==null:[x.trato_1,x.trato_2,x.trato_3,x.trato_4].some(v=>v!==null));
-  if(sequencia!==trCargaRenderSeq||data!==document.getElementById('tr_carga_data').value||sistema!==document.getElementById('tr_carga_sistema').value)return;
+  const completas=false; // Sem fechamento formal confirmado, a distribuição deve permanecer PARCIAL; não inferir conclusão a partir de um único trato lançado.
+  if(sequencia!==trCargaRenderSeq||data!==document.getElementById('tr_carga_data').value||sistema!==document.getElementById('tr_carga_sistema').value||carga!==document.getElementById('tr_carga_num').value)return;
   trCargaUltima={data,sistema,carga,versao:String(versao.id),linhas,distribuido,completas,base,todasCargas:todasCargas.data||[],registroSalvo:registroCompleto,registroPendente,registroId:registro?.id||null,temPrevisao:hojeValidos.length>0,dataAnterior};
   if(destaqueData)destaqueData.innerHTML='DATA SELECIONADA: <strong>'+data.split('-').reverse().join('/')+'</strong> • SISTEMA: <strong>'+trEsc(sistema)+'</strong><div style="font-size:13px;margin-top:8px">REFERÊNCIA INTERNA DO SISTEMA: <strong>'+(hojeQ.error?'INDISPONÍVEL':trFmt(previstoHoje)+' KG')+'</strong> ('+hojeValidos.length+' LOCAIS COM ANIMAIS)</div><div style="font-size:12px;margin-top:6px">INFORME SOMENTE AS QUANTIDADES EFETIVAMENTE CARREGADAS.</div>';
   area.innerHTML='<div class="table-wrap"><table class="tr-carga-tabela"><thead><tr><th>INGREDIENTE</th><th>PREVISTO KG</th><th>CARREGADO KG (DIGITAR SOMAS)</th><th>TOTAL CARREGADO KG</th><th>DESVIO KG</th><th>DESVIO %</th></tr></thead><tbody>'+linhas.map((x,i)=>'<tr data-ingred="'+i+'"><td>'+trEsc(x.nome)+'</td><td><input type="number" readonly data-t="prev" value="'+Number(x.prev.toFixed(3))+'" style="width:120px"></td><td><input type="text" inputmode="decimal" data-t="real" placeholder="1015+500" value="'+(x.real===null?'':x.real)+'" oninput="trCargaCalcular()" style="width:120px"></td><td data-t="soma" style="font-weight:800">—</td><td data-t="dif">—</td><td data-t="pct">—</td></tr>').join('')+'</tbody></table></div>';
-  av.textContent='LANÇAMENTO REAL DE CARREGAMENTO • SISTEMA: '+sistema+' • DIETA VERSÃO '+versao.versao+(registroCompleto?' • CONSOLIDADO JÁ SALVO':registroPendente?' • REGISTRO PENDENTE DE CONFIRMAÇÃO':' • AINDA NÃO SALVO');
+  av.textContent='LANÇAMENTO REAL DE CARREGAMENTO • SISTEMA: '+sistema+' • DIETA VERSÃO '+versao.versao+(registroCompleto?' • CARGA JÁ SALVA':registroPendente?' • REGISTRO PENDENTE DE CONFIRMAÇÃO':' • AINDA NÃO SALVO');
   if(registroCompleto){document.getElementById('tr_carga_data').disabled=false;document.getElementById('tr_carga_total_previsto').disabled=true;area.querySelectorAll('input[data-t="real"]').forEach(e=>e.disabled=true)}else document.getElementById('tr_carga_total_previsto').disabled=true;
   const salvarBtn=document.getElementById('tr_carga_salvar_btn');
-  if(salvarBtn){salvarBtn.disabled=registroCompleto;salvarBtn.textContent=registroCompleto?'CONSOLIDADO JÁ SALVO':registroPendente?'SALVAR CARREGAMENTO':'SALVAR CARREGAMENTO NO SUPABASE';salvarBtn.style.opacity=registroCompleto?'0.65':'1';salvarBtn.style.cursor=registroCompleto?'not-allowed':'pointer'}
+  if(salvarBtn){salvarBtn.disabled=registroCompleto;salvarBtn.textContent=registroCompleto?'CARGA JÁ SALVA':registroPendente?'SALVAR CARREGAMENTO':'SALVAR CARREGAMENTO NO SUPABASE';salvarBtn.style.opacity=registroCompleto?'0.65':'1';salvarBtn.style.cursor=registroCompleto?'not-allowed':'pointer'}
   trCargaCalcular();
  }catch(e){if(sequencia!==trCargaRenderSeq)return;area.innerHTML='<div class="notice">NÃO FOI POSSÍVEL CARREGAR: '+trEsc(e.message||e)+'</div>';trCargaUltima=null}
 }
@@ -3733,13 +3932,13 @@ function trCargaCalcular(){
   const celSoma=tr.querySelector('[data-t="soma"]');if(celSoma)celSoma.textContent=real===''?'—':Number.isFinite(b)?trFmt(b)+' KG':'SOMA INVÁLIDA';
   tr.querySelector('[data-t="dif"]').textContent=real===''?'—':Number.isFinite(b)?trFmt(b-a):'SOMA INVÁLIDA';
   tr.querySelector('[data-t="pct"]').textContent=real===''||a===0||!Number.isFinite(b)?'—':trFmt((b-a)/a*100)+'%';
-  const pctCel=tr.querySelector('[data-t="pct"]');const pctValor=a>0&&Number.isFinite(b)?(b-a)/a*100:null;
+  const pctCel=tr.querySelector('[data-t="pct"]');const pctValor=real!==''&&prev!==''&&a>0&&Number.isFinite(b)?(b-a)/a*100:null;
   if(pctCel){pctCel.style.fontWeight='800';pctCel.style.color=pctValor===null?'':Math.abs(pctValor)>3?'#ad2921':'#247a42';pctCel.style.background=pctValor===null?'':Math.abs(pctValor)>3?'#ffe8e5':'#e5f5e8'}
 
  });
- const diferenca=r-x.distribuido;const todas=x.todasCargas||[];const somaDia=todas.reduce((a,b)=>a+Number(b.carregado_kg||0),0);const previstoDia=todas.reduce((a,b)=>a+Number(b.previsto_kg||0),0);
+ const todas=x.todasCargas||[];const outras=todas.filter(c=>c.carga!==x.carga);const somaDia=outras.reduce((a,b)=>a+Number(b.carregado_kg||0),0)+(completos?r:0);const previstoDia=outras.reduce((a,b)=>a+Number(b.previsto_kg||0),0)+p;const cargaDiaCompleta=completos&&outras.every(c=>c.carregado_kg!==null&&c.carregado_kg!==undefined);const diferenca=cargaDiaCompleta?somaDia-x.distribuido:null;
  const desvioPct=completos&&p?(r-p)/p*100:null;
- const distPct=completos&&x.distribuido>0?(r-x.distribuido)/x.distribuido*100:null;
+ const distPct=cargaDiaCompleta&&x.distribuido>0?(somaDia-x.distribuido)/x.distribuido*100:null;
  const estiloPct=v=>v===null?'':('font-weight:800;color:'+(Math.abs(v)>3?'#ad2921':'#247a42')+';background:'+(Math.abs(v)>3?'#ffe8e5':'#e5f5e8')+';');
  const cel=(titulo,valor,estilo='')=>'<div style="border:1px solid #d9e1e5;border-radius:6px;padding:6px 7px;min-width:0;'+estilo+'"><div style="font-size:9px;line-height:1.15;font-weight:700;color:#4c5965;margin-bottom:3px">'+titulo+'</div><div style="font-size:13px;line-height:1.2;font-weight:800;white-space:normal">'+valor+'</div></div>';
  const fmtPct=v=>v===null?'—':trFmt(v)+'%';
@@ -3749,7 +3948,7 @@ function trCargaCalcular(){
  +cel('DESVIO CARREGAMENTO',completos?trFmt(r-p)+' KG':'—',estiloPct(desvioPct))
  +cel('DESVIO CARREGAMENTO %',fmtPct(desvioPct),estiloPct(desvioPct))
  +cel('DISTRIBUÍDO (TRATOS)',trFmt(x.distribuido)+' KG'+(x.completas?'':' — PARCIAL'))
- +cel('DIF. CARREGADO − DISTRIBUÍDO',completos?trFmt(diferenca)+' KG'+(x.completas?'':' — PARCIAL'):'—',estiloPct(distPct))
+ +cel('DIF. CARREGADO − DISTRIBUÍDO',cargaDiaCompleta?trFmt(diferenca)+' KG'+(x.completas?'':' — PARCIAL'):'—',estiloPct(distPct))
  +cel('DESVIO CARREGADO × DISTRIBUÍDO %',fmtPct(distPct)+(x.completas?'':' — PARCIAL'),estiloPct(distPct))
  +'</div><div class="notice">GERAL DO DIA (CARGAS SALVAS): '+trFmt(previstoDia)+' KG PREVISTOS / '+trFmt(somaDia)+' KG CARREGADOS. COMPARAÇÃO COM TRATOS: '+(x.completas?'CONCLUÍDA':'PARCIAL, SUJEITA A NOVOS TRATOS')+'. OS VALORES SALVOS PERMANECEM NO HISTÓRICO POR DATA, SISTEMA E VERSÃO DA DIETA.</div>';
 }
@@ -3763,11 +3962,11 @@ async function trCargaSalvar(){
   if(p===''||r===''||![Number(p),trCargaSomar(r)].every(n=>Number.isFinite(n)&&n>=0)){trToast('PREENCHA PREVISTO E CARREGADO DE TODOS OS INGREDIENTES. NADA FOI SALVO.',true);return}
   linhas.push({insumo_id:x.linhas[i].id,previsto_kg:Number(p),carregado_kg:trCargaSomar(r)});
  }
-  if(x.data!==document.getElementById('tr_carga_data').value||x.sistema!==document.getElementById('tr_carga_sistema').value){trToast('DATA OU SISTEMA DO CARREGAMENTO FOI ALTERADO. CONFIRA E ATUALIZE ANTES DE SALVAR.',true);return}
+  if(x.data!==document.getElementById('tr_carga_data').value||x.sistema!==document.getElementById('tr_carga_sistema').value||x.carga!==document.getElementById('tr_carga_num').value){trToast('DATA OU SISTEMA DO CARREGAMENTO FOI ALTERADO. CONFIRA E ATUALIZE ANTES DE SALVAR.',true);return}
  const somaP=linhas.reduce((a,b)=>a+b.previsto_kg,0),somaR=linhas.reduce((a,b)=>a+b.carregado_kg,0);
  const bruto=Number(document.getElementById('tr_carga_bruto').value),sobra=Number(document.getElementById('tr_carga_sobra').value);
  if(!Number.isFinite(bruto)||!Number.isFinite(sobra)||bruto<0||sobra<0||sobra>bruto||Math.abs((bruto-sobra)-somaP)>0.02){trToast('CONFERÊNCIA INVÁLIDA: TOTAL PREVISTO NÃO CONFERE COM OS INGREDIENTES.',true);return}
- if((x.todasCargas||[]).some(c=>c.carga!=='CONSOLIDADO')){trToast('JÁ EXISTEM CARGAS INDIVIDUAIS SALVAS NESTE DIA; EVITE DUPLICAR O CONSOLIDADO.',true);return}
+ if((x.todasCargas||[]).some(c=>x.carga==='CONSOLIDADO'?c.carga!=='CONSOLIDADO':c.carga==='CONSOLIDADO')){trToast('NÃO MISTURE CARGAS INDIVIDUAIS COM CONSOLIDADO JÁ SALVO.',true);return}
  if(!somaP||Math.abs(somaP-Number(document.getElementById('tr_carga_total_previsto').value))>0.02){trToast('CONFIRA O TOTAL PREVISTO: A SOMA DOS INGREDIENTES DEVE CONFERIR.',true);return}
  window.__trCargaSalvando=true;
  try{
@@ -3787,7 +3986,7 @@ async function trCargaSalvar(){
   const w=await supa.from('tratos_carregamento_ingredientes').insert(linhas.map(v=>({...v,insumo_id:String(v.insumo_id),carregamento_id:q.data.id})));if(w.error)throw w.error;
   const conf=await supa.from('tratos_carregamento_ingredientes').select('insumo_id,previsto_kg,carregado_kg').eq('carregamento_id',q.data.id);if(conf.error)throw conf.error;
   if((conf.data||[]).length!==linhas.length)throw Error('QUANTIDADE DE INGREDIENTES NÃO CONFERE APÓS SALVAR');
-  trToast('CONSOLIDADO SALVO E CONFERIDO NO SUPABASE');x.registroSalvo=true;const btn=document.getElementById('tr_carga_salvar_btn');if(btn){btn.disabled=true;btn.textContent='CONSOLIDADO JÁ SALVO'}await trCargaRender();
+  trToast('CONSOLIDADO SALVO E CONFERIDO NO SUPABASE');x.registroSalvo=true;const btn=document.getElementById('tr_carga_salvar_btn');if(btn){btn.disabled=true;btn.textContent='CARGA JÁ SALVA'}await trCargaRender();
  }catch(e){trToast('FALHA NO SALVAMENTO: '+String(e.message||e),true)}
  finally{window.__trCargaSalvando=false}
 }
@@ -3908,29 +4107,256 @@ async function trImprimirPrevisaoConferida(){
   const insumos=new Map((nutriCache.insumos||[]).map(i=>[String(i.id),i.nome]));
   const receita=itens.reduce((t,i)=>t+Number(i.batida_kg??i.quantidade_mn??0),0);
   if(!receita)throw Error('DIETA SEM INGREDIENTES');
-  const tabela=sistema==='SEMI'?'semi_leituras_cocho':'leituras_cocho';
-  const [q,distrib]=await Promise.all([
-    supa.from(tabela).select('quantidade_bois,total_previsto').eq('data_leitura',dia),
-    supa.from('tratos_realizados').select('trato_1,trato_2,trato_3,trato_4').eq('data_trato',dia).eq('sistema',sistema)
-  ]);
-  if(q.error)throw q.error;if(distrib.error)throw distrib.error;
-  const bruto=(q.data||[]).filter(r=>Number(r.quantidade_bois)>0).reduce((t,r)=>t+Number(r.total_previsto||0),0);
+  // MESMA FONTE DA TELA TRATOS REALIZADOS: ler a grade calculada,
+  // inclusive os saldos redistribuídos após tratos já salvos.
+  // A data de carregamento e de distribuição devem coincidir para evitar misturas.
+  const dataDistribuicao=document.getElementById('tr_data')?.value;
+  if(dia!==dataDistribuicao)throw Error('DATA DO CARREGAMENTO DIFERENTE DA DATA DE TRATOS REALIZADOS. SELECIONE A MESMA DATA E CONFIRA A GRADE.');
+  trCalc();
+  const linhasGrade=[...document.querySelectorAll('#tr_grade_body tr')];
+  const norm=v=>String(v||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  const locais=linhasGrade.filter(tr=>norm(tr.dataset.sistema)===sistema).map(tr=>{
+   const nome=tr.dataset.local;
+   const totalTexto=tr.dataset.total;
+   if(totalTexto==null||totalTexto==='')return null;
+   const valor=Number(totalTexto);
+   if(!Number.isFinite(valor))return null;
+   const divisao=[...tr.querySelectorAll('td[data-prev]')].map(td=>td.dataset.ajustado===''?0:Number(td.dataset.ajustado??td.dataset.prev??0));
+   if(divisao.length!==4||divisao.some(v=>!Number.isFinite(v)))throw Error('PREVISÃO INCOMPLETA PARA '+nome);
+   const realizado=[...tr.querySelectorAll('input[data-f="v"]')].reduce((n,input)=>n+(input.value.trim()===''?0:Number(input.value)),0);
+   return {nome,valor,divisao,realizado};
+  }).filter(Boolean);
+  if(!locais.length)throw Error('NENHUMA PREVISÃO VÁLIDA PARA A DATA E SISTEMA');
+  const bruto=locais.reduce((t,r)=>t+r.divisao.reduce((a,v)=>a+v,0),0);
+  const totalPlanejado=locais.reduce((t,r)=>t+r.valor,0);
   const sobra=Number(document.getElementById('tr_carga_sobra').value||0);
   if(sobra<0||sobra>bruto)throw Error('SOBRA INVÁLIDA');
   const liquido=bruto-sobra;
   const fmt=n=>Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
   const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const totais=[1,2,3,4].map(i=>(distrib.data||[]).reduce((t,r)=>t+Number(r['trato_'+i]||0),0));
-  const somaDistrib=totais.reduce((a,b)=>a+b,0);
-  // Quando não há distribuição realizada, usar a proporção operacional 20/30/30/20.
-  const pesos=somaDistrib>0?totais.map(v=>v/somaDistrib):(sistema==='SEMI'?[1,0,0,0]:[.2,.3,.3,.2]);
-  const cargas=pesos.map(v=>v*bruto);cargas[0]=Math.max(0,cargas[0]-sobra);
-  // A soma deve sempre reconciliar com o líquido, inclusive se a sobra superar a primeira carga.
-  if(cargas[0]===0&&sobra>pesos[0]*bruto){let restante=sobra-pesos[0]*bruto;for(let i=1;i<4;i++){let baixa=Math.min(cargas[i],restante);cargas[i]-=baixa;restante-=baixa;}}
+  const cargas=[0,1,2,3].map(i=>locais.reduce((t,r)=>t+Number(r.divisao[i]||0),0));
+  // A sobra é abatida apenas do total carregado, não altera a previsão individual dos currais.
+  let restoSobra=sobra;
+  for(let i=0;i<4&&restoSobra>0;i++){const abatido=Math.min(cargas[i],restoSobra);cargas[i]-=abatido;restoSobra-=abatido;}
+  const detalhe=locais.map(r=>'<tr><td>'+esc(r.nome)+'</td><td>'+fmt(r.valor)+'</td><td>'+fmt(r.realizado)+'</td>'+r.divisao.map(v=>'<td>'+fmt(v)+'</td>').join('')+'</tr>').join('');
   const linhas=itens.map(i=>{const frac=Number(i.batida_kg??i.quantidade_mn??0)/receita;return {nome:insumos.get(String(i.insumo_id))||i.insumo_id,frac};});
   const tabelaHTML=linhas.map(l=>'<tr><td>'+esc(l.nome)+'</td><td>'+fmt(liquido*l.frac)+'</td>'+cargas.map(c=>'<td>'+fmt(c*l.frac)+'</td>').join('')+'</tr>').join('');
-  janela.document.open();janela.document.write('<!doctype html><html><head><meta charset="utf-8"><title>CARREGAMENTO '+esc(dia)+'</title><style>body{font:13px Arial;padding:25px;color:#17222d}h2{text-align:center}table{width:100%;border-collapse:collapse}td,th{border:1px solid #999;padding:8px;text-align:right}td:first-child,th:first-child{text-align:left}th{background:#eaf0f2}.total{font-weight:bold;background:#e9f3ed}@media print{button{display:none}}</style></head><body><h2>FAZENDA NOVA ESPERANÇA — CARREGAMENTO '+esc(sistema)+'</h2><p>DATA: '+esc(dia.split('-').reverse().join('/'))+' | DIETA ATIVA VERSÃO '+esc(versao.versao)+' | MS '+fmt(Number(versao.ms_dieta)*100)+'%</p><p>PREVISÃO BRUTA: <b>'+fmt(bruto)+' KG</b> — SOBRA: <b>'+fmt(sobra)+' KG</b> — TOTAL PARA CARREGAR: <b>'+fmt(liquido)+' KG</b></p><table><thead><tr><th>INGREDIENTE</th><th>TOTAL</th><th>CARGA 1</th><th>CARGA 2</th><th>CARGA 3</th><th>CARGA 4</th></tr></thead><tbody>'+tabelaHTML+'<tr class="total"><td>TOTAL KG</td><td>'+fmt(liquido)+'</td>'+cargas.map(fmt).map(v=>'<td>'+v+'</td>').join('')+'</tr></tbody></table><p>PREVISÃO NÃO SALVA — INGREDIENTES CALCULADOS EXCLUSIVAMENTE PELA VERSÃO ATIVA DA DIETA. SOBRA DESCONTADA UMA ÚNICA VEZ.</p><button onclick="window.print()">IMPRIMIR / SALVAR PDF</button></body></html>');janela.document.close();
+  janela.document.open();janela.document.write('<!doctype html><html><head><meta charset="utf-8"><title>CARREGAMENTO '+esc(dia)+'</title><style>body{font:13px Arial;padding:25px;color:#17222d}h2{text-align:center}table{width:100%;border-collapse:collapse}td,th{border:1px solid #999;padding:8px;text-align:right}td:first-child,th:first-child{text-align:left}th{background:#eaf0f2}.total{font-weight:bold;background:#e9f3ed}@media print{button{display:none}}</style></head><body><h2>FAZENDA NOVA ESPERANÇA — CARREGAMENTO '+esc(sistema)+'</h2><p>DATA: '+esc(dia.split('-').reverse().join('/'))+' | DIETA ATIVA VERSÃO '+esc(versao.versao)+' | MS '+fmt(Number(versao.ms_dieta)*100)+'%</p><p>PREVISÃO BRUTA: <b>'+fmt(bruto)+' KG</b> — SOBRA: <b>'+fmt(sobra)+' KG</b> — TOTAL PARA CARREGAR: <b>'+fmt(liquido)+' KG</b></p><table><thead><tr><th>INGREDIENTE</th><th>TOTAL</th><th>CARGA 1</th><th>CARGA 2</th><th>CARGA 3</th><th>CARGA 4</th></tr></thead><tbody>'+tabelaHTML+'<tr class="total"><td>TOTAL KG</td><td>'+fmt(liquido)+'</td>'+cargas.map(fmt).map(v=>'<td>'+v+'</td>').join('')+'</tr></tbody></table><h3>PREVISÃO POR CURRAL — MESMOS SALDOS DE TRATOS REALIZADOS</h3><p>TOTAL PLANEJADO: '+fmt(totalPlanejado)+' KG | JÁ REALIZADO: '+fmt(locais.reduce((t,r)=>t+r.realizado,0))+' KG | PENDENTE: '+fmt(bruto)+' KG</p><table><thead><tr><th>CURRAL</th><th>TOTAL DO DIA</th><th>JÁ REALIZADO</th><th>TRATO 1 PENDENTE</th><th>TRATO 2 PENDENTE</th><th>TRATO 3 PENDENTE</th><th>TRATO 4 PENDENTE</th></tr></thead><tbody>'+detalhe+'</tbody></table><p>PREVISÃO NÃO SALVA — INGREDIENTES CALCULADOS EXCLUSIVAMENTE PELA VERSÃO ATIVA DA DIETA. SOBRA DESCONTADA UMA ÚNICA VEZ.</p><button onclick="window.print()">IMPRIMIR / SALVAR PDF</button></body></html>');janela.document.close();
  }catch(e){janela.document.body.textContent='ERRO NA CONFERÊNCIA: '+String(e.message||e);}
+}
+
+// FARMÁCIA — módulo independente, dados persistidos exclusivamente no Supabase.
+let farmaciaLista=[],farmaciaMovimentos=[],farmaciaOcupado=false;
+function farmEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function farmNum(v){return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:3});}
+function farmDataBR(d){if(!d)return '';let a=String(d).slice(0,10).split('-');return a.length===3?a.reverse().join('/'):String(d);}
+async function farmaciaExigirAdmin(){
+ const p=await obterPerfilAtual();
+ if(String(p.perfil||'').toUpperCase()!=='ADMIN')throw new Error('ACESSO EXCLUSIVO DO ADMINISTRADOR.');
+}
+async function farmaciaAbrir(botao){
+ try{await farmaciaExigirAdmin();showPage('farmacia',botao);if(!document.getElementById('farm_data').value)document.getElementById('farm_data').value=new Date().toLocaleDateString('sv-SE');await farmaciaCarregar();}
+ catch(e){toast('FARMÁCIA: '+String(e.message||e));}
+}
+async function farmaciaCarregar(){
+ try{
+  await farmaciaExigirAdmin();
+  const [m,v]=await Promise.all([
+   supa.from('farmacia_medicamentos').select('id,nome,tratamento,estoque_inicial,estoque_atual,estoque_minimo').order('nome'),
+   supa.from('farmacia_movimentos').select('id,medicamento_id,data_movimento,tipo,quantidade,motivo,criado_em').order('data_movimento',{ascending:false}).order('id',{ascending:false}).limit(500)
+  ]);
+  if(m.error)throw m.error;if(v.error)throw v.error;
+  farmaciaLista=m.data||[];farmaciaMovimentos=v.data||[];
+  const seletor=document.getElementById('farm_med'),selecionado=seletor.value;
+  seletor.innerHTML='<option value="">SELECIONE O MEDICAMENTO</option>'+farmaciaLista.map(x=>'<option value="'+x.id+'">'+farmEsc(x.nome)+'</option>').join('');
+  if(farmaciaLista.some(x=>String(x.id)===selecionado))seletor.value=selecionado;
+  const linhas=farmaciaLista.map(x=>{
+   const saldo=Math.max(0,Number(x.estoque_atual)||0);
+   const cor=saldo>=10?'#177245':saldo>=5?'#946200':'#b42318';
+   const fundo=saldo>=10?'#e6f4ea':saldo>=5?'#fff2c7':'#fde9e7';
+   return '<tr><td><b>'+farmEsc(x.nome)+'</b></td><td>'+farmEsc(x.tratamento||'—')+'</td><td>'+farmNum(x.estoque_inicial)+'</td><td style="font-weight:800;color:'+cor+';background:'+fundo+'">'+farmNum(saldo)+'</td><td><input aria-label="Estoque mínimo de '+farmEsc(x.nome)+'" type="number" min="0" step="1" id="farm_min_'+x.id+'" value="'+farmNum(x.estoque_minimo).replaceAll('.','').replace(',','.')+'" style="width:82px;text-align:center"></td><td><button type="button" class="btn" onclick="farmaciaSalvarMinimo('+x.id+')" style="padding:5px 10px;font-size:12px">SALVAR</button></td></tr>';
+  }).join('');
+  document.getElementById('farm_estoque').innerHTML='<table style="min-width:750px"><thead><tr><th>MEDICAMENTO</th><th>TRATAMENTO</th><th>ESTOQUE INICIAL</th><th>ESTOQUE ATUAL</th><th>ESTOQUE MÍNIMO</th><th>AÇÃO</th></tr></thead><tbody>'+linhas+'</tbody></table>';
+  const nomes=new Map(farmaciaLista.map(x=>[String(x.id),x.nome]));
+  const mov=farmaciaMovimentos.map(x=>'<tr><td>'+farmDataBR(x.data_movimento)+'</td><td>'+farmEsc(nomes.get(String(x.medicamento_id))||'—')+'</td><td>'+farmEsc(x.tipo.replaceAll('_',' '))+'</td><td>'+farmNum(x.quantidade)+'</td><td>'+farmEsc(x.motivo)+'</td></tr>').join('');
+  document.getElementById('farm_historico').innerHTML='<table style="min-width:720px"><thead><tr><th>DATA</th><th>MEDICAMENTO</th><th>MOVIMENTO</th><th>QTD</th><th>MOTIVO</th></tr></thead><tbody>'+mov+'</tbody></table>';
+  document.getElementById('farm_status').textContent=farmaciaLista.length+' MEDICAMENTOS CADASTRADOS. ESTOQUE SINCRONIZADO COM O BANCO.';
+ }catch(e){console.error(e);document.getElementById('farm_status').textContent='ERRO AO CARREGAR FARMÁCIA: '+String(e.message||e);toast('ERRO NO ESTOQUE DA FARMÁCIA');}
+}
+async function farmaciaSalvarMinimo(id){
+ try{
+  await farmaciaExigirAdmin();
+  const el=document.getElementById('farm_min_'+id),n=Number(el.value);
+  if(!Number.isFinite(n)||n<0)throw new Error('ESTOQUE MÍNIMO INVÁLIDO.');
+  const r=await supa.from('farmacia_medicamentos').update({estoque_minimo:n}).eq('id',id).select('id').single();
+  if(r.error)throw r.error;
+  toast('ESTOQUE MÍNIMO SALVO.');await farmaciaCarregar();
+ }catch(e){toast('ERRO AO SALVAR MÍNIMO: '+String(e.message||e));}
+}
+async function farmaciaSalvar(){
+ if(farmaciaOcupado)return;
+ try{
+  await farmaciaExigirAdmin();
+  const med=Number(document.getElementById('farm_med').value),data=document.getElementById('farm_data').value,tipo=document.getElementById('farm_tipo').value,
+  qtd=Number(document.getElementById('farm_qtd').value),motivo=document.getElementById('farm_motivo').value.trim().toUpperCase();
+  if(!med||!data||!Number.isFinite(qtd)||qtd<=0||!motivo)throw new Error('PREENCHA MEDICAMENTO, DATA, QUANTIDADE POSITIVA E MOTIVO.');
+  if(!confirm('CONFIRMAR '+tipo.replaceAll('_',' ')+' DE '+farmNum(qtd)+' — '+(farmaciaLista.find(x=>x.id===med)?.nome||'')+'?'))return;
+  farmaciaOcupado=true;document.getElementById('farm_salvar').disabled=true;
+  const u=await supa.auth.getUser();if(u.error||!u.data.user)throw new Error('SESSÃO EXPIRADA.');
+  const r=await supa.from('farmacia_movimentos').insert({medicamento_id:med,data_movimento:data,tipo,quantidade:qtd,motivo,criado_por:u.data.user.id}).select('id').single();
+  if(r.error)throw r.error;
+  document.getElementById('farm_qtd').value='';document.getElementById('farm_motivo').value='';
+  toast('MOVIMENTAÇÃO SALVA. ESTOQUE ATUALIZADO.');await farmaciaCarregar();
+ }catch(e){console.error(e);toast('ERRO NA MOVIMENTAÇÃO: '+String(e.message||e));}
+ finally{farmaciaOcupado=false;document.getElementById('farm_salvar').disabled=false;}
+}
+async function farmaciaCadastrar(){
+ try{
+  await farmaciaExigirAdmin();
+  const nome=document.getElementById('farm_novo_nome').value.trim().toUpperCase(),tratamento=document.getElementById('farm_novo_trat').value.trim().toUpperCase(),
+  saldo=Number(document.getElementById('farm_novo_saldo').value),ne=document.getElementById('farm_novo_necessidade').value;
+  if(!nome||!Number.isFinite(saldo)||ne!==''&&(!Number.isFinite(Number(ne))||Number(ne)<0))throw new Error('PREENCHA NOME E QUANTIDADES VÁLIDAS.');
+  if(!confirm('CADASTRAR '+nome+' COM SALDO INICIAL '+farmNum(saldo)+'?'))return;
+  const r=await supa.from('farmacia_medicamentos').insert({nome,tratamento:tratamento||null,estoque_inicial:Math.max(0,saldo),estoque_atual:Math.max(0,saldo),estoque_minimo:ne===''?10:Number(ne)});
+  if(r.error)throw r.error;
+  document.getElementById('farm_novo_nome').value='';document.getElementById('farm_novo_trat').value='';document.getElementById('farm_novo_saldo').value='0';document.getElementById('farm_novo_necessidade').value='10';
+  toast('MEDICAMENTO CADASTRADO.');await farmaciaCarregar();
+ }catch(e){toast('ERRO AO CADASTRAR: '+String(e.message||e));}
+}
+async function farmaciaImprimirCompras(){
+ try{
+  await farmaciaExigirAdmin();
+  const [m,c]=await Promise.all([supa.from('farmacia_medicamentos').select('id,nome').order('nome'),supa.from('farmacia_cotacoes').select('medicamento_id,quantidade,selecionado')]);
+  if(m.error)throw m.error;if(c.error)throw c.error;
+  const cot=new Map((c.data||[]).map(x=>[String(x.medicamento_id),x]));
+  const compras=(m.data||[]).filter(x=>cot.get(String(x.id))?.selecionado===true && Number(cot.get(String(x.id)).quantidade)>0);
+  if(!compras.length)throw new Error('NENHUM MEDICAMENTO SELECIONADO E SALVO. ABRA COTAÇÃO DE MEDICAMENTOS, MARQUE OS PRODUTOS E SALVE.');
+  const linhas=compras.map(x=>'<tr><td>'+farmEsc(x.nome)+'</td><td>'+farmNum(cot.get(String(x.id)).quantidade)+'</td></tr>').join('');
+  const w=window.open('','_blank');if(!w)throw new Error('HABILITE POP-UPS PARA IMPRIMIR.');
+  w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><title>LISTA DE MEDICAMENTOS PARA COTAÇÃO</title><style>@page{size:A4 portrait;margin:14mm}body{font-family:Arial,sans-serif;color:#111;max-width:760px;margin:auto}h2{text-align:center;font-size:16px;margin:12px 0 8px}p{text-align:center;font-size:11px;margin:4px 0 18px}table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px}th,td{border:1px solid #777;padding:8px 12px;text-align:left;height:22px}th{background:#eee}th:last-child,td:last-child{width:30%;text-align:center}footer{text-align:center;margin-top:25px;font-size:11px;font-weight:bold}</style></head><body><h2>MEDICAMENTOS PARA COTAÇÃO</h2><p>DATA: '+new Date().toLocaleDateString('pt-BR')+' &nbsp; | &nbsp; TOTAL: '+compras.length+' MEDICAMENTO(S)</p><table><thead><tr><th>MEDICAMENTO</th><th>QUANTIDADE PARA COMPRA</th></tr></thead><tbody>'+linhas+'</tbody></table><footer>FAZENDA NOVA ESPERANÇA<br>DENIS FABIO MARSOLA<br><small>DESENVOLVIDO POR MARCO BASSAN</small></footer></body></html>');
+  w.document.close();w.focus();setTimeout(()=>w.print(),350);
+ }catch(e){console.error(e);toast('ERRO AO IMPRIMIR COMPRAS: '+String(e.message||e));}
+}
+async function farmaciaImprimirFicha(){
+ try{
+  await farmaciaExigirAdmin();
+  // Modelo da aba FICHA: DATA, MEDICAMENTO, QTD, MOTIVO. Apenas retiradas.
+  const nome=new Map(farmaciaLista.map(x=>[String(x.id),x.nome]));
+  const retiradas=farmaciaMovimentos.filter(x=>x.tipo==='RETIRADA');
+  const linhas=retiradas.map(x=>'<tr><td>'+farmDataBR(x.data_movimento)+'</td><td>'+farmEsc(nome.get(String(x.medicamento_id))||'—')+'</td><td>'+farmNum(x.quantidade)+'</td><td>'+farmEsc(x.motivo)+'</td></tr>').join('');
+  // Folha para preenchimento manual: sempre apresenta linhas vazias, inclusive sem retiradas.
+  const linhasVazias=Array.from({length:Math.max(16,24-retiradas.length)},()=>'<tr><td>&nbsp;</td><td></td><td></td><td></td></tr>').join('');
+  const w=window.open('','_blank');if(!w)throw new Error('HABILITE POP-UPS PARA IMPRIMIR.');
+  w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><title>FICHA DE RETIRADA DE MEDICAMENTO</title><style>@page{size:A4 portrait;margin:12mm}body{font-family:Arial,sans-serif;color:#111}h2{text-align:center;font-size:16px;margin:12px 0 20px}table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px}th,td{border:1px solid #777;padding:6px 8px;text-align:left;height:23px;vertical-align:middle}th{background:#eee;height:25px}td:nth-child(3),th:nth-child(3){text-align:center}th:nth-child(1){width:17%}th:nth-child(2){width:38%}th:nth-child(3){width:10%}th:nth-child(4){width:35%}footer{text-align:center;margin-top:22px;font-size:11px;font-weight:bold}p{font-size:10px;text-align:right}</style></head><body><p>IMPRESSÃO: '+new Date().toLocaleDateString('pt-BR')+'</p><h2>FICHA DE RETIRADA DE MEDICAMENTO</h2><table><thead><tr><th>DATA</th><th>MEDICAMENTO</th><th>QTD</th><th>MOTIVO</th></tr></thead><tbody>'+linhas+linhasVazias+'</tbody></table><footer>FAZENDA NOVA ESPERANÇA<br>DENIS FABIO MARSOLA<br><small>DESENVOLVIDO POR MARCO BASSAN</small></footer></body></html>');
+  w.document.close();w.focus();setTimeout(()=>w.print(),350);
+ }catch(e){toast('ERRO AO IMPRIMIR: '+String(e.message||e));}
+}
+
+
+// COTAÇÕES FARMÁCIA: dados separados do estoque e das retiradas.
+let farmaciaCotacaoProdutos=[],farmaciaCotacaoRegistros=new Map();
+async function farmaciaCotacaoAbrir(botao){
+ try{await farmaciaExigirAdmin();showPage('farmaciaCotacao',botao);await farmaciaCotacaoCarregar();}
+ catch(e){toast('COTAÇÕES: '+String(e.message||e));}
+}
+async function farmaciaCotacaoCarregar(){
+ try{
+  await farmaciaExigirAdmin();
+  const [m,c]=await Promise.all([
+   supa.from('farmacia_medicamentos').select('id,nome,tratamento,estoque_atual,estoque_minimo').order('nome'),
+   supa.from('farmacia_cotacoes').select('*')
+  ]);
+  if(m.error)throw m.error;if(c.error)throw c.error;
+  farmaciaCotacaoRegistros=new Map((c.data||[]).map(x=>[String(x.medicamento_id),x]));
+  farmaciaCotacaoProdutos=m.data||[];
+  const esc=farmEsc;
+  const nomes=[1,2,3].map(n=>{
+   const nomesSalvos=[...new Set((c.data||[]).map(x=>String(x['fornecedor_'+n]||'').trim()).filter(Boolean))];
+   return nomesSalvos[0]||'';
+  });
+  document.getElementById('farm_cot_fornecedores').innerHTML='<div style="font-weight:800;color:#1d5038;margin-bottom:12px">FORNECEDORES DA COTAÇÃO — PREENCHA UMA ÚNICA VEZ</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">'+[1,2,3].map(n=>'<label style="font-weight:700;font-size:12px;color:#365067">FORNECEDOR '+n+'<input id="fc_fornecedor_'+n+'" maxlength="120" oninput="this.value=this.value.toUpperCase()" style="display:block;width:100%;box-sizing:border-box;margin-top:5px;padding:11px;border:1px solid #a9c7b5;border-radius:7px" value="'+esc(nomes[n-1])+'"></label>').join('')+'</div>';
+  const inp=(id,k,val)=>'<input id="fc_'+id+'_'+k+'" type="number" min="0" step="0.01" oninput="farmaciaCotacaoAtualizarTotais()" style="width:100%;box-sizing:border-box;min-width:68px;padding:8px;border:1px solid #ccd5de;border-radius:6px;text-align:right" value="'+esc(val??'')+'">';
+  const linhas=farmaciaCotacaoProdutos.map(x=>{
+   const v=farmaciaCotacaoRegistros.get(String(x.id))||{};
+   const falta=Math.max(1,Math.ceil((Number(x.estoque_minimo)||0)-Math.max(0,Number(x.estoque_atual)||0)));
+   const sugerido=Math.max(0,Number(x.estoque_atual)||0)<=Math.max(0,Number(x.estoque_minimo)||0);
+   const marcado=v.selecionado===true||(v.selecionado==null&&sugerido);
+   const qtd=v.quantidade??falta;
+   return '<tr><td style="text-align:center"><input type="checkbox" id="fc_'+x.id+'_selecionado" '+(marcado?'checked':'')+' onchange="farmaciaCotacaoAtualizarTotais()" style="width:19px;height:19px;cursor:pointer"></td><td style="font-weight:700;min-width:150px">'+esc(x.nome)+(sugerido?'<div style="font-size:10px;color:#a06000">ESTOQUE BAIXO</div>':'')+'</td><td style="text-align:center">'+farmNum(Math.max(0,Number(x.estoque_atual)||0))+'</td><td style="text-align:center">'+farmNum(x.estoque_minimo)+'</td><td style="width:110px">'+inp(x.id,'quantidade',qtd)+'</td>'+[1,2,3].map(n=>'<td style="width:150px">'+inp(x.id,'preco_'+n,v['preco_'+n])+'</td>').join('')+'<td id="fc_melhor_'+x.id+'" style="font-weight:700;color:#187344;min-width:120px">—</td></tr>';
+  }).join('');
+  document.getElementById('farm_cot_tabela').innerHTML='<div style="display:flex;gap:12px;align-items:center;margin:10px 0"><button class="btn" type="button" onclick="farmaciaCotacaoMarcar(true)">SELECIONAR TODOS</button><button class="btn" type="button" onclick="farmaciaCotacaoMarcar(false)">DESMARCAR TODOS</button><span style="color:#526475">Selecione os itens para comprar; estoque mínimo é apenas sugestão.</span></div><div style="overflow-x:auto;border:1px solid #dbe3e9;border-radius:9px"><table style="width:100%;min-width:790px;border-collapse:collapse;font-size:13px"><thead style="background:#e9eff3"><tr><th>COMPRAR</th><th>MEDICAMENTO</th><th>ESTOQUE</th><th>MÍNIMO</th><th>QTD. COMPRA</th><th>PREÇO 1 (R$)</th><th>PREÇO 2 (R$)</th><th>PREÇO 3 (R$)</th><th>MENOR PREÇO</th></tr></thead><tbody>'+linhas+'</tbody><tfoot><tr style="background:#e9f6ee;font-weight:800"><td colspan="5">TOTAL POR FORNECEDOR (ITENS SELECIONADOS)</td><td id="fc_total_1">—</td><td id="fc_total_2">—</td><td id="fc_total_3">—</td><td></td></tr></tfoot></table></div>';
+  document.getElementById('farm_cot_status').textContent=farmaciaCotacaoProdutos.length+' MEDICAMENTOS DISPONÍVEIS. MARQUE OS QUE DESEJA COMPRAR, AJUSTE AS QUANTIDADES E CLIQUE EM SALVAR.';
+  farmaciaCotacaoAtualizarTotais();
+ }catch(e){console.error(e);toast('ERRO AO CARREGAR COTAÇÕES: '+String(e.message||e));}
+}
+function farmaciaCotacaoMarcar(valor){
+ for(const x of farmaciaCotacaoProdutos){const el=document.getElementById('fc_'+x.id+'_selecionado');if(el)el.checked=valor;}
+ farmaciaCotacaoAtualizarTotais();
+}
+function farmaciaCotacaoAtualizarTotais(){
+ const moeda=n=>'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+ const totais=[0,0,0],quantidades=[0,0,0];
+ for(const x of farmaciaCotacaoProdutos){
+  const selecionado=document.getElementById('fc_'+x.id+'_selecionado')?.checked===true;
+  const qtd=selecionado?Number(document.getElementById('fc_'+x.id+'_quantidade')?.value||0):0;
+  let menor=null;
+  for(let n=1;n<=3;n++){
+   const campo=document.getElementById('fc_'+x.id+'_preco_'+n),valor=campo?.value;
+   if(valor!==''&&valor!=null&&Number.isFinite(Number(valor))&&Number(valor)>=0){
+    const p=Number(valor);if(selecionado&&qtd>0){totais[n-1]+=p*qtd;quantidades[n-1]++;}
+    if(!menor||p<menor.preco)menor={n,preco:p};
+   }
+  }
+  const el=document.getElementById('fc_melhor_'+x.id);
+  if(el)el.textContent=selecionado&&menor?'FORNECEDOR '+menor.n+' · '+moeda(menor.preco):'—';
+ }
+ for(let n=1;n<=3;n++){
+  const el=document.getElementById('fc_total_'+n);
+  if(el)el.textContent=quantidades[n-1]?moeda(totais[n-1])+(quantidades[n-1]<farmaciaCotacaoProdutos.filter(x=>document.getElementById('fc_'+x.id+'_selecionado')?.checked).length?' (PARCIAL)':''):'—';
+ }
+}
+async function farmaciaCotacaoSalvarTodas(){
+ try{
+  await farmaciaExigirAdmin();
+  const nomes=[1,2,3].map(n=>document.getElementById('fc_fornecedor_'+n).value.trim().toUpperCase());
+  // A seleção de compra pode ser salva antes de receber propostas dos fornecedores.
+  const rows=farmaciaCotacaoProdutos.map(x=>{
+   const id=x.id,qty=Number(document.getElementById('fc_'+id+'_quantidade').value);
+   const selecionado=document.getElementById('fc_'+id+'_selecionado').checked;
+   if(selecionado&&(!Number.isFinite(qty)||qty<=0))throw new Error('QUANTIDADE INVÁLIDA: '+x.nome);
+   const row={medicamento_id:id,quantidade:Number.isFinite(qty)&&qty>0?qty:1,selecionado,atualizado_em:new Date().toISOString()};
+   for(let n=1;n<=3;n++){
+    const v=document.getElementById('fc_'+id+'_preco_'+n).value;
+    if(v!==''&&(!nomes[n-1]||!Number.isFinite(Number(v))||Number(v)<0))throw new Error('PREÇO OU FORNECEDOR INVÁLIDO: '+x.nome+' / '+n);
+    row['fornecedor_'+n]=nomes[n-1];row['preco_'+n]=v===''?null:Number(v);
+   }
+   return row;
+  });
+  if(!rows.length)throw new Error('NÃO HÁ MEDICAMENTOS PARA COTAÇÃO.');
+  const r=await supa.from('farmacia_cotacoes').upsert(rows,{onConflict:'medicamento_id'});
+  if(r.error)throw r.error;
+  toast('TODAS AS COTAÇÕES FORAM SALVAS NO SUPABASE.');await farmaciaCotacaoCarregar();
+ }catch(e){toast('ERRO AO SALVAR COTAÇÕES: '+String(e.message||e));}
+}
+async function farmaciaCotacaoImprimir(){
+ try{
+  await farmaciaExigirAdmin();
+  const [m,c]=await Promise.all([supa.from('farmacia_medicamentos').select('id,nome,estoque_atual,estoque_minimo').order('nome'),supa.from('farmacia_cotacoes').select('*')]);
+  if(m.error)throw m.error;if(c.error)throw c.error;
+  const cot=new Map((c.data||[]).map(x=>[String(x.medicamento_id),x]));
+  const produtos=(m.data||[]).filter(x=>cot.get(String(x.id))?.selecionado===true);
+  const nomes=[1,2,3].map(n=>document.getElementById('fc_fornecedor_'+n)?.value.trim().toUpperCase()||[...cot.values()].map(v=>v['fornecedor_'+n]).find(Boolean)||'FORNECEDOR '+n);
+  if(!produtos.length)throw new Error('NENHUM MEDICAMENTO SELECIONADO E SALVO PARA COTAÇÃO.');
+  const linhas=produtos.map(x=>{
+   const v=cot.get(String(x.id))||{},q=Number(v.quantidade)||Math.max(1,Math.ceil(Number(x.estoque_minimo)-Math.max(0,Number(x.estoque_atual))));
+   const validos=[1,2,3].filter(n=>v['preco_'+n]!=null).map(n=>({n,p:Number(v['preco_'+n])}));
+   const menor=validos.length?validos.reduce((a,b)=>a.p<=b.p?a:b):null;
+   return '<tr><td>'+farmEsc(x.nome)+'</td><td>'+farmNum(x.estoque_atual)+'</td><td>'+farmNum(x.estoque_minimo)+'</td><td>'+farmNum(q)+'</td>'+[1,2,3].map(n=>'<td>'+(v['preco_'+n]==null?'—':'R$ '+Number(v['preco_'+n]).toLocaleString('pt-BR',{minimumFractionDigits:2}))+'</td>').join('')+'<td>'+(menor?'FORNECEDOR '+menor.n:'—')+'</td></tr>';
+  }).join('');
+  const w=window.open('','_blank');if(!w)throw new Error('HABILITE POP-UPS PARA IMPRIMIR.');
+  w.document.write('<!doctype html><html><head><meta charset="UTF-8"><title>COTAÇÃO DE MEDICAMENTOS</title><style>@page{size:A4 landscape;margin:10mm}body{font:11px Arial}h2{text-align:center}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #888;padding:6px}th{background:#eee}footer{text-align:center;margin-top:20px;font-weight:bold}</style></head><body><h2>COTAÇÃO DE MEDICAMENTOS — '+new Date().toLocaleDateString('pt-BR')+'</h2><p><b>FORNECEDOR 1:</b> '+farmEsc(nomes[0])+' &nbsp;&nbsp; <b>FORNECEDOR 2:</b> '+farmEsc(nomes[1])+' &nbsp;&nbsp; <b>FORNECEDOR 3:</b> '+farmEsc(nomes[2])+'</p><table><thead><tr><th>MEDICAMENTO</th><th>EST.</th><th>MÍN.</th><th>QTD.</th><th>PREÇO 1</th><th>PREÇO 2</th><th>PREÇO 3</th><th>MENOR</th></tr></thead><tbody>'+linhas+'</tbody></table><footer>FAZENDA NOVA ESPERANÇA — DENIS FABIO MARSOLA<br>DESENVOLVIDO POR MARCO BASSAN</footer></body></html>');
+  w.document.close();w.focus();setTimeout(()=>w.print(),350);
+ }catch(e){toast('ERRO AO IMPRIMIR COTAÇÕES: '+String(e.message||e));}
 }
 </script>
 </body></html>

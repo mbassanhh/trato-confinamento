@@ -1102,7 +1102,26 @@ body{background:#f4f8f7}
 #farm_cot_tabela>div:nth-child(2){width:100%!important;max-width:100%!important;overflow-x:hidden!important}
 </style>
 <style>body.acesso-tratador .side{display:none!important}body.acesso-tratador .app{grid-template-columns:minmax(0,1fr)!important}body.acesso-tratador .nav{display:none!important}</style>
-</head>
+<style>
+/* ABASTECIMENTO RÁPIDO — IDENTIDADE VISUAL PRÓPRIA, SEM AFETAR OUTROS MÓDULOS */
+#dieselMobile{background:linear-gradient(145deg,#fff0e8 0%,#ffd9c8 50%,#ffb99d 100%);min-height:100vh;padding:clamp(12px,3vw,30px);border-radius:18px;color:#61251e}
+#dieselMobile>.panel{background:#fff8f3;border:2px solid #e77e58;border-radius:22px;box-shadow:0 16px 40px #a43e252b;padding:clamp(18px,3vw,32px)}
+#dieselMobile .section-head{background:linear-gradient(115deg,#a52b31,#d84b37 53%,#ed853c);padding:22px;border-radius:16px;margin-bottom:16px;box-shadow:0 7px 20px #ae422b36}
+#dieselMobile .section-head h2{color:#fff!important;font-size:clamp(22px,4vw,31px);letter-spacing:.04em;margin:0 0 8px}
+#dieselMobile .section-head p{color:#ffece3!important;font-weight:700;letter-spacing:.04em;margin:0}
+#dieselMobile .field label{color:#863e2b!important;font-weight:800;letter-spacing:.045em;font-size:12px}
+#dieselMobile .field input,#dieselMobile .field select{background:#fff!important;color:#542a22!important;border:1.5px solid #e9a083!important;border-radius:11px!important;min-height:48px;font-size:16px!important;padding:10px 12px!important;box-sizing:border-box;width:100%}
+#dieselMobile .field input:focus,#dieselMobile .field select:focus{outline:3px solid #ffb36e!important;border-color:#c64a34!important}
+#dieselMobile .grid{gap:15px!important;margin-top:18px}
+#dieselMobile .form-actions{display:flex;gap:10px;flex-wrap:wrap}
+#dieselMobile .form-actions>.btn{border-radius:12px!important;font-weight:800!important;padding:13px 18px!important}
+#dieselMobile .form-actions>.btn:not(.primary){background:#fff0e8!important;color:#963d2e!important;border:1.5px solid #dd9579!important}
+#dieselMobile #dm_salvar{background:linear-gradient(100deg,#b72f31,#e45c31,#f08b3f)!important;color:white!important;border:0!important;box-shadow:0 6px 16px #b9473150;font-size:16px!important;min-height:52px;flex:1}
+#dieselMobile #dm_status{background:#fff0e6!important;color:#883e2e!important;border-left:5px solid #e27645!important;border-radius:8px;padding:13px!important;font-weight:650}
+#dm_atalho_tratador{background:linear-gradient(95deg,#ad3035,#e66d3a)!important;color:#fff!important;border:1px solid #ffb184!important;box-shadow:0 4px 14px #702e2d45!important}
+@media(max-width:600px){#dieselMobile{padding:10px;border-radius:0}#dieselMobile>.panel{padding:14px;border-radius:16px}#dieselMobile .section-head{padding:17px}#dieselMobile .grid{grid-template-columns:1fr!important}#dieselMobile #dm_salvar{width:100%}}
+</style>
+<style>body.dm_aberto #dieselMobile{display:block!important;position:relative!important;visibility:visible!important;opacity:1!important}body.dm_aberto #cocho{display:none!important}body.dm_aberto #dm_atalho_tratador{display:none!important}</style></head>
 <body>
 <div id="supaLogin" style="position:fixed;inset:0;background:#f3f6f8;z-index:99999;display:flex;align-items:center;justify-content:center;padding:18px">
 <div style="width:min(430px,100%);background:white;border:1px solid #dce2e6;border-radius:14px;padding:24px;box-shadow:0 12px 35px #0002">
@@ -1140,6 +1159,8 @@ body{background:#f4f8f7}
 <button onclick="showPage('cocho',this)">LEITURA DE COCHO</button>
 <div class="nav-group">MÁQUINAS / VEÍCULOS</div>
 <button class="admin-only" onclick="dieselAbrir(this)">CONTROLE DE ABASTECIMENTOS</button>
+<button onclick="dieselMobileAbrir(this)">ABASTECIMENTO RÁPIDO</button>
+
 <div class="nav-group">HISTÓRICOS E IMPRESSÕES</div>
 <button class="admin-only" id="menuHistoricoDesvios" onclick="showPage('historicoDesvios',this);trHistoricoCarregar()">HISTÓRICO DE DESVIOS</button>
 <button class="admin-only cocho-admin-menu" onclick="showPage('historicoCocho',this);abrirHistoricoCocho()">HISTÓRICO DE LEITURA</button>
@@ -1505,12 +1526,28 @@ body{background:#f4f8f7}
 
 
     
+<button id="dm_atalho_tratador" type="button" onclick="dieselMobileAbrir(this)" style="display:none;position:fixed;left:12px;top:8px;z-index:9998;padding:8px 10px;border-radius:7px;border:1px solid #cbd5e1;background:#fff;color:#1b2d38;font-weight:bold;font-size:12px">⛽ ABASTECIMENTO</button>
+<section id="dieselMobile" class="page"><div class="panel" style="max-width:760px;margin:auto">
+<div class="section-head"><div><h2>⛽ ABASTECIMENTO RÁPIDO</h2><p>FAZENDA NOVA ESPERANÇA • ÁREA EXCLUSIVA DE COMBUSTÍVEL</p></div></div>
+<div class="form-actions"><button class="btn" type="button" onclick="dieselMobileVoltar()">VOLTAR À LEITURA DE COCHO</button></div>
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+<div class="field"><label>DATA</label><input id="dm_data" type="date" readonly tabindex="-1" style="background:#ffe5d8!important;cursor:default" title="DATA AUTOMÁTICA — NÃO EDITÁVEL"></div>
+<div class="field"><label>TIPO</label><select id="dm_tipo" onchange="dieselMobileTipo()"><option value="ABASTECIMENTO_INTERNO">INTERNO</option><option value="ABASTECIMENTO_EXTERNO">EXTERNO</option></select></div>
+<div class="field" id="dm_maquina_wrap"><label>MÁQUINA / VEÍCULO</label><select id="dm_maquina"></select></div>
+<div class="field"><label>LITROS</label><input id="dm_litros" type="number" inputmode="decimal" min="0.001" step="0.001"></div>
+<div class="field" id="dm_hor_wrap"><label>HORÍMETRO / KM</label><input id="dm_hor" type="number" inputmode="decimal" min="0" step="0.01"></div>
+<div class="field" id="dm_cont_wrap"><label>CONTADOR DO TANQUE</label><input id="dm_cont" type="number" inputmode="decimal" min="0" step="0.001"></div>
+<div class="field" id="dm_preco_wrap"><label>PREÇO R$/LITRO (OPCIONAL)</label><input id="dm_preco" type="number" inputmode="decimal" min="0" step="0.0001"></div>
+
+</div><div class="form-actions"><button id="dm_salvar" class="btn primary" onclick="dieselMobileSalvar()">SALVAR</button></div>
+<p class="notice" id="dm_status">ABASTECIMENTO INTERNO DESCONTA DO ESTOQUE; ENTRADA ACRESCENTA. NÃO LANÇAR DUAS VEZES.</p>
+</div></section>
 <section id="diesel" class="page admin-only">
  <div class="panel">
   <div class="section-head"><div><h2>CONTROLE DE ABASTECIMENTOS</h2><p>Estoque de diesel, abastecimentos internos e externos, máquinas, manutenções e relatório mensal.</p></div><span class="tag">SOMENTE ADMIN</span></div>
   <div class="grid" id="diesel_kpis"></div>
   <div id="diesel_conferencia_resumo" style="margin-top:12px"></div>
-  <div class="form-actions"><button class="btn" onclick="dieselCarregar()">↻ ATUALIZAR</button><button class="btn" onclick="dieselImprimirFicha()">🖨 FICHA DE ABASTECIMENTO</button><button class="btn" onclick="dieselImprimirRelatorio()">🖨 RELATÓRIO MENSAL</button></div>
+  <div class="form-actions"><button class="btn" type="button" onclick="dieselMobileAbrir(this)" style="background:linear-gradient(100deg,#b72f31,#e45c31,#f08b3f);color:#fff;border:0;font-weight:800">⛽ ABASTECER</button><button class="btn" onclick="dieselCarregar()">↻ ATUALIZAR</button><button class="btn" onclick="dieselImprimirFicha()">🖨 FICHA DE ABASTECIMENTO</button><button class="btn" onclick="dieselImprimirRelatorio()">🖨 RELATÓRIO MENSAL</button></div>
  </div>
  <div class="panel"><h3>REGISTRAR ABASTECIMENTO</h3>
   <div class="grid">
@@ -2990,6 +3027,7 @@ async function obterPerfilAtual(){
  return q.data;
 }
 function abrirPaginaCochoTratador(){
+ document.body.classList.remove('dm_aberto');const dmTela=document.getElementById('dieselMobile');if(dmTela)dmTela.style.removeProperty('display');
  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
  document.getElementById('cocho').classList.add('active');
  const b=[...document.querySelectorAll('.nav button')].find(x=>x.textContent.includes('Leitura de Cocho'));
@@ -3012,7 +3050,8 @@ async function aplicarAcesso(){
     document.body.appendChild(sair);
    }
 
-   document.querySelectorAll('.nav button').forEach(b=>{b.style.display=b.textContent.includes('Leitura de Cocho')?'block':'none'});
+   document.querySelectorAll('.nav button').forEach(b=>{b.style.display=(b.textContent.includes('Leitura de Cocho')||b.textContent.includes('ABASTECIMENTO RÁPIDO'))?'block':'none'});
+   const atalho=document.getElementById('dm_atalho_tratador');if(atalho){atalho.style.setProperty('display','block','important');atalho.style.setProperty('z-index','2147483647','important');}
    document.querySelector('.top').style.display='none';
    document.getElementById('assinaturaGlobal').style.display='none';
    abrirPaginaCochoTratador();
@@ -5056,5 +5095,49 @@ async function farmaciaCotacaoImprimir(){
   w.document.close();w.focus();setTimeout(()=>w.print(),350);
  }catch(e){toast('ERRO AO IMPRIMIR COTAÇÕES: '+String(e.message||e));}
 }
+
+// ABASTECIMENTO RÁPIDO — PERMISSÕES RESTRITAS A LANÇAMENTOS DE DIESEL.
+let dmSalvando=false;
+const dm=id=>document.getElementById(id);
+const dmHoje=()=>new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
+async function dieselMobilePermissao(){const p=await obterPerfilAtual();if(!['ADMIN','DONO','TRATADOR'].includes(String(p.perfil||'').toUpperCase()))throw Error('SEM PERMISSÃO PARA ABASTECIMENTO.');return p;}
+function dieselMobileTipo(){const entrada=false;dm('dm_maquina_wrap').style.display=entrada?'none':'';dm('dm_hor_wrap').style.display=entrada?'none':'';dm('dm_cont_wrap').style.display=entrada?'none':'';dm('dm_preco_wrap').style.display=entrada?'':'none';}
+async function dieselMobileAbrir(botao){
+ document.body.classList.add("dm_aberto");
+ const tela=dm('dieselMobile');
+ document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+ tela.classList.add('active');
+ tela.style.setProperty('display','block','important');
+ if(botao?.closest('.nav')){document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));botao.classList.add('active');}
+ dm('dm_data').value=dmHoje();dm('dm_data').readOnly=true;dieselMobileTipo();
+ dm('dm_status').textContent='CARREGANDO MÁQUINAS...';
+ try{
+  await dieselMobilePermissao();
+  const r=await supa.from('diesel_maquinas').select('id,nome').eq('ativo',true).order('nome');
+  if(r.error)throw r.error;
+  dm('dm_maquina').innerHTML='<option value="">SELECIONE</option>'+(r.data||[]).map(x=>'<option value="'+Number(x.id)+'">'+dieselEsc(x.nome)+'</option>').join('');
+  dm('dm_status').textContent='PRONTO PARA REGISTRAR NO BANCO.';
+ }catch(e){dm('dm_status').textContent='ERRO AO CARREGAR: '+(e.message||e);console.error('DIESEL MOBILE',e);}
+ window.scrollTo({top:0,behavior:'instant'});
+}
+function dieselMobileVoltar(){document.body.classList.remove('dm_aberto');dm('dieselMobile').style.removeProperty('display');if(perfilLogado==='TRATADOR'){abrirPaginaCochoTratador();}else{const b=[...document.querySelectorAll('.nav button')].find(x=>x.textContent.includes('CONTROLE DE ABASTECIMENTOS'));if(b){dieselAbrir(b)}else{document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById('dashboard')?.classList.add('active');}}}
+async function dieselMobileSalvar(){if(dmSalvando)return;let gravado=null;try{
+ await dieselMobilePermissao();const tipo=dm('dm_tipo').value,data=dmHoje(),litros=Number(dm('dm_litros').value),maquina=Number(dm('dm_maquina').value)||null;
+ const hor=dm('dm_hor').value,cont=dm('dm_cont').value,preco=dm('dm_preco').value;
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(data)||!(litros>0)||!Number.isFinite(litros))throw Error('INFORME DATA E LITROS VÁLIDOS.');
+ if(tipo!=='ENTRADA'&&!maquina)throw Error('SELECIONE A MÁQUINA.');
+ for(const [v,n] of [[hor,'HORÍMETRO'],[cont,'CONTADOR'],[preco,'PREÇO']])if(v!==''&&(!Number.isFinite(Number(v))||Number(v)<0))throw Error(n+' INVÁLIDO.');
+ const payload={tipo,data_movimento:data,litros,maquina_id:tipo==='ENTRADA'?null:maquina,preco_litro:preco===''?null:Number(preco),horimetro_km:tipo==='ENTRADA'||hor===''?null:Number(hor),contador_tanque:tipo==='ENTRADA'||cont===''?null:Number(cont),observacao:null};
+ dmSalvando=true;dm('dm_salvar').disabled=true;dm('dm_status').textContent='GRAVANDO...';
+ const r=await supa.from('diesel_movimentos').insert(payload).select('id').single();if(r.error)throw r.error;gravado=r.data.id;
+ if(tipo!=='ENTRADA'&&hor!==''){
+  const h=await supa.from('diesel_horimetros').upsert({maquina_id:maquina,data_leitura:data,leitura:Number(hor)},{onConflict:'maquina_id,data_leitura'});
+  if(h.error)throw Error('MOVIMENTO '+gravado+' GRAVADO, MAS A LEITURA DE HORÍMETRO NÃO SINCRONIZOU: '+h.error.message+'. NÃO REPITA O ABASTECIMENTO.');
+ }
+ for(const id of ['dm_litros','dm_hor','dm_cont','dm_preco'])dm(id).value='';
+ dm('dm_status').textContent='SALVO COM SUCESSO — REGISTRO Nº '+gravado;toast('ABASTECIMENTO REGISTRADO.');
+ if(perfilLogado!=='TRATADOR'&&typeof dieselCarregar==='function')await dieselCarregar();
+ }catch(e){dm('dm_status').textContent=(gravado?'LANÇAMENTO JÁ GRAVADO — ':'NÃO GRAVADO — ')+(e.message||e);toast('DIESEL: '+(e.message||e));}
+ finally{dmSalvando=false;dm('dm_salvar').disabled=false;}}
 </script>
 </body></html>

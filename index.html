@@ -1199,7 +1199,7 @@ body{background:#f4f8f7}
 
   <section id="dietasMs" class="page">
     <div class="panel">
-      <div class="section-head"><div><h3>CUSTO REAL DAS DIETAS — CARREGAMENTOS</h3><p>Custos dos carregamentos por sistema; média mensal simples dos valores diários.</p></div><button class="btn" onclick="nutriDashboardReal()" type="button">ATUALIZAR</button></div>
+      <div class="section-head"><div><h3>CUSTO REAL DAS DIETAS — CARREGAMENTOS</h3><p>Custos dos carregamentos por sistema; média dos valores diários a partir de 26/10/2026.</p></div><button class="btn" onclick="nutriDashboardReal()" type="button">ATUALIZAR</button></div>
        <div id="nutriDashboardReal" style="display:block;width:100%;max-width:none"><div class="notice">Abra Dietas para consultar o histórico.</div></div>
 <div class="section-head"><div><h2>Dietas / Matéria Seca</h2><p>Cadastro nutricional, dietas e controle de matéria seca.</p></div><span class="tag">ADMIN</span></div>
       <div class="kpis" id="nutriKpis"></div>
@@ -2683,7 +2683,7 @@ async function salvarMovimentoEstoque(){
    r=await supa.rpc('nutri_posto_kafe_registrar_entrada',{p_data:data,p_kg:quantidade,p_preco_ton:preco,p_frete:frete,p_aluguel:aluguel,p_obs:obs||'ENTRADA POSTO KAFE'});
   }else r=await supa.from('nutri_estoque_movimentos').insert({insumo_nome:nome,data_movimento:data,tipo,quantidade_kg:quantidade,observacao:obs||null,preco_compra_ton:tipo==='ENTRADA'?preco:null});
   if(r.error)throw r.error;
-  $('est_qtd').value='';$('est_preco').value='';$('est_obs').value='';toast('MOVIMENTAÇÃO SALVA NO SUPABASE.');await carregarEstoqueInsumos();await postoKafeResumo();await postoKafeAtualizarConsumo(false);
+  $('est_qtd').value='';$('est_preco').value='';$('est_obs').value='';toast('MOVIMENTAÇÃO SALVA NO SUPABASE.');await carregarEstoqueInsumos();await carregarDietasMS();await postoKafeResumo();await postoKafeAtualizarConsumo(false);
  }catch(e){alert('ERRO: '+String(e.message||e));}
 }
 
@@ -4402,7 +4402,7 @@ async function nutriDashboardReal(){
  try{
   const hoje=new Date(),mes=hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0');
   const buscarTodos=async(q)=>{let out=[];for(let off=0;;off+=500){const r=await q().range(off,off+499);if(r.error)throw r.error;out.push(...(r.data||[]));if((r.data||[]).length<500)break;}return out};
-  const cargas=await buscarTodos(()=>supa.from('tratos_carregamentos').select('id,data_trato,sistema,carregado_kg').gte('data_trato',mes+'-01').lte('data_trato',mes+'-31').order('id'));
+  const cargas=await buscarTodos(()=>supa.from('tratos_carregamentos').select('id,data_trato,sistema,carregado_kg').gte('data_trato',mes==='2026-10'?'2026-10-26':mes+'-01').lte('data_trato',mes+'-31').order('id'));
   const itens=[];const hist=[];
   for(let i=0;i<cargas.length;i+=100){
    const ids=cargas.slice(i,i+100).map(x=>x.id);if(!ids.length)continue;
@@ -4451,7 +4451,7 @@ async function nutriDashboardReal(){
     '<div style="font-size:12px;color:#5e6f67;margin-top:12px">'+lista.length+' dia(s) históricos completos · '+kgfmt(lista.reduce((v,[,d])=>v+d.kg,0))+' kg carregados</div>'+
     (pendentes.size?'<div class="notice" style="margin-top:8px">'+pendentes.size+' dia(s) com histórico incompleto, excluídos da média e do custo atual. Conferir lançamentos.</div>':'')+'</section>';
   }
-  el.innerHTML=html+'</div><div style="font-size:12px;color:#65756e;margin-top:12px">Média mensal simples dos custos diários por kg de MN e MS, exclusivamente de carregamentos com custos históricos completos. Preços atuais não substituem registros históricos.</div>';
+  el.innerHTML=html+'</div><div style="font-size:12px;color:#65756e;margin-top:12px">Média simples dos custos diários por kg de MN e MS, a partir de 26/10/2026, exclusivamente de carregamentos com custos históricos completos. Preços atuais não substituem registros históricos.</div>';
  }catch(e){el.innerHTML='<div class="notice">ERRO AO CONFERIR CUSTOS: '+String(e.message||e).replace(/</g,'&lt;')+'</div>'}
 }
 

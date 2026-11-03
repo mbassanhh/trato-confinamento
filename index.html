@@ -2649,17 +2649,29 @@ async function renderDashboardEstoque(){
   const vacAtuais=(()=>{const ult=new Map(),ativosPorId=new Map((ativos.data||[]).map(a=>[String(a.id),a]));for(const r of (vac.data||[])){const k=String(r.animal_id||''),a=ativosPorId.get(k);if(!a)continue;const registro={...r,localizacao:a.localizacao};const ant=ult.get(k);if(!ant||String(registro.data_vacinacao||'')>String(ant.data_vacinacao||''))ult.set(k,registro)}return [...ult.values()]})();
   const reforcos=new Map();if(!vac.error)vacAtuais.filter(x=>norm(x.localizacao)!=='REPOSITORIO').forEach(x=>{const n=norm(x.localizacao);if(!reforcos.has(n))reforcos.set(n,[]);reforcos.get(n).push(x)});const refTop=$('v15Ref');if(refTop&&!vac.error){
   const hojeIso=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
+  // Reforços são avisados desde a aplicação (21 dias antes), agrupados por LOCAL + DATA.
+  // Não reduzir uma localidade à data mais antiga: pode haver vários lotes com reforços distintos.
+  // Reforços vencidos continuam visíveis até uma nova vacinação registrada para o animal.
   const lotesMap=new Map();
+  const inicioHoje=new Date(hojeIso+'T12:00:00');
   vacAtuais
-    .filter(x=>norm(x.localizacao)!=='REPOSITORIO' && (mapa.get(norm(x.localizacao))||0)>0 && x.data_prevista_reforco )
-    .forEach(x=>{const k=norm(x.localizacao),dt=String(x.data_prevista_reforco);if(!lotesMap.has(k)||dt<lotesMap.get(k).data)lotesMap.set(k,{local:k,data:dt});});
+    .filter(x=>norm(x.localizacao)!=='REPOSITORIO' && (mapa.get(norm(x.localizacao))||0)>0 && x.data_prevista_reforco)
+    .forEach(x=>{
+      const k=norm(x.localizacao),dt=String(x.data_prevista_reforco).slice(0,10);
+      const diaReforco=new Date(dt+'T12:00:00');
+      const diasAte=Math.round((diaReforco-inicioHoje)/86400000);
+      if(!Number.isFinite(diasAte)||diasAte>21)return;
+      const chave=k+'|'+dt;
+      if(!lotesMap.has(chave))lotesMap.set(chave,{local:k,data:dt,qtd:0});
+      lotesMap.get(chave).qtd++;
+    });
   const lista=[...lotesMap.values()].sort((a,b)=>a.data.localeCompare(b.data)||a.local.localeCompare(b.local));
   refTop.innerHTML=lista.length?lista.map(x=>{const p=x.data.split('-');return `${x.local} — ${p[2]}/${p[1]}/${p[0]}`}).join('<br>'):'—';
   const vis=document.getElementById('dashReforcosVisiveis');if(vis){vis.innerHTML=lista.length?lista.map(x=>{const p=x.data.split('-');return '<span class="reforco-chip">'+x.local+' <b>'+p[2]+'/'+p[1]+'/'+p[0]+'</b></span>'}).join(''):'SEM REFORÇOS PRÓXIMOS';}
 }
   const pastos=['CASINHA','DIRCE','ABAIXO CASINHA','AROEIRA ALTO','AROEIRA MANGUEIRA','BELEI BAIXO','BELEI ALTO','BARRACÃO','SEDE PIQUETE','MOMBAÇA','PIQUETEAMENTO ASFALTO','PIQUETEAMENTO BAIXO','PASTO A1','PASTO A2','PASTO B1','PASTO B2','SÃO GUILHERME ALTO','SÃO GUILHERME BAIXO','AÇUDE','BELA VISTA','BELA VISTA AÇUDE','PASTO A1 LD CONFINAMENTO'];
   const conf=['VINHAÇA','BAIA A1','BAIA A2','BAIA A3','BAIA A4','BAIA A5','BAIA B1','BAIA B2','BAIA B3','BAIA B4','BAIA B5','PASTO A1','PASTO A2','PASTO B2','PASTO B1','BARRACÃO','SEDE PIQUETE','PIQUETEAMENTO BAIXO','PIQUETEAMENTO ASFALTO','MOMBAÇA','CASINHA CARLINHOS','PASTO A1 LD CONFINAMENTO'];
-  const arr=['ESPIRITO SANTO DO TURVO','TIMBURI','KAFÉ'];
+  const arr=['ESPIRITO SANTO DO TURVO','TIMBURI','POSTO KAFE'];
   const confSet=new Set(conf.map(norm)),arrSet=new Set(arr.map(norm));
   const confUnicos=[...confSet],arrUnicos=[...arrSet].filter(n=>!confSet.has(n));
   const semiUnicos=[...new Set([...pastos.map(norm),...mapa.keys()])].filter(n=>n!=='REPOSITORIO'&&!confSet.has(n)&&!arrSet.has(n));

@@ -1081,6 +1081,7 @@ body{background:#f4f8f7}
    const periodo=document.getElementById('finPeriodo'),input=document.getElementById('finMes');
    if(periodo)periodo.value='MES';if(input)input.value=mes;
    await atualizarFinanceiro();
+   if(typeof atualizarPendenciasAbateDashboard==='function')await atualizarPendenciasAbateDashboard();
    desenhar();
   }catch(e){console.error('Carregamento financeiro inicial',e)}finally{atualizando=false}
  }
@@ -2285,6 +2286,40 @@ function renderArrobaProduzida(){
 
 function ajustarFiltroFinanceiro(){const p=$('finPeriodo')?.value||'MES';if($('finMesWrap'))$('finMesWrap').style.display=p==='MES'?'block':'none';if($('finAnoWrap'))$('finAnoWrap').style.display=p==='ANO'?'block':'none'}
 function periodoFinanceiroDatas(){const hoje=new Date(),p=$('finPeriodo')?.value||'MES';let ini,fim;if(p==='MES'){const v=$('finMes')?.value||`${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;const [a,m]=v.split('-').map(Number);ini=new Date(a,m-1,1);fim=new Date(a,m,1)}else if(p==='ANO'){const a=Number($('finAno')?.value)||hoje.getFullYear();ini=new Date(a,0,1);fim=new Date(a+1,0,1)}else{fim=new Date(hoje.getFullYear(),hoje.getMonth()+1,1);ini=new Date(fim);ini.setMonth(ini.getMonth()-6)}return{ini,fim}}
+// Custos de venda: dias corridos da entrada ate a saida (dia da saida excluido).
+// Usa diaria historica fechada e, nos dias sem historico, a referencia validada do curral.
+let finDiariasPorLocal=new Map(),finReferenciaPorLocal=new Map();
+const finNormalizaLocal=x=>String(x||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
+async function finCarregarDiarias(){
+ const linhas=[];
+ for(let off=0;off<100000;off+=1000){const r=await supa.from('nutri_custos_diarios').select('data_trato,localizacao,custo_diaria_cabeca,fechado').eq('fechado',true).order('data_trato').range(off,off+999);if(r.error)throw r.error;linhas.push(...(r.data||[]));if((r.data||[]).length<1000)break;}
+ const refs=await supa.from('nutri_diarias_referencia_20261023').select('localizacao_planilha,diaria_referencia');if(refs.error)throw refs.error;
+ finDiariasPorLocal=new Map();finReferenciaPorLocal=new Map();
+ for(const r of refs.data||[]){const v=Number(r.diaria_referencia);if(Number.isFinite(v))finReferenciaPorLocal.set(finNormalizaLocal(r.localizacao_planilha),v)}
+ for(const r of linhas){const k=finNormalizaLocal(r.localizacao),v=Number(r.custo_diaria_cabeca);if(!r.data_trato||!Number.isFinite(v))continue;if(!finDiariasPorLocal.has(k))finDiariasPorLocal.set(k,new Map());finDiariasPorLocal.get(k).set(r.data_trato,v)}
+}
+function finCorrigirCusto(x){
+ if(!x)return x; if(!x.entrada||!x.saida){if(x._custoAtualAusente===true){const ref=finReferenciaPorLocal.get(finNormalizaLocal(x.localizacao||x.origem));const dias=Number(x.dias);if(Number.isFinite(ref)&&Number.isFinite(dias)&&dias>0){x.custoAtual=Math.round(ref*dias*100)/100;x.diaria=ref;x._custoRecalculado=true;x._custoEstimadoReferencia=true;}else{x._custoPendente=true;}}return x;}
+ const faltaDiaria=x._diariaAusente===true,faltaCusto=x._custoAtualAusente===true;
+ if(!faltaDiaria&&!faltaCusto)return x;
+ const inicio=new Date(x.entrada+'T12:00:00'),fim=new Date(x.saida+'T12:00:00');
+ if(!Number.isFinite(inicio.getTime())||!Number.isFinite(fim.getTime())||fim<=inicio){if(x._custoAtualAusente===true)x._custoPendente=true;return x;}
+ const local=finNormalizaLocal(x.localizacao||x.origem),historico=finDiariasPorLocal.get(local)||new Map(),referencia=finReferenciaPorLocal.get(local);
+ let soma=0,dias=0,semReferencia=0;
+ for(let d=new Date(inicio);d<fim&&dias<5000;d.setDate(d.getDate()+1)){
+  const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const v=historico.has(iso)?historico.get(iso):referencia;
+  if(!Number.isFinite(v)){semReferencia++;}else soma+=v;
+  dias++;
+ }
+ if(!dias||semReferencia){x._custoPendente=true;return x;}
+ if(faltaDiaria)x.diaria=soma/dias;
+ if(faltaCusto)x.custoAtual=Math.round(soma*100)/100;
+ x.dias=dias;x._custoRecalculado=true;
+ x.custoAnimal=Number(x.compra||0)+Number(x.custoAtual||0)+Number(x.custoAcumulado||0);
+ return x;
+}
+let finRegistrosConfirmados=new Map();
 async function atualizarFinanceiro(){
  try{
   // Atualiza todas as saídas diretamente do banco, não apenas vendas de leilão.
@@ -2297,7 +2332,20 @@ async function atualizarFinanceiro(){
    if(!data||data.length<tamanho)break;
    inicio+=tamanho;
   }
-  vendasLeilaoFinanceiro=registros.map(dbToAnimal);
+  // Consulta de confirmação das comercializações com receita, separada da paginação geral.
+  // Evita que uma venda concluída desapareça por atualização parcial do conjunto de saídas.
+  const vendaConfirmada=await supa.from('animais').select('*').eq('status','VENDA').gt('valor_venda',0).not('data_saida','is',null);
+  if(vendaConfirmada.error)throw vendaConfirmada.error;
+  const porId=new Map(registros.map(r=>[r.id,r]));
+  for(const r of vendaConfirmada.data||[])porId.set(r.id,r);
+  await finCarregarDiarias();
+  finRegistrosConfirmados=porId;
+  vendasLeilaoFinanceiro=[...porId.values()].map(r=>{
+   const x=dbToAnimal(r);
+   x._diariaAusente=r.valor_diaria==null||Number(r.valor_diaria)===0;
+   x._custoAtualAusente=r.custo_atual==null||Number(r.custo_atual)===0;
+   return finCorrigirCusto(x);
+  });
   renderFinanceiro();
   if(typeof window.atualizarGraficoFinanceiroDashboard==='function')window.atualizarGraficoFinanceiroDashboard();
  }catch(e){console.error('ATUALIZAÇÃO FINANCEIRA',e);const aviso=document.getElementById('dashFinGrafico');if(aviso)aviso.innerHTML='<div class="dash-fin-wait">NÃO FOI POSSÍVEL ATUALIZAR OS DADOS FINANCEIROS. VERIFIQUE A CONEXÃO E REABRA O DASHBOARD.</div>';toast('NÃO FOI POSSÍVEL ATUALIZAR O FINANCEIRO: '+(e.message||e));renderFinanceiro()}
@@ -2310,18 +2358,27 @@ function renderFinanceiro(){
     confinamento, semi-confinamento ou comercialização direta. Esta tela NÃO usa
     o filtro de peso de entrada da visão Arrobas Produzidas e NÃO exige abate. */
  const ehVendaFinanceira=x=>{const st=String(x.status||'').trim().toUpperCase(),te=String(x.tipoEvento||'').trim().toUpperCase();return st==='VENDA'||te==='VENDA'||te==='COMERCIALIZAÇÃO'||te==='COMERCIALIZACAO'};
- const mapaFinanceiro=new Map(animais.map(x=>[x._dbid,x]));vendasLeilaoFinanceiro.forEach(x=>mapaFinanceiro.set(x._dbid,x));const baseFinanceira=[...mapaFinanceiro.values()];
- const vendas=baseFinanceira.filter(x=>ehVendaFinanceira(x)&&noPeriodo(x)&&Number.isFinite(x.valorVenda)&&x.valorVenda>0),pendentes=baseFinanceira.filter(x=>ehVendaFinanceira(x)&&noPeriodo(x)&&(!Number.isFinite(x.valorVenda)||x.valorVenda<=0)),mortes=baseFinanceira.filter(x=>String(x.status||'').trim().toUpperCase()==='MORTE'&&noPeriodo(x));
+ // A fonte de verdade da visão financeira é a consulta integral e atual ao Supabase.
+ // Não permitir que a lista antiga 'animais' sobrescreva vendas confirmadas ou custos recalculados.
+ const mapaFinanceiro=new Map(animais.filter(x=>x&&x._dbid).map(x=>[x._dbid,x]));
+ for(const x of vendasLeilaoFinanceiro){if(x&&x._dbid)mapaFinanceiro.set(x._dbid,x)}
+ for(const r of finRegistrosConfirmados.values()){
+   if(r&&r.id){const x=dbToAnimal(r);x._diariaAusente=r.valor_diaria==null||Number(r.valor_diaria)===0;x._custoAtualAusente=r.custo_atual==null||Number(r.custo_atual)===0;mapaFinanceiro.set(r.id,finCorrigirCusto(x))}
+ }
+ const baseFinanceira=[...mapaFinanceiro.values()];
+ const todasVendas=baseFinanceira.filter(x=>ehVendaFinanceira(x)&&noPeriodo(x));const vendas=todasVendas.filter(x=>Number(x.valorVenda)>0&&Number.isFinite(Number(x.valorVenda)));const pendentes=todasVendas.filter(x=>Boolean(x.pesagemId||x._pesagem_id)&&!(Number(x.valorVenda)>0));const mortes=baseFinanceira.filter(x=>String(x.status||'').trim().toUpperCase()==='MORTE'&&noPeriodo(x));
  const soma=(ls,fn)=>ls.reduce((s,x)=>s+(Number(fn(x))||0),0);
- const bruto=soma(vendas,x=>x.valorVenda);const ehLeilao=x=>String(x.destino||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')==='LEILAO';const vendasLeilao=vendas.filter(ehLeilao);const receitaLeilao=soma(vendasLeilao,x=>x.valorVenda);const liquidoVenda=x=>numFin(x.valorVenda)*(ehLeilao(x)?1:(1-0.00199998));
- /* Líquido financeiro é calculado por animal a partir da venda menos FUNRURAL.
+ console.info('FINANCEIRO CONFERÊNCIA', {totalSaidas:todasVendas.length,vendasComReceita:vendas.map(x=>({brinco:x.brinco,valor:x.valorVenda})),pendentesAbate:pendentes.length,diarias:soma(todasVendas,x=>x.custoAtual)});
+ const bruto=soma(vendas,x=>x.valorVenda);const ehLeilao=x=>String(x.destino||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')==='LEILAO';const vendasLeilao=vendas.filter(ehLeilao);const receitaLeilao=soma(vendasLeilao,x=>x.valorVenda);const liquidoVenda=x=>numFin(x.valorVenda)*((ehLeilao(x)||!(x.pesagemId||x._pesagem_id))?1:(1-0.00199998));
+ /* Comercialização sem pesagem de abate e leilão: sem FUNRURAL. Abates: desconto aplicável.
+    Líquido financeiro é calculado por animal a partir da venda.
     Não usa a_receber do registro de abate porque registros históricos podem guardar total do lote. */
  const liquido=soma(vendas,liquidoVenda);
- const compra=soma(vendas,x=>x.compra),diarias=soma(vendas,x=>x.custoAtual),acumulados=soma(vendas,x=>x.custoAcumulado),mort=soma(mortes,x=>Math.max(numFin(x.custoAnimal),numFin(x.compra)+numFin(x.custoAtual)+numFin(x.custoAcumulado))),resultado=liquido-compra-diarias-acumulados-mort;
- const semCompra=vendas.filter(x=>!(Number(x.compra)>0));
+ const custoSemReferencia=todasVendas.filter(x=>x._custoPendente);const compra=soma(todasVendas,x=>x.compra),diarias=soma(todasVendas,x=>x.custoAtual),acumulados=soma(todasVendas,x=>x.custoAcumulado),mort=soma(mortes,x=>Math.max(numFin(x.custoAnimal),numFin(x.compra)+numFin(x.custoAtual)+numFin(x.custoAcumulado))),resultado=liquido-compra-diarias-acumulados-mort;
+ const semCompra=todasVendas.filter(x=>!(Number(x.compra)>0));
  
- const comPendencia=pendentes.length>0;
- const cor=resultado>=0?'#176b36':'#9b1c1c';let h=`<div class="notice"><b>RECEITA BRUTA DE LEILÕES NO PERÍODO:</b> ${money0(receitaLeilao)} — ${vendasLeilao.length} ANIMAIS VENDIDOS. VENDAS DE LEILÃO NÃO TÊM DESCONTO DE FUNRURAL.</div><div class="kpis"><div class="kpi"><span>VENDAS LÍQUIDAS</span><strong>${money0(liquido)}</strong></div><div class="kpi"><span>CUSTOS DE COMPRA</span><strong>${money0(compra)}</strong></div><div class="kpi"><span>CUSTOS DE DIÁRIAS</span><strong>${money0(diarias+acumulados)}</strong></div><div class="kpi"><span>PREJUÍZO TOTAL COM MORTES</span><strong style="color:#9b1c1c">${money0(mort)}</strong></div><div class="kpi"><span>RESULTADO ${comPendencia?'PARCIAL — PENDÊNCIAS':'APURADO'}</span><strong style="color:${cor}">${money0(resultado)}</strong></div></div>`;
+ const comPendencia=pendentes.length>0||custoSemReferencia.length>0;const pendenciasPorPesagem=new Map();pendentes.forEach(x=>{const chave=String(x.pesagemId||x._pesagem_id);pendenciasPorPesagem.set(chave,(pendenciasPorPesagem.get(chave)||0)+1)});
+ const cor=resultado>=0?'#176b36':'#9b1c1c';let h=`${comPendencia?`<div class="notice" style="border:2px solid #b45309;background:#fffbeb;color:#92400e;font-weight:700">⚠ ${pendentes.length} ANIMAIS DE ABATE AGUARDANDO CARCAÇA E VALOR DE VENDA. ${pendenciasPorPesagem.size} GRUPO(S). ${custoSemReferencia.length} ANIMAIS COM DIÁRIAS SEM BASE COMPLETA — CUSTOS PARCIAIS, NÃO ZERADOS COMO DEFINITIVOS.</div>`:''}<div class="notice"><b>RECEITA BRUTA DE LEILÕES NO PERÍODO:</b> ${money0(receitaLeilao)} — ${vendasLeilao.length} ANIMAIS VENDIDOS. VENDAS DE LEILÃO NÃO TÊM DESCONTO DE FUNRURAL.</div><div class="kpis"><div class="kpi"><span>VENDAS LÍQUIDAS</span><strong>${money0(liquido)}</strong></div><div class="kpi"><span>CUSTOS DE COMPRA</span><strong>${money0(compra)}</strong></div><div class="kpi"><span>CUSTOS DE DIÁRIAS</span><strong>${money0(diarias+acumulados)}</strong></div><div class="kpi"><span>PREJUÍZO TOTAL COM MORTES</span><strong style="color:#9b1c1c">${money0(mort)}</strong></div><div class="kpi"><span>RESULTADO ${comPendencia?'PARCIAL — PENDÊNCIAS':'APURADO'}</span><strong style="color:${cor}">${money0(resultado)}</strong></div></div>`;
  // RELATÓRIO DE VENDAS — todas as comercializações, inclusive leilões.
  // Agrupa por data, destino e tipo para permitir selecionar a operação correta.
  const vendasAgrupadas=new Map();
@@ -2352,7 +2409,7 @@ function renderFinanceiro(){
  });
  h+='</div></div>';
  const meses=new Map();const pegaMes=k=>{if(!meses.has(k))meses.set(k,{bruto:0,liquido:0,compra:0,diarias:0,mortes:0,acumulados:0});return meses.get(k)}; vendas.forEach(x=>{const k=String(x.saida||'').slice(0,7);if(!k)return;const g=pegaMes(k),venda=numFin(x.valorVenda);g.bruto+=venda;g.liquido+=liquidoVenda(x);g.compra+=numFin(x.compra);g.diarias+=numFin(x.custoAtual);g.acumulados+=numFin(x.custoAcumulado)}); mortes.forEach(x=>{const k=String(x.saida||'').slice(0,7);if(k)pegaMes(k).mortes+=Math.max(numFin(x.custoAnimal),numFin(x.compra)+numFin(x.custoAtual)+numFin(x.custoAcumulado))});
- h+='<div class="table-wrap"><table style="min-width:900px"><thead><tr><th>Mês</th><th>Recebido líquido</th><th>Custos de compra</th><th>Custos de diárias</th><th>Mortes</th><th>Resultado final</th></tr></thead><tbody>';[...meses.entries()].sort((a,b)=>b[0].localeCompare(a[0])).forEach(([m,g])=>{const r=g.liquido-g.compra-g.diarias-g.acumulados-g.mortes,[a,mm]=m.split('-');h+=`<tr><td><b>${mm}/${a}</b></td><td>${money0(g.liquido)}</td><td>${money0(g.compra)}</td><td>${money0(g.diarias+g.acumulados)}</td><td>${money0(g.mortes)}</td><td><b style="color:${r>=0?'#176b36':'#9b1c1c'}">${money0(r)}</b></td></tr>`});h+='</tbody></table></div><div class="notice">RESULTADO FINAL = RECEBIDO LÍQUIDO − COMPRA − DIÁRIAS (INCLUINDO CUSTOS ACUMULADOS) − MORTES. Saídas sem valor de venda não são consideradas receita.</div>';const avisoAuditoria=`<div class="panel" style="border:2px solid ${comPendencia?'#b45309':'#15803d'};margin-top:14px"><h2>CONFERÊNCIA AUTOMÁTICA DO FINANCEIRO</h2><p>Conferência por data de saída e data da morte. Sem alterações automáticas no banco.</p><div class="kpis"><div class="kpi"><span>VENDAS COM RECEITA</span><strong>${vendas.length}</strong></div><div class="kpi"><span>VENDAS SEM RECEITA REGISTRADA</span><strong>${pendentes.length}</strong></div><div class="kpi"><span>MORTES NO PERÍODO</span><strong>${mortes.length}</strong></div></div>${pendentes.length?`<div class="notice">${pendentes.length} registros com status VENDA e sem valor de venda: verificar se são abates ainda não fechados. Não são contabilizados como receita zero.</div>`:''}<div class="notice"><b>REGRAS:</b> A compra é o preço de aquisição; a morte considera compra + diária + acumulados. Funrural de 0,199998% aplicado às vendas, exceto LEILÃO (sem desconto). Mortes são calculadas pelos custos dos animais registrados no banco. Custos acumulados são apresentados junto às diárias, preservados separadamente no cadastro de cada animal. Não são contabilizados custos de animais ainda ativos. A apuração não equivale ao fluxo de caixa completo.</div></div>`;
+ h+='<div class="table-wrap"><table style="min-width:900px"><thead><tr><th>Mês</th><th>Recebido líquido</th><th>Custos de compra</th><th>Custos de diárias</th><th>Mortes</th><th>Resultado final</th></tr></thead><tbody>';[...meses.entries()].sort((a,b)=>b[0].localeCompare(a[0])).forEach(([m,g])=>{const r=g.liquido-g.compra-g.diarias-g.acumulados-g.mortes,[a,mm]=m.split('-');h+=`<tr><td><b>${mm}/${a}</b></td><td>${money0(g.liquido)}</td><td>${money0(g.compra)}</td><td>${money0(g.diarias+g.acumulados)}</td><td>${money0(g.mortes)}</td><td><b style="color:${r>=0?'#176b36':'#9b1c1c'}">${money0(r)}</b></td></tr>`});h+='</tbody></table></div><div class="notice">RESULTADO FINAL = RECEBIDO LÍQUIDO − COMPRA − DIÁRIAS (INCLUINDO CUSTOS ACUMULADOS) − MORTES. Saídas sem valor de venda não são consideradas receita.</div>';const avisoAuditoria=`<div class="panel" style="border:2px solid ${comPendencia?'#b45309':'#15803d'};margin-top:14px"><h2>CONFERÊNCIA AUTOMÁTICA DO FINANCEIRO</h2><p>Conferência por data de saída e data da morte. Sem alterações automáticas no banco.</p><div class="kpis"><div class="kpi"><span>VENDAS COM RECEITA</span><strong>${vendas.length}</strong></div><div class="kpi"><span>VENDAS SEM RECEITA REGISTRADA</span><strong>${pendentes.length}</strong></div><div class="kpi"><span>MORTES NO PERÍODO</span><strong>${mortes.length}</strong></div></div>${pendentes.length?`<div class="notice">${pendentes.length} animais com VENDA/PESAGEM PENDENTE DE FINALIZAÇÃO: lançar carcaça e valor. Seus custos de compra, diárias e acumulados JÁ estão incluídos no resultado parcial; somente a receita permanece pendente.</div>`:''}<div class="notice"><b>REGRAS:</b> A compra é o preço de aquisição; a morte considera compra + diária + acumulados. Funrural de 0,199998% aplicado às vendas, exceto LEILÃO (sem desconto). Mortes são calculadas pelos custos dos animais registrados no banco. Custos acumulados são apresentados junto às diárias, preservados separadamente no cadastro de cada animal. Não são contabilizados custos de animais ainda ativos. A apuração não equivale ao fluxo de caixa completo.</div></div>`;
  // Detalhamento para conferência: utiliza os mesmos registros e valores já somados no KPI de mortes.
  const mortesDetalhe=[...mortes].sort((a,b)=>String(b.saida||'').localeCompare(String(a.saida||''))||String(a.brinco||'').localeCompare(String(b.brinco||'')));
  let detalheMortes='';
@@ -2475,17 +2532,27 @@ function projHTML(projs){
 async function atualizarPendenciasAbateDashboard(){
  const qtd=$('dashAbatesPendentesQtd'),lista=$('dashAbatesPendentesLista');if(!qtd||!lista)return;
  try{
-  const [p,a]=await Promise.all([supa.from('pesagens').select('id,data_saida,observacoes').order('data_saida',{ascending:false}),supa.from('abates').select('pesagem_id,carcaca_arrobas,valor_arroba')]);
+  const hoje=new Date(),inicio=hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0')+'-01';
+  const fim=new Date(hoje.getFullYear(),hoje.getMonth()+1,1).toISOString().slice(0,10);
+  const [p,a]=await Promise.all([
+   supa.from('pesagens').select('id,data_saida,observacoes').gte('data_saida',inicio).lt('data_saida',fim),
+   supa.from('abates').select('pesagem_id,carcaca_arrobas,valor_arroba')
+  ]);
   if(p.error)throw p.error;if(a.error)throw a.error;
   const completos=new Set((a.data||[]).filter(x=>Number(x.carcaca_arrobas)>0&&Number(x.valor_arroba)>0).map(x=>String(x.pesagem_id)));
   const candidatos=(p.data||[]).filter(x=>!completos.has(String(x.id)));
-  const ids=candidatos.map(x=>x.id);
-  let animaisPendentes=[];
-  for(let i=0;i<ids.length;i+=50){const q=await supa.from('animais').select('id,pesagem_id').in('pesagem_id',ids.slice(i,i+50));if(q.error)throw q.error;animaisPendentes.push(...(q.data||[]));}
-  const pend=candidatos.filter(x=>animaisPendentes.some(a=>String(a.pesagem_id)===String(x.id)));
-  qtd.textContent=String(pend.length);
-  lista.textContent='REGISTROS HISTÓRICOS SEM ABATE FINALIZADO VINCULADO — NÃO REPRESENTAM NECESSARIAMENTE ABATES PENDENTES';
- }catch(e){console.error('Pendências de abate:',e);qtd.textContent='—';lista.textContent='NÃO FOI POSSÍVEL CONFERIR OS REGISTROS';}
+  let grupos=[];
+  for(const pes of candidatos){
+   const q=await supa.from('animais').select('id',{count:'exact',head:true}).eq('pesagem_id',pes.id).eq('status','VENDA');
+   if(q.error)throw q.error;
+   if((q.count||0)>0)grupos.push({id:pes.id,data:pes.data_saida,qtd:q.count});
+  }
+  const total=grupos.reduce((s,g)=>s+g.qtd,0);
+  qtd.textContent=String(total);
+  lista.textContent=total?`${total} ANIMAIS EM ${grupos.length} PESAGEM(NS) AGUARDANDO CARCAÇA E VALOR DE VENDA`:'NENHUMA PESAGEM DO MÊS AGUARDANDO FINALIZAÇÃO';
+  const fin=document.getElementById('dashFinGrafico');
+  if(fin){let aviso=document.getElementById('dashFinPendenciasAviso');if(!aviso){aviso=document.createElement('div');aviso.id='dashFinPendenciasAviso';aviso.style.cssText='border:1px solid #e5a943;border-radius:8px;padding:10px;margin-bottom:10px;font-size:11px;color:#8c4800;background:#fffaf3;font-weight:700';fin.parentElement.insertBefore(aviso,fin)}aviso.textContent=total?`⚠ ${total} ANIMAIS EM ${grupos.length} PESAGENS AGUARDANDO FINALIZAÇÃO — INFORMAR CARCAÇA E VALOR DE VENDA.`:'';aviso.style.display=total?'block':'none';}
+ }catch(e){console.error('Pendências de abate:',e);qtd.textContent='—';lista.textContent='NÃO FOI POSSÍVEL CONFERIR PESAGENS: '+(e.message||e);}
 }
 function abrirPendenciasAbate(){const b=[...document.querySelectorAll('.nav button')].find(x=>x.textContent.trim()==='Abate / Resultados');if(b)showPage('abate',b);else{document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$('abate')?.classList.add('active')}preencherGruposAbate();}
 

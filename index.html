@@ -1214,6 +1214,24 @@ body{background:#f4f8f7}
 #usuariosLista .usuarios-tabela td:last-child button{display:inline-block;min-width:0;width:auto;max-width:100%;white-space:nowrap;line-height:1.25;}
 @media(max-width:680px){#usuariosLista .usuarios-tabela{font-size:11px;}#usuariosLista .usuarios-tabela th,#usuariosLista .usuarios-tabela td{padding:7px 4px;}#usuariosLista .usuarios-tabela td:last-child button{font-size:9px!important;padding:4px 3px!important;white-space:normal!important;}}
 </style>
+<style>
+/* Peso estimado: isola a tabela da largura mínima global de 1450px. */
+#peso_estimado{max-width:100%;min-width:0}
+#peso_estimado .panel{min-width:0;max-width:100%;box-sizing:border-box}
+#peso_estimado_tabela{max-width:100%;min-width:0;overflow-x:hidden!important}
+#peso_estimado_tabela table.peso-estimado-tabela{min-width:0!important;width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse}
+#peso_estimado_tabela .peso-estimado-tabela th,#peso_estimado_tabela .peso-estimado-tabela td{box-sizing:border-box;padding:9px 7px;white-space:normal;overflow-wrap:normal;vertical-align:middle}
+#peso_estimado_tabela .peso-estimado-tabela th{font-size:11px;line-height:1.25}
+#peso_estimado_tabela .peso-estimado-tabela th:first-child{width:25%}
+#peso_estimado_tabela .peso-estimado-tabela th:nth-child(2){width:9%}
+#peso_estimado_tabela .peso-estimado-tabela th:nth-child(3){width:8%}
+#peso_estimado_tabela .peso-estimado-tabela th:nth-child(4){width:16%}
+#peso_estimado_tabela .peso-estimado-tabela th:nth-child(5){width:11%}
+#peso_estimado_tabela .peso-estimado-tabela th:nth-child(6){width:14%}
+#peso_estimado_tabela .peso-estimado-tabela th:nth-child(7){width:17%}
+#peso_estimado_tabela .peso-estimado-tabela th:not(:first-child),#peso_estimado_tabela .peso-estimado-tabela td:not(:first-child){text-align:right}
+@media(max-width:760px){#peso_estimado_tabela .peso-estimado-tabela th,#peso_estimado_tabela .peso-estimado-tabela td{font-size:10px;padding:6px 3px}}
+</style>
 </head>
 <body>
 <div id="supaLogin" style="position:fixed;inset:0;background:#f3f6f8;z-index:99999;display:flex;align-items:center;justify-content:center;padding:18px">
@@ -1232,7 +1250,7 @@ body{background:#f4f8f7}
 <button class="active" onclick="showPage('dashboard',this)">PAINEL PRINCIPAL</button>
 <div class="nav-group">PESAGENS E ANIMAIS</div>
 <button onclick="showPage('lote',this)">PESAGEM DE ENTRADA</button>
-<button onclick="showPage('animais',this)">ANIMAIS</button>
+<button onclick="showPage('animais',this)">ANIMAIS</button> <button onclick="showPage('peso_estimado',this);carregarVisaoPesoEstimado()">PESO ESTIMADO</button>
 <button onclick="showPage('pesagens',this)">PESAGEM DE SAÍDA</button>
 <button onclick="showPage('saidas',this);carregarSaidasAtivas()">SAÍDAS E MOVIMENTAÇÕES</button>
 <button class="admin-only" onclick="showPage('leiloes',this);carregarLeiloes()">LEILÃO / LOTES</button>
@@ -1419,6 +1437,10 @@ body{background:#f4f8f7}
           <div class="dash-fin-footer"><span id="dashFinResultado">—</span><button type="button" onclick="showPage('financeiro')">VER VISÃO FINANCEIRA →</button></div>
         </div>
       </div>
+      <div class="dash-visual-card" id="dashFinTresMesesCard" style="margin:0 0 16px">
+        <div class="dash-visual-heading"><h3>RESULTADO FINANCEIRO — ÚLTIMOS 3 MESES</h3><span>2 meses anteriores + mês atual</span></div>
+        <div id="dashFinTresMeses" class="dash-fin-chart"><div class="dash-fin-wait">CARREGANDO RESULTADOS...</div></div>
+      </div>
       <div class="home-head">
         <div><h2>Estoque atual</h2><p>Visão física atual dos animais nas localidades.</p></div>
         <div style="text-align:right"><span class="tag">VISÃO GERENCIAL</span><div id="dashStatusResumo" class="status-resumo" style="margin-top:9px"></div></div>
@@ -1549,6 +1571,7 @@ body{background:#f4f8f7}
     </div>
   </section>
 
+<div id="peso_estimado" class="page"><div class="panel"><div class="section-head"><div><h2>PESO ESTIMADO POR CURRAL</h2><p>VISÃO INFORMATIVA • ANIMAIS ATIVOS • GANHO DE PESO CONFORME PARÂMETROS ZOOTÉCNICOS DO SISTEMA</p></div><button class="btn" onclick="carregarVisaoPesoEstimado()">ATUALIZAR</button></div><div id="peso_estimado_resumo"></div><div id="peso_estimado_tabela" style="width:100%;max-width:100%;overflow-x:hidden;margin-top:14px">CARREGANDO...</div><p style="font-size:11px;color:#667085;margin-top:10px">PESO ESTIMADO NÃO É PESAGEM REAL. %PV MS CALCULADO COM A ÚLTIMA MS DISTRIBUÍDA REGISTRADA E O PESO VIVO ESTIMADO. O %PV MS UTILIZA O ÚLTIMO VALOR SALVO NO HISTÓRICO. NÃO ALTERA O BANCO.</p></div></div>
 <section id="animais" class="page"><div class="panel"><div class="section-head"><div><h2>Animais por Localidade</h2><p>Selecione uma localidade para ver rapidamente os animais ativos.</p></div><span class="tag">ESTOQUE ATUAL</span></div><div class="consulta-animal"><div class="field"><label>LOCALIDADE</label><select id="filtroLocalidadeAnimais" onchange="renderAnimaisLocalidade()"><option value="">TODAS AS LOCALIDADES</option></select></div></div><div id="animaisLocalidadeResumo" style="margin-top:12px"></div><div id="animaisLocalidadeTable" style="margin-top:12px"></div></div><div class="panel"><div class="section-head"><div><h2>Consulta individual</h2><p>Informe o BRINCO/SB para visualizar o histórico completo do animal.</p></div><span class="tag">FICHA DO ANIMAL</span></div><div class="consulta-animal"><div class="field"><label>BRINCO / SB</label><input id="consultaBrinco" placeholder="Digite o número do animal"></div><button class="btn primary" type="button" onclick="consultarAnimal()">Buscar animal</button><button class="btn" type="button" onclick="limparConsultaAnimal()">Limpar</button></div><div id="fichaAnimal" style="margin-top:18px"></div></div><div class="panel"><h2>Animais Negociados</h2><p>Todos os animais negociados salvos no sistema.</p><div id="animaisTable"></div></div></section>
   <section id="pesagens" class="page">
   <div class="panel">
@@ -1689,8 +1712,8 @@ body{background:#f4f8f7}
 </section>
 <section id="farmaciaCotacao" class="page admin-only">
  <div class="panel"><div class="section-head"><div><h2>COTAÇÃO DE MEDICAMENTOS</h2><p>Selecione os medicamentos que deseja comprar, ajuste as quantidades e compare cinco fornecedores. A seleção fica salva no Supabase.</p></div><span class="tag">ADMINISTRADOR</span></div>
- <div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0"><button class="btn" style="background:#187344;color:white;font-weight:700" onclick="farmaciaCotacaoSalvarTodas()">💾 SALVAR PARCIALMENTE / ATUALIZAR COTAÇÕES</button><button class="btn" onclick="farmaciaCotacaoCarregar()" title="Consultar novamente os estoques e cotações salvas no Supabase">↻ RECARREGAR DO BANCO</button><button class="btn" onclick="farmaciaImprimirCompras()">🖨 IMPRIMIR LISTA PARA FORNECEDORES</button><button class="btn" onclick="farmaciaCotacaoImprimir()">🖨 COMPARATIVO DE COTAÇÕES</button></div>
- <div id="farm_cot_fornecedores" style="background:#eef6f2;border:1px solid #b5d6c5;padding:16px;border-radius:10px;margin:12px 0"></div><p id="farm_cot_status" class="notice">Carregando medicamentos para compra...</p><div id="farm_cot_tabela"></div>
+ <div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0"><button class="btn" style="background:#187344;color:white;font-weight:700" onclick="farmaciaCotacaoSalvarTodas()">💾 SALVAR PARCIALMENTE / ATUALIZAR COTAÇÕES</button><button class="btn" onclick="farmaciaCotacaoCarregar()" title="Consultar novamente os estoques e cotações salvas no Supabase">↻ RECARREGAR DO BANCO</button><button class="btn" onclick="farmaciaImprimirCompras()">🖨 IMPRIMIR LISTA PARA FORNECEDORES</button><button class="btn" onclick="farmaciaCotacaoImprimir()">🖨 COMPARATIVO DE COTAÇÕES</button><button class="btn" style="background:#185b43;color:white" onclick="farmaciaCotacaoFinalizar()">✓ FINALIZAR COTAÇÃO</button><button class="btn" onclick="farmaciaCotacaoHistorico()">HISTÓRICO DE COTAÇÕES</button></div>
+ <div id="farm_cot_fornecedores" style="background:#eef6f2;border:1px solid #b5d6c5;padding:16px;border-radius:10px;margin:12px 0"></div><p id="farm_cot_status" class="notice">Carregando medicamentos para compra...</p><div id="farm_cot_tabela"></div><div id="farm_cot_historico" style="display:none;margin-top:20px"></div>
  </div>
 </section>
 <section id="farmacia" class="page admin-only">
@@ -2359,7 +2382,52 @@ async function atualizarFinanceiro(){
   });
   renderFinanceiro();
   if(typeof window.atualizarGraficoFinanceiroDashboard==='function')window.atualizarGraficoFinanceiroDashboard();
+  if(typeof window.atualizarPizzaResultadoTresMeses==='function')window.atualizarPizzaResultadoTresMeses();
  }catch(e){console.error('ATUALIZAÇÃO FINANCEIRA',e);const aviso=document.getElementById('dashFinGrafico');if(aviso)aviso.innerHTML='<div class="dash-fin-wait">NÃO FOI POSSÍVEL ATUALIZAR OS DADOS FINANCEIROS. VERIFIQUE A CONEXÃO E REABRA O DASHBOARD.</div>';toast('NÃO FOI POSSÍVEL ATUALIZAR O FINANCEIRO: '+(e.message||e));renderFinanceiro()}
+}
+// GRÁFICO INFORMATIVO: mesmos critérios e fonte de registros da Visão Financeira.
+// A área de cada fatia representa o VALOR ABSOLUTO do resultado; sinal e valor real ficam na legenda.
+function atualizarPizzaResultadoTresMeses(){
+ const box=document.getElementById('dashFinTresMeses');if(!box)return;
+ try{
+  const fonte=new Map(animais.filter(x=>x&&x._dbid).map(x=>[x._dbid,x]));
+  for(const x of vendasLeilaoFinanceiro){if(x&&x._dbid)fonte.set(x._dbid,x)}
+  for(const r of finRegistrosConfirmados.values()){
+   if(!r||!r.id)continue;
+   const x=dbToAnimal(r);
+   x._diariaAusente=r.valor_diaria==null||Number(r.valor_diaria)===0;
+   x._custoAtualAusente=r.custo_atual==null||Number(r.custo_atual)===0;
+   fonte.set(r.id,finCorrigirCusto(x));
+  }
+  const base=[...fonte.values()],hoje=new Date();
+  const meses=[2,1,0].map(atras=>{
+   const d=new Date(hoje.getFullYear(),hoje.getMonth()-atras,1);
+   return {chave:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),nome:d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).toUpperCase(),resultado:0,pendentes:0,atual:atras===0};
+  });
+  const soma=(lista,fn)=>lista.reduce((a,x)=>a+(Number(fn(x))||0),0);
+  for(const mes of meses){
+   const noMes=x=>String(x.saida||'').slice(0,7)===mes.chave;
+   const ehVenda=x=>{
+    const st=String(x.status||'').trim().toUpperCase(),te=String(x.tipoEvento||'').trim().toUpperCase();
+    return st==='VENDA'||te==='VENDA'||te==='COMERCIALIZAÇÃO'||te==='COMERCIALIZACAO';
+   };
+   const saidas=base.filter(x=>ehVenda(x)&&noMes(x));
+   const vendas=saidas.filter(x=>Number(x.valorVenda)>0&&Number.isFinite(Number(x.valorVenda)));
+   const mortes=base.filter(x=>String(x.status||'').trim().toUpperCase()==='MORTE'&&noMes(x));
+   const ehLeilao=x=>String(x.destino||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')==='LEILAO';
+   const liquido=soma(vendas,x=>numFin(x.valorVenda)*((ehLeilao(x)||!(x.pesagemId||x._pesagem_id))?1:(1-0.00199998)));
+   const compra=soma(saidas,x=>x.compra),diarias=soma(saidas,x=>x.custoAtual),acumulados=soma(saidas,x=>x.custoAcumulado);
+   const mort=soma(mortes,x=>Math.max(numFin(x.custoAnimal),numFin(x.compra)+numFin(x.custoAtual)+numFin(x.custoAcumulado)));
+   mes.resultado=liquido-compra-diarias-acumulados-mort;
+   mes.pendentes=saidas.filter(x=>Boolean(x.pesagemId||x._pesagem_id)&&!(Number(x.valorVenda)>0)).length+saidas.filter(x=>x._custoPendente).length;
+  }
+  const cores=['#468bba','#d6a04b','#18846a'];
+  const total=meses.reduce((a,m)=>a+Math.abs(m.resultado),0);let inicio=0;
+  const fatias=meses.map((m,i)=>{const a=inicio;inicio+=total?100*Math.abs(m.resultado)/total:0;return cores[i]+' '+a.toFixed(5)+'% '+inicio.toFixed(5)+'%'}).join(',');
+  const moeda=n=>Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  const legenda=meses.map((m,i)=>'<div class="dash-fin-pizza-item"><i style="background:'+cores[i]+'"></i><span>'+m.nome+(m.atual?' <small>(PARCIAL)</small>':'')+'</span><strong style="color:'+(m.resultado<0?'#b4232b':'#087052')+'">'+moeda(m.resultado)+'</strong></div>').join('');
+  box.innerHTML='<div class="dash-fin-pizza-layout"><div class="dash-fin-pizza" style="background:'+(total?'conic-gradient('+fatias+')':'#e6eee9')+'"></div><div class="dash-fin-pizza-legenda">'+legenda+'</div></div><div class="dash-fin-aviso">RESULTADO = VENDAS LÍQUIDAS − COMPRAS − DIÁRIAS − CUSTOS ACUMULADOS − MORTES, por data de saída. A pizza mostra o tamanho absoluto de cada resultado (inclusive prejuízos); os sinais +/− aparecem na legenda. Somente o mês atual está em andamento.</div>';
+ }catch(e){console.error('PIZZA RESULTADO 3 MESES',e);box.textContent='NÃO FOI POSSÍVEL CARREGAR OS RESULTADOS DOS TRÊS MESES.'}
 }
 function renderFinanceiro(){
  const el=$('financeiroConteudo');if(!el)return;const hoje=new Date();if($('finMes')&&!$('finMes').value)$('finMes').value=`${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
@@ -2493,6 +2561,84 @@ function renderMortes(){const el=$('mortesConteudo');if(!el)return;const hoje=ne
 
 function renderAll(){prepararFiltroLocalidadesAnimais();renderAnimaisLocalidade();renderTratamentos();renderTable('animaisTable');preencherGruposAbate();renderPesagens();renderMediasInline();renderAnimaisInline();renderDashboardEstoque();renderParcial();preencherMesArroba();renderArrobaProduzida();renderFinanceiro();renderMortes()}
 function visivelOperacionalLocal(localizacao){return String(localizacao||'').trim().toUpperCase()!=='REPOSITÓRIO'}
+
+// VISÃO DE PESO ESTIMADO — LEITURA EXCLUSIVA, SEM UPDATE/INSERT/DELETE.
+async function carregarVisaoPesoEstimado(){
+ const area=document.getElementById('peso_estimado_tabela'),res=document.getElementById('peso_estimado_resumo');
+ if(!area)return;
+ area.textContent='CARREGANDO DADOS ATUAIS...';
+ try{
+  const animais=[];
+  for(let ini=0;ini<30000;ini+=1000){
+   const r=await supa.from('animais').select('id,localizacao,sexo,peso_entrada,data_entrada,dias_acumulados_confinamento').eq('status','ATIVO').range(ini,ini+999);
+   if(r.error)throw r.error;
+   animais.push(...(r.data||[]));if((r.data||[]).length<1000)break;
+  }
+  const [z,c,pvHist]=await Promise.all([
+   supa.from('nutri_parametros_zootecnicos').select('chave,valor'),
+   supa.from('nutri_custos_diarios').select('data_trato,localizacao,sistema,ms_distribuida_kg,custo_diaria_cabeca,fechado').eq('fechado',true).order('data_trato',{ascending:false}).limit(10000),
+   supa.from('nutri_consumo_historico').select('localizacao,data_referencia,valor').eq('indicador','PERCENTUAL_PV_MS').order('data_referencia',{ascending:false}).limit(10000)
+  ]);
+  if(z.error)throw z.error;if(c.error)throw c.error;if(pvHist.error)throw pvHist.error;
+  const params=Object.fromEntries((z.data||[]).map(x=>[x.chave,x.valor==null?null:Number(x.valor)]));
+  const taxa=(k,p)=>Number.isFinite(params[k])&&params[k]>=0?params[k]:p;
+  const norm=x=>String(x||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/^CONF /,'BAIA ');
+  const conf=new Set(['VINHACA','BARRACAO','BAIA A1','BAIA A2','BAIA A3','BAIA A4','BAIA A5','BAIA B1','BAIA B2','BAIA B3','BAIA B4','BAIA B5']);
+  const hoje=new Date();hoje.setHours(12,0,0,0);
+  const grupos=new Map(),custos=new Map(),pvSalvo=new Map();
+  for(const x of pvHist.data||[]){const local=norm(x.localizacao);if(!pvSalvo.has(local)&&x.valor!=null)pvSalvo.set(local,Number(x.valor));}
+  for(const x of c.data||[]){
+   const local=norm(x.localizacao);
+   if(!custos.has(local))custos.set(local,x);
+  }
+  const diasDesde=d=>{
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(String(d||'').slice(0,10)))return null;
+   const inicio=new Date(String(d).slice(0,10)+'T12:00:00');
+   const dias=Math.floor((hoje-inicio)/86400000);
+   return Number.isFinite(dias)?Math.max(0,dias):null;
+  };
+  const ganho=(si,sexo,dias)=>{
+   if(si==='SEMI')return dias*(sexo==='F'?taxa('semi_f',0.8):taxa('semi_m',1.2));
+   if(sexo==='F')return dias*taxa('conf_f',1.1);
+   return Math.min(dias,20)*taxa('conf_m_ate20',1.1)
+    +Math.max(0,Math.min(dias-20,20))*taxa('conf_m_21a40',1.2)
+    +Math.max(0,Math.min(dias-40,50))*taxa('conf_m_41a90',1.4)
+    +Math.max(0,dias-90)*taxa('conf_m_acima90',1);
+  };
+  for(const a of animais){
+   const local=norm(a.localizacao);
+   if(!local||local.includes('REPOSITORIO'))continue;
+   const si=conf.has(local)?'CONFINAMENTO':'SEMI';
+   if(!grupos.has(local))grupos.set(local,{local,si,qtd:0,base:0,estimado:0,dias:0,validos:0,semPeso:0});
+   const g=grupos.get(local);g.qtd++;
+   const peso=Number(a.peso_entrada),dias=diasDesde(a.data_entrada);
+   if(!(a.peso_entrada!=null&&peso>0&&dias!==null)){g.semPeso++;continue;}
+   const sexo=norm(a.sexo);
+   // Sem sexo conhecido, não se inventa uma taxa de ganho.
+   const incremento=sexo==='M'||sexo==='MACHO'||sexo==='MASCULINO'?ganho(si,'M',dias):
+    sexo==='F'||sexo==='FEMEA'||sexo==='FEMININO'?ganho(si,'F',dias):0;
+   g.base+=peso;g.estimado+=peso+incremento;g.dias+=dias;g.validos++;
+  }
+  const n=(x,d=1)=>Number(x).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+  const moeda=x=>'R$ '+n(x,2);
+  const linhas=[...grupos.values()].filter(x=>x.qtd>0).sort((a,b)=>a.si.localeCompare(b.si)||a.local.localeCompare(b.local));
+  let total=0;
+  const html=linhas.map(g=>{
+   total+=g.qtd;
+   const custo=custos.get(g.local);
+   const pesoMed=g.validos?g.base/g.validos:null;
+   const estMed=g.validos?g.estimado/g.validos:null;
+   const dias=g.validos?g.dias/g.validos:null;
+   // Fonte oficial: último %PV MS registrado no histórico, sem inventar valores.
+   const pv=pvSalvo.has(g.local)?pvSalvo.get(g.local)*100:null;
+   const diaria=custo&&custo.custo_diaria_cabeca!=null?Number(custo.custo_diaria_cabeca):null;
+   return '<tr><td><b>'+g.local+'</b></td><td style="text-align:right">'+g.qtd+'</td><td style="text-align:right">'+(dias===null?'—':n(dias,0))+'</td><td style="text-align:right">'+(pesoMed===null?'—':n(pesoMed)+' KG')+'</td><td style="text-align:right">'+(pv===null?'—':n(pv,2)+'%')+'</td><td style="text-align:right">'+(diaria===null?'—':moeda(diaria))+'</td><td style="text-align:right"><b>'+(estMed===null?'—':n(estMed)+' KG')+'</b></td></tr>';
+  }).join('');
+  res.innerHTML='<b>'+linhas.length+' LOCALIDADES • '+total+' ANIMAIS ATIVOS</b>';
+  area.innerHTML='<table class="peso-estimado-tabela" style="width:100%;min-width:0;max-width:100%;table-layout:fixed"><thead><tr><th>CURRAL / LOCALIDADE</th><th>ANIMAIS</th><th>DIAS</th><th>PESO ENTRADA MÉDIO</th><th>%PV MS</th><th>DIÁRIA ATUAL</th><th>PESO ESTIMADO MÉDIO</th></tr></thead><tbody>'+html+'</tbody></table>';
+ }catch(e){console.error('PESO ESTIMADO:',e);area.textContent='ERRO AO CARREGAR: '+String(e.message||e);}
+}
+
 function projecaoSaidaConfinamento(nome,ativos,norm){
  const todos=(ativos||[]).filter(x=>norm(x.localizacao)===nome);
  const grupos=[];
@@ -5558,7 +5704,7 @@ async function farmaciaCotacaoCarregar(){
    const v=farmaciaCotacaoRegistros.get(String(x.id))||{};
    const falta=Math.max(1,Math.ceil((Number(x.estoque_minimo)||0)-Math.max(0,Number(x.estoque_atual)||0)));
    const sugerido=Math.max(0,Number(x.estoque_atual)||0)<=Math.max(0,Number(x.estoque_minimo)||0);
-   const marcado=v.selecionado===true||(v.selecionado==null&&sugerido);
+   const marcado=v.selecionado===true;
    const qtd=v.quantidade??falta;
    return '<tr><td style="text-align:center"><input type="checkbox" id="fc_'+x.id+'_selecionado" '+(marcado?'checked':'')+' onchange="farmaciaCotacaoAtualizarTotais()" style="width:19px;height:19px;cursor:pointer"></td><td style="font-weight:700;overflow-wrap:anywhere;font-size:12px">'+esc(x.nome)+(sugerido?'<div style="font-size:10px;color:#a06000">ESTOQUE BAIXO</div>':'')+'</td><td style="text-align:center">'+farmNum(Math.max(0,Number(x.estoque_atual)||0))+'</td><td style="text-align:center">'+farmNum(x.estoque_minimo)+'</td><td style="width:8%">'+inp(x.id,'quantidade',qtd)+'</td>'+[1,2,3,4,5].map(n=>'<td style="width:10%">'+inp(x.id,'preco_'+n,v['preco_'+n])+'</td>').join('')+'<td id="fc_melhor_'+x.id+'" style="font-weight:700;color:#187344;overflow-wrap:anywhere;font-size:11px">—</td><td id="fc_vencedor_total_'+x.id+'" style="text-align:right;font-weight:700">—</td></tr>';
   }).join('');
@@ -5637,6 +5783,56 @@ async function farmaciaCotacaoSalvarTodas(){
   toast('COTAÇÃO SALVA. PREÇOS APAGADOS FORAM REMOVIDOS.');await farmaciaCotacaoCarregar();
  }catch(e){toast('ERRO AO SALVAR COTAÇÕES: '+String(e.message||e));}
 }
+
+// FINALIZAÇÃO ATÔMICA NO BANCO: arquiva o snapshot e só depois limpa a cotação atual.
+// Não movimenta estoque nem altera cotações já arquivadas.
+let farmaciaFinalizando=false;
+async function farmaciaCotacaoFinalizar(){
+ if(farmaciaFinalizando)return;
+ try{
+  await farmaciaExigirAdmin();
+  const resp=await supa.from('farmacia_cotacoes').select('medicamento_id,selecionado');
+  if(resp.error)throw resp.error;
+  if(!(resp.data||[]).some(x=>x.selecionado))throw Error('NÃO HÁ ITENS SELECIONADOS SALVOS. SALVE A COTAÇÃO ANTES DE FINALIZAR.');
+  if(!confirm('FINALIZAR A COTAÇÃO SALVA? ELA FICARÁ BLOQUEADA NO HISTÓRICO E OS CAMPOS DA COTAÇÃO ATUAL SERÃO LIMPOS. ESTA AÇÃO NÃO ALTERA O ESTOQUE.'))return;
+  farmaciaFinalizando=true;
+  const r=await supa.rpc('farmacia_finalizar_cotacao');
+  if(r.error)throw r.error;
+  toast('COTAÇÃO Nº '+r.data+' FINALIZADA E ARQUIVADA.');
+  await farmaciaCotacaoCarregar();
+  await farmaciaCotacaoHistorico();
+ }catch(e){console.error(e);toast('NÃO FOI POSSÍVEL FINALIZAR: '+String(e.message||e));}
+ finally{farmaciaFinalizando=false;}
+}
+async function farmaciaCotacaoHistorico(){
+ try{
+  await farmaciaExigirAdmin();
+  const area=document.getElementById('farm_cot_historico');
+  area.style.display='block';
+  area.innerHTML='<b>CARREGANDO HISTÓRICO...</b>';
+  const r=await supa.from('farmacia_cotacoes_historico').select('id,finalizada_em,total,itens').order('id',{ascending:false}).limit(100);
+  if(r.error)throw r.error;
+  window.farmaciaCotacoesArquivadas=new Map((r.data||[]).map(x=>[String(x.id),x]));
+  const moeda=n=>'R$ '+Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const linhas=(r.data||[]).map(x=>'<tr><td><b>Nº '+x.id+'</b></td><td>'+new Date(x.finalizada_em).toLocaleString('pt-BR')+'</td><td>'+((x.itens||[]).filter(i=>i.selecionado).length)+'</td><td>'+moeda(x.total)+'</td><td><button class="btn" type="button" onclick="farmaciaCotacaoVerHistorico('+x.id+')">CONSULTAR / IMPRIMIR</button></td></tr>').join('');
+  area.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h3>HISTÓRICO DE COTAÇÕES FINALIZADAS</h3><button class="btn" onclick="document.getElementById(\'farm_cot_historico\').style.display=\'none\'">FECHAR</button></div>'+(linhas?'<div style="overflow:auto"><table><thead><tr><th>NÚMERO</th><th>FINALIZADA EM</th><th>ITENS</th><th>TOTAL</th><th>AÇÃO</th></tr></thead><tbody>'+linhas+'</tbody></table></div>':'NENHUMA COTAÇÃO FINALIZADA.');
+ }catch(e){console.error(e);toast('ERRO AO CONSULTAR HISTÓRICO: '+String(e.message||e));}
+}
+function farmaciaCotacaoVerHistorico(id){
+ const x=window.farmaciaCotacoesArquivadas?.get(String(id));
+ if(!x){toast('RECARREGUE O HISTÓRICO.');return;}
+ const moeda=n=>'R$ '+Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+ const itens=(x.itens||[]).filter(i=>i.selecionado);
+ const linhas=itens.map(i=>{
+  const valores=[1,2,3,4,5].filter(n=>i['preco_'+n]!=null).map(n=>({n,p:Number(i['preco_'+n])}));
+  const melhor=valores.length?valores.reduce((a,b)=>a.p<=b.p?a:b):null;
+  return '<tr><td>'+farmEsc(i.medicamento)+'</td><td>'+farmNum(i.quantidade)+'</td>'+[1,2,3,4,5].map(n=>'<td>'+farmEsc(i['fornecedor_'+n]||'—')+'<div>'+(i['preco_'+n]==null?'—':moeda(i['preco_'+n]))+'</div></td>').join('')+'<td>'+(melhor?farmEsc(i['fornecedor_'+melhor.n]||'FORNECEDOR '+melhor.n):'—')+'</td><td>'+(melhor?moeda(Number(i.quantidade)*melhor.p):'—')+'</td></tr>';
+ }).join('');
+ const w=window.open('','_blank');if(!w){toast('HABILITE POP-UPS PARA IMPRIMIR.');return;}
+ w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"><title>COTAÇÃO FINALIZADA Nº '+x.id+'</title><style>@page{size:A4 landscape;margin:8mm}body{font:11px Arial;color:#111}h2{text-align:center}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{border:1px solid #aaa;padding:5px;overflow-wrap:anywhere}th{background:#eee}footer{text-align:center;margin-top:20px;font-weight:bold}@media print{button{display:none}}</style></head><body><h2>COTAÇÃO FINALIZADA Nº '+x.id+'</h2><p>FINALIZADA EM '+new Date(x.finalizada_em).toLocaleString('pt-BR')+' — SOMENTE CONSULTA</p><button onclick="window.print()">IMPRIMIR</button><table><thead><tr><th>MEDICAMENTO</th><th>QTD.</th><th>FORNECEDOR 1</th><th>FORNECEDOR 2</th><th>FORNECEDOR 3</th><th>FORNECEDOR 4</th><th>FORNECEDOR 5</th><th>VENCEDOR</th><th>TOTAL</th></tr></thead><tbody>'+linhas+'</tbody></table><h3 style="text-align:right">TOTAL DA COTAÇÃO: '+moeda(x.total)+'</h3><footer>FAZENDA NOVA ESPERANÇA — DESENVOLVIDO POR MARCO BASSAN</footer></body></html>');
+ w.document.close();w.focus();
+}
+
 async function farmaciaCotacaoImprimir(){
  try{
   await farmaciaExigirAdmin();

@@ -136,6 +136,17 @@
 #historicoCochoResultado .cocho-nota-um{background:#fff1b8;color:#765800}
 #historicoCochoResultado .cocho-nota-dois{background:#ffe0bc;color:#92440a}
 #historicoCochoResultado .cocho-nota-tres{background:#ffd8d8;color:#9d2020}
+
+/* DISTRIBUIÇÃO CONSOLIDADA MN: LOCAL E TOTAL FIXOS, DIAS DECRESCENTES */
+#historicoDesvios .hist-mn-consolidada .hist-table{border-collapse:separate;border-spacing:0;}
+#historicoDesvios .hist-mn-consolidada .hist-table th:first-child,
+#historicoDesvios .hist-mn-consolidada .hist-table td:first-child{position:sticky;left:0;width:190px;min-width:190px;max-width:190px;box-sizing:border-box;background:#f7f8f8;z-index:3;}
+#historicoDesvios .hist-mn-consolidada .hist-table th:nth-child(2),
+#historicoDesvios .hist-mn-consolidada .hist-table td:nth-child(2){position:sticky;left:190px;width:155px;min-width:155px;max-width:155px;box-sizing:border-box;background:#f7f8f8;z-index:3;font-weight:700;box-shadow:2px 0 4px rgba(0,0,0,.08);}
+#historicoDesvios .hist-mn-consolidada .hist-table thead th:first-child,
+#historicoDesvios .hist-mn-consolidada .hist-table thead th:nth-child(2){z-index:5;background:#f1f3f4;}
+#historicoDesvios .hist-mn-consolidada .hist-table tbody tr:last-child td:first-child,
+#historicoDesvios .hist-mn-consolidada .hist-table tbody tr:last-child td:nth-child(2){background:#fff0b3;font-weight:800;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -2623,27 +2634,35 @@ async function renderDashboardEstoque(){
     const cm=categoriasPorLocal.get(local);cm.set(cat,(cm.get(cat)||0)+1);
     totaisCategoria.set(cat,(totaisCategoria.get(cat)||0)+1);
   });
-  // CICLO ATUAL DA BAIA: começa na entrada mais antiga entre os animais que ainda estão ATIVOS nela.
-  // Saídas anteriores ao início desse ciclo pertencem a lotes históricos e NÃO entram no card atual.
+  // DASH SOMENTE INFORMATIVO: início do período = menor data de entrada dos
+  // animais ATIVOS da localidade. Novas entradas não reiniciam o período.
+  // Não altera dados nem grava no Supabase.
   const inicioCiclo=new Map();
-  (ativos.data||[]).forEach(x=>{const n=norm(x.localizacao),d=x.data_entrada?String(x.data_entrada):null;if(!d)return;const atual=inicioCiclo.get(n);if(!atual||d<atual)inicioCiclo.set(n,d)});
+  for(const a of ativos.data||[]){
+    const local=norm(a.localizacao),dia=String(a.data_entrada||'').slice(0,10);
+    if(!local||!/^\d{4}-\d{2}-\d{2}$/.test(dia))continue;
+    if(!inicioCiclo.has(local)||dia<inicioCiclo.get(local))inicioCiclo.set(local,dia);
+  }
   const vendidosPor=new Map(),gmds=new Map();
-  (v.data||[]).forEach(x=>{
-    const n=norm(x.origem||x.localizacao),ini=inicioCiclo.get(n),ds=x.data_saida?String(x.data_saida):null;
-    if(!ini||!ds||ds<ini)return;
-    if(!vendidosPor.has(n))vendidosPor.set(n,[]);vendidosPor.get(n).push(x);
-    // GMD da saída: apenas ganho e dias do MESMO ciclo de pesagem.
-    // Não misturar dias_acumulados_confinamento (ciclos anteriores) ao ganho peso_saida - peso_entrada.
-    // Não calcular a partir de pesos/dias ausentes, e não misturar vendas de ciclos anteriores.
-    const entradaVenda=x.data_entrada?String(x.data_entrada):null;
-    const pe=x.peso_entrada==null?NaN:Number(x.peso_entrada);
-    const ps=x.peso_saida==null?NaN:Number(x.peso_saida);
-    const dias=x.qtd_dias==null?NaN:Number(x.qtd_dias);
-    if(entradaVenda&&entradaVenda>=ini&&Number.isFinite(pe)&&pe>0&&Number.isFinite(ps)&&ps>pe&&Number.isFinite(dias)&&dias>0){
-      if(!gmds.has(n))gmds.set(n,[]);
-      gmds.get(n).push({ganho:ps-pe,dias});
-    }
-  });
+  for(const x of v.data||[]){
+    // ORIGEM da venda é a localidade de saída; localização é fallback para
+    // registros históricos sem origem. Nunca atribuir a duas localidades.
+    const local=norm(x.origem||x.localizacao);
+    const inicio=inicioCiclo.get(local);
+    const saida=String(x.data_saida||'').slice(0,10);
+    if(!inicio||!/^\d{4}-\d{2}-\d{2}$/.test(saida)||saida<inicio)continue;
+    if(!vendidosPor.has(local))vendidosPor.set(local,[]);
+    vendidosPor.get(local).push(x);
+    // Média ponderada pelos dias individuais do ciclo da saída.
+    const pe=Number(x.peso_entrada),ps=Number(x.peso_saida),dias=Number(x.qtd_dias);
+    const entrada=String(x.data_entrada||'').slice(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(entrada)||entrada>saida||
+       x.peso_entrada==null||x.peso_saida==null||x.qtd_dias==null||
+       !Number.isFinite(pe)||pe<=0||!Number.isFinite(ps)||ps<=0||
+       !Number.isFinite(dias)||dias<=0)continue;
+    if(!gmds.has(local))gmds.set(local,[]);
+    gmds.get(local).push({ganho:ps-pe,dias});
+  }
   const entradasAtuais=new Map();
   (ativos.data||[]).forEach(x=>{const n=norm(x.localizacao),d=x.data_entrada;if(!entradasAtuais.has(n))entradasAtuais.set(n,[]);if(d)entradasAtuais.get(n).push(String(d));});
   const vacAtuais=(()=>{const ult=new Map(),ativosPorId=new Map((ativos.data||[]).map(a=>[String(a.id),a]));for(const r of (vac.data||[])){const k=String(r.animal_id||''),a=ativosPorId.get(k);if(!a)continue;const registro={...r,localizacao:a.localizacao};const ant=ult.get(k);if(!ant||String(registro.data_vacinacao||'')>String(ant.data_vacinacao||''))ult.set(k,registro)}return [...ult.values()]})();
@@ -2701,10 +2720,11 @@ async function renderDashboardEstoque(){
 <div><span style="color:#315d4b;font-weight:800">PESO ENTRADA MÉDIO:</span> <strong>${pesoMed===null?'—':pesoMed.toFixed(1)+' kg'}</strong></div>
 ${temMovimentacao?`<div><span style="color:#315d4b;font-weight:800">DIAS TOTAL CONFINAMENTO:</span> <strong>${diasTotal===null?'—':Math.round(diasTotal)}</strong></div>
 <div><span style="color:#315d4b;font-weight:800">DIAS CICLO ATUAL:</span> <strong>${diasCiclo===null?'—':Math.round(diasCiclo)}</strong></div>`:`<div><span style="color:#315d4b;font-weight:800">DIAS:</span> <strong>${diasCiclo===null?'—':Math.round(diasCiclo)}</strong></div>`}
-<div><span style="color:#315d4b;font-weight:800">${gm===null?'GMD ESTIMADO:':'GMD REAL DAS SAÍDAS:'}</span> <strong>${gm!==null?gm.toFixed(3):gmdEstimado!==null?gmdEstimado.toFixed(3)+' kg/dia':'—'}</strong></div>
+${gm!==null?`<div><span style="color:#315d4b;font-weight:800">GMD REAL DAS SAÍDAS (${gs.length}):</span> <strong>${gm.toFixed(3)} kg/dia</strong></div>`:''}
 <div><span style="color:#315d4b;font-weight:800">DIÁRIA ATUAL:</span> <strong>${Number.isFinite(custoValor)?custoValor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—'}</strong></div>
 <div><span style="color:#315d4b;font-weight:800">CONSUMO MN/CAB:</span> <strong>${Number.isFinite(consumoValor)?consumoValor.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' kg':'—'}</strong></div>
-<div><span style="color:#315d4b;font-weight:800">JÁ SAÍRAM:</span> <strong>${(vendidosPor.get(nome)||[]).length}</strong></div>
+<div><span style="color:#315d4b;font-weight:800">INÍCIO DO PERÍODO:</span> <strong>${inicioCiclo.get(nome)?inicioCiclo.get(nome).split('-').reverse().join('/'):'—'}</strong></div>
+<div><span style="color:#315d4b;font-weight:800">JÁ SAÍRAM NO PERÍODO:</span> <strong>${(vendidosPor.get(nome)||[]).length}</strong></div>
 <div><span style="color:#315d4b;font-weight:800">PROJEÇÃO POR PRAZO ESTIMADO (NÃO É PESAGEM):</span> ${projHTML(projs)}</div>
 </div>`}
    else{
@@ -2722,10 +2742,11 @@ ${temMovimentacao?`<div><span style="color:#315d4b;font-weight:800">DIAS TOTAL C
     extra=`<div style="margin-top:8px;font-size:10px;line-height:1.9;color:#59636b">
     <div><span style="color:#315d4b;font-weight:800">PESO ENTRADA MÉDIO:</span> <strong>${pesoMed===null?'—':pesoMed.toFixed(1)+' kg'}</strong></div>
     <div><span style="color:#315d4b;font-weight:800">DIAS:</span> <strong>${diasMed===null?'—':diasMed}</strong></div>
-    <div><span style="color:#315d4b;font-weight:800">GMD ESTIMADO:</span> <strong>${gmdSemi===null?'—':gmdSemi.toFixed(3)+' kg/dia'}</strong></div>
+    
     <div><span style="color:#315d4b;font-weight:800">DIÁRIA ATUAL:</span> <strong>${Number.isFinite(custo)?custo.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—'}</strong></div>
     <div><span style="color:#315d4b;font-weight:800">CONSUMO MN/CAB:</span> <strong>${Number.isFinite(consumo)?consumo.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' kg':'—'}</strong></div>
-    <div><span style="color:#315d4b;font-weight:800">JÁ SAÍRAM:</span> <strong>${(vendidosPor.get(nome)||[]).length}</strong></div>
+    <div><span style="color:#315d4b;font-weight:800">INÍCIO DO PERÍODO:</span> <strong>${inicioCiclo.get(nome)?inicioCiclo.get(nome).split('-').reverse().join('/'):'—'}</strong></div>
+<div><span style="color:#315d4b;font-weight:800">JÁ SAÍRAM NO PERÍODO:</span> <strong>${(vendidosPor.get(nome)||[]).length}</strong></div>
     </div>`;
     const rs=reforcos.get(nome)||[];
     if(rs.length){const p=rs.slice().sort((a,b)=>String(a.data_prevista_reforco).localeCompare(String(b.data_prevista_reforco)))[0];const alerta=String(p.situacao_reforco||'')!=='SEM_AVISO';extra+=`<div style="margin-top:7px;font-size:10px;color:#b42318;font-weight:900">REFORÇO: ${String(p.data_prevista_reforco||'').split('-').reverse().join('/')}${alerta?' • '+String(p.situacao_reforco||'').replaceAll('_',' '):''}</div>`}
@@ -4598,7 +4619,7 @@ async function trHistoricoCarregar(){
   // NULL indica ausência de lançamento; ZERO é um lançamento válido.
   matrizMn.innerHTML=sistemas.map(sis=>{
     const registros=realizados.filter(r=>r.sistema===sis);
-    const datas=[...new Set(registros.map(r=>r.data_trato))].sort();
+    const datas=[...new Set(registros.map(r=>r.data_trato))].sort((a,b)=>b.localeCompare(a));
     const locais=[...new Set(registros.map(r=>r.localizacao))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
     const matriz=new Map();
     for(const r of registros){
@@ -4607,7 +4628,7 @@ async function trHistoricoCarregar(){
       const total=campos.reduce((s,v)=>s+(v===null||v===undefined?0:Number(v)),0);
       matriz.set(r.localizacao+'|'+r.data_trato,preenchido?total:null);
     }
-    const cabecalho=['CURRAL / LOCALIDADE',...datas.map(d=>esc(dataCtrl(d))),'TOTAL PERÍODO KG'];
+    const cabecalho=['CURRAL / LOCALIDADE','TOTAL DO PERÍODO (KG)',...datas.map(d=>esc(dataCtrl(d)))];
     const linhas=locais.map(nome=>{
       let soma=0,tem=false;
       const celulas=datas.map(d=>{
@@ -4615,7 +4636,7 @@ async function trHistoricoCarregar(){
         if(v===null||v===undefined)return '—';
         soma+=v;tem=true;return fmt(v);
       });
-      return [esc(nome),...celulas,tem?fmt(soma):'—'];
+      return [esc(nome),tem?fmt(soma):'—',...celulas];
     });
     if(linhas.length){
       const totais=datas.map(d=>{
@@ -4627,11 +4648,11 @@ async function trHistoricoCarregar(){
         const v=matriz.get(r.localizacao+'|'+r.data_trato);
         return acc+(v===null||v===undefined?0:v);
       },0);
-      linhas.push(['<strong>TOTAL</strong>',...totais.map(v=>'<strong>'+v+'</strong>'),'<strong>'+fmt(geral)+'</strong>']);
+      linhas.push(['<strong>TOTAL</strong>','<strong>'+fmt(geral)+'</strong>',...totais.map(v=>'<strong>'+v+'</strong>')]);
     }
     return '<h3>DISTRIBUIÇÃO CONSOLIDADA MN (KG) — '+nomeSistema(sis)+'</h3>'+
       '<p style="font-size:12px;margin:6px 0 10px">CURRAIS NAS LINHAS E DIAS NAS COLUNAS. ZERO É REGISTRO VÁLIDO; — SIGNIFICA SEM TRATO.</p>'+
-      (linhas.length?table(cabecalho,linhas):'<div class="empty">SEM DISTRIBUIÇÕES SALVAS NO PERÍODO.</div>');
+      (linhas.length?'<div class="hist-mn-consolidada">'+table(cabecalho,linhas)+'</div>':'<div class="empty">SEM DISTRIBUIÇÕES SALVAS NO PERÍODO.</div>');
   }).join('')+'<div class="notice">TOTAL DE MATÉRIA NATURAL (MN) EFETIVAMENTE DISTRIBUÍDA POR LOCALIDADE E DIA. O PREVISTO HISTÓRICO POR CURRAL NÃO ESTÁ ARMAZENADO NESTA TABELA.</div>';
  }catch(e){resumo.textContent='ERRO AO CONSULTAR HISTÓRICO: '+String(e.message||e)}
 }

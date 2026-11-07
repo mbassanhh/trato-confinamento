@@ -154,6 +154,12 @@
 #diariasConferencia .consumo-matriz-dias th:nth-child(3),#diariasConferencia .consumo-matriz-dias td:nth-child(3){position:sticky;left:270px;z-index:3;min-width:100px;background:#fff;box-shadow:2px 0 3px rgba(0,0,0,.09)}
 #diariasConferencia .consumo-matriz-dias th:nth-child(3){z-index:5;background:#edf1f3}
 #diariasConferencia .consumo-matriz-dias td:nth-child(3){font-weight:700}
+/* TRATOS: manter checkbox e lápis visíveis inclusive no celular */
+#tr_grade_body input[data-tr-dieta]{display:inline-block!important;visibility:visible!important;opacity:1!important;appearance:auto!important;width:16px!important;height:16px!important;}
+#tr_grade_body .tr-edit-prev{display:inline-block!important;visibility:visible!important;opacity:1!important;font-size:16px!important;}
+#tratosCadastro .tratos-compacta th:first-child,#tratosCadastro .tratos-compacta td:first-child{display:table-cell!important;visibility:visible!important;min-width:44px!important;}
+#tr_carga_sobra,#tr_carga_sobra_origem{display:none!important;}
+@media print{#tr_impressao_mobile{position:static!important;padding:0!important}#tr_impressao_mobile iframe{height:100vh!important}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -1443,7 +1449,7 @@ body{background:#f4f8f7}
     </div>
   </section>
 
-<section id="tratosCadastro" class="page admin-only"><div class="panel"><div class="section-head"><div><h2>DISTRIBUIÇÃO DIÁRIA DE TRATOS</h2><p>LANÇAMENTO TRATO A TRATO — PADRÃO DA PLANILHA</p></div><span class="tag">ETAPA 20 — CARREGAMENTO E CONFERÊNCIA</span></div><div class="grid" style="margin-bottom:6px"><div class="field"><label>DATA DA DISTRIBUIÇÃO</label><input id="tr_data" type="date" onchange="tratosRender().then(()=>trCargaRender())"></div></div><div class="notice">CURRAIS DO CONFINAMENTO E SEMI: CONFIGURAÇÃO DO MANEJO EXISTENTE. TOTAL DO DIA ANTERIOR: SUPABASE. PREVISÕES POR TRATO: PERCENTUAIS DO MANEJO (20/30/30/20 OU CONFIGURADO); CONFINAMENTO ESPECIAL: DOIS TRATOS CONFORME MANEJO. SEMICONFINAMENTO: UM TRATO, 100% NO TRATO 1. APENAS REAL É EDITÁVEL.</div><button type="button" onclick="trAbrirConfiguracaoTratos()" style="margin:8px;padding:8px 14px;border-radius:7px">⚙ CONFIGURAÇÃO DE TRATOS</button><div id="tr_db_aviso" class="notice">AGUARDANDO CONSULTA AO BANCO.</div><div class="table-wrap"><table class="tratos-compacta" style="width:100%;min-width:0;font-size:10px;table-layout:fixed"><thead><tr><th>COM DIETA</th><th>CURRAL</th><th>DIAS</th><th>TOTAL</th><th>BOIS</th><th>TRATO 1</th><th>REAL</th><th>TRATO 2</th><th>REAL</th><th>TRATO 3</th><th>REAL</th><th>TRATO 4</th><th>REAL</th><th>SALDO PENDENTE</th><th>REALIZADO</th><th>DESVIO</th><th>DESVIO %</th></tr></thead><tbody id="tr_grade_body"></tbody><tfoot id="tr_grade_total"></tfoot></table></div><div class="form-actions"><button class="btn primary" onclick="tratosSalvarDistribuicao()">SALVAR DISTRIBUIÇÃO</button></div><div class="notice">REAL POR TRATO: GRAVADO NO SUPABASE POR DATA E LOCALIDADE. LANÇAMENTOS PARCIAIS SÃO PRESERVADOS. SALDO DO DIA É REDISTRIBUÍDO ENTRE OS TRATOS RESTANTES. DADOS JÁ SALVOS FICAM BLOQUEADOS.</div></div><div class="panel" id="tr_carga_painel"><div class="section-head"><div><h2>CARREGAMENTO — INGREDIENTES E CONFERÊNCIA</h2><p>DESVIOS POR INGREDIENTE, GERAL E DIFERENÇA CARREGADO × DISTRIBUÍDO</p></div></div>
+<section id="tratosCadastro" class="page admin-only"><div class="panel"><div class="section-head"><div><h2>DISTRIBUIÇÃO DIÁRIA DE TRATOS</h2><p>LANÇAMENTO TRATO A TRATO — PADRÃO DA PLANILHA</p></div><span class="tag">ETAPA 20 — CARREGAMENTO E CONFERÊNCIA</span></div><div class="grid" style="margin-bottom:6px"><div class="field"><label>DATA DA DISTRIBUIÇÃO</label><input id="tr_data" type="date" onchange="trSelecionarDataDistribuicao()"></div></div><div class="notice">CURRAIS DO CONFINAMENTO E SEMI: CONFIGURAÇÃO DO MANEJO EXISTENTE. TOTAL DO DIA ANTERIOR: SUPABASE. PREVISÕES POR TRATO: PERCENTUAIS DO MANEJO (20/30/30/20 OU CONFIGURADO); CONFINAMENTO ESPECIAL: DOIS TRATOS CONFORME MANEJO. SEMICONFINAMENTO: UM TRATO, 100% NO TRATO 1. APENAS REAL É EDITÁVEL.</div><button type="button" onclick="trAbrirConfiguracaoTratos()" style="margin:8px;padding:8px 14px;border-radius:7px">⚙ CONFIGURAÇÃO DE TRATOS</button><div id="tr_db_aviso" class="notice">AGUARDANDO CONSULTA AO BANCO.</div><div class="table-wrap"><table class="tratos-compacta" style="width:100%;min-width:0;font-size:10px;table-layout:fixed"><thead><tr><th>COM DIETA</th><th>CURRAL</th><th>DIAS</th><th>TOTAL</th><th>BOIS</th><th>TRATO 1</th><th>REAL</th><th>TRATO 2</th><th>REAL</th><th>TRATO 3</th><th>REAL</th><th>TRATO 4</th><th>REAL</th><th>SALDO PENDENTE</th><th>REALIZADO</th><th>DESVIO</th><th>DESVIO %</th></tr></thead><tbody id="tr_grade_body"></tbody><tfoot id="tr_grade_total"></tfoot></table></div><div class="form-actions"><button class="btn primary" onclick="tratosSalvarDistribuicao()">SALVAR DISTRIBUIÇÃO</button></div><div class="notice">REAL POR TRATO: GRAVADO NO SUPABASE POR DATA E LOCALIDADE. LANÇAMENTOS PARCIAIS SÃO PRESERVADOS. SALDO DO DIA É REDISTRIBUÍDO ENTRE OS TRATOS RESTANTES. DADOS JÁ SALVOS FICAM BLOQUEADOS.</div></div><div class="panel" id="tr_carga_painel"><div class="section-head"><div><h2>CARREGAMENTO — INGREDIENTES E CONFERÊNCIA</h2><p>DESVIOS POR INGREDIENTE, GERAL E DIFERENÇA CARREGADO × DISTRIBUÍDO</p></div></div>
 <div class="grid tr-carga-cabecalho" style="margin-bottom:10px"><div class="field"><label>DATA DO CARREGAMENTO — SELECIONE O DIA A LANÇAR</label><input id="tr_carga_data" type="date" onchange="trCargaRender()"></div><div class="field"><label>SISTEMA</label><select id="tr_carga_sistema" onchange="trCargaRender()"><option value="CONFINAMENTO">CONFINAMENTO</option><option value="SEMI">SEMICONFINAMENTO</option></select></div><input id="tr_carga_num" type="hidden" value="CONSOLIDADO"></div>
 <div class="notice" id="tr_carga_aviso">SELECIONE A DATA E A CARGA. O PREVISTO POR INGREDIENTE USA A DIETA ATIVA COMO REFERÊNCIA; INFORME A QUANTIDADE REAL CARREGADA.</div>
 <div class="notice" id="tr_carga_data_destaque" style="font-size:15px;font-weight:800;border:2px solid #64748b;padding:12px;margin:10px 0">CONFIRMANDO DATA DO CARREGAMENTO...</div><input id="tr_carga_total_previsto" type="hidden" value="0"><input id="tr_carga_bruto" type="hidden" value="0"><input id="tr_carga_sobra" type="hidden" value="0"><span id="tr_carga_sobra_origem" hidden></span><div class="notice" id="tr_carga_conciliacao"></div><div id="tr_carga_itens"></div><div id="tr_carga_resumo"></div>
@@ -2049,7 +2055,7 @@ function imprimirFichaCocho(){
  ['2','SOBROU UM POUCO A MAIS (COCHO COM SOBRA A MAIS)'],
  ['3','SOBROU MUITO (COCHO COM MUITA RAÇÃO)']
  ].map(x=>`<tr><td class="nota">${x[0]}</td><td>${x[1]}</td></tr>`).join('');
- const w=window.open('','_blank');
+ const w=trAbrirJanelaImpressao();
  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Impressão Ficha de Leitura</title>
  <style>
  @page{size:A4 portrait;margin:11mm}
@@ -2934,8 +2940,21 @@ async function renderDashboardEstoque(){
   // Reforços vencidos continuam visíveis até uma nova vacinação registrada para o animal.
   const lotesMap=new Map();
   const inicioHoje=new Date(hojeIso+'T12:00:00');
+  // Reforços executados em 05/11/2026 nestas três localidades:
+  // a campanha anterior foi encerrada; não anunciar seus avisos antigos.
+  // Preservar todos os registros no banco e mostrar a próxima data da campanha nova.
+  const campanhasConcluidas=new Map([
+    ['PASTO A1','2026-11-05'],
+    ['PASTO A1 LD CONFINAMENTO','2026-11-05'],
+    ['VINHACA','2026-11-05']
+  ]);
   vacAtuais
-    .filter(x=>norm(x.localizacao)!=='REPOSITORIO' && (mapa.get(norm(x.localizacao))||0)>0 && x.data_prevista_reforco)
+    .filter(x=>{
+      const local=norm(x.localizacao);
+      if(local==='REPOSITORIO'||(mapa.get(local)||0)<=0||!x.data_prevista_reforco)return false;
+      const concluida=campanhasConcluidas.get(local);
+      return !concluida||String(x.data_vacinacao||'').slice(0,10)>=concluida;
+    })
     .forEach(x=>{
       const k=norm(x.localizacao),dt=String(x.data_prevista_reforco).slice(0,10);
       const diaReforco=new Date(dt+'T12:00:00');
@@ -4494,14 +4513,14 @@ async function tratosRender(){
   // Tratos já realizados nesta data não recebem nova previsão; saldo apenas nos pendentes.
   // A distribuição histórica já salva prevalece sobre mudanças posteriores de configuração.
   // Nunca esconder o 2º/3º trato de um curral que possui quatro lançamentos no banco.
-  const pctBase=cfg.pctCurral(local); // Fonte única: configuração individual do curral, inclusive SEMI.
+  const pctBase=db.sistema==='SEMI'?[100,0,0,0]:cfg.pctCurral(local); // SEMI: trato único obrigatório, independente de configuração local antiga.
   const salvosIndices=[0,1,2,3].filter(i=>r.v?.[i]!==undefined&&r.v[i]!==''&&r.v[i]!==null);
   const historicoQuatro=salvosIndices.includes(1)||salvosIndices.includes(2);
   const pct=historicoQuatro&&db.sistema==='CONFINAMENTO'&&!/^BAIA [AB][1-5]$/.test(local)&&!JSON.parse(localStorage.getItem('cfg_tratos_por_curral_v1')||'{}')[trNormNome(local)]?[20,30,30,20]:pctBase;
   const doisTratos=Array.isArray(pct)&&pct.filter(x=>Number(x)>0).length<=2;
   const indicesAtivos=pct.map((v,i)=>Number(v)>0?i:-1).filter(i=>i>=0);
   // Valor ZERO também é lançamento válido e não pode desaparecer da grade.
-  for(let i=0;i<4;i++)if(salvosIndices.includes(i)&&!indicesAtivos.includes(i))indicesAtivos.push(i);
+  for(let i=0;i<4;i++)if(salvosIndices.includes(i)&&!indicesAtivos.includes(i)&&!(db.sistema==='SEMI'&&i>0&&Number(r.v?.[i])===0))indicesAtivos.push(i);
   indicesAtivos.sort((a,b)=>a-b);
   // Priorizar realizado do dia anterior; se indisponível, usar previsão registrada na leitura anterior, sem fabricar números.
   // Previsão indisponível não deve ser substituída por TOTAL realizado.
@@ -4522,11 +4541,8 @@ async function tratosRender(){
  if(aviso)aviso.textContent=erro||('PREVISÃO ÚNICA: AJUSTES DO ADMINISTRADOR SÃO PUBLICADOS NO SUPABASE E COMPARTILHADOS ENTRE OS PERFIS; NÃO ALTERAM A LEITURA OFICIAL. PREVISÃO: ÚLTIMA LEITURA DE COCHO DISPONÍVEL ATÉ O DIA ANTERIOR (CONFIRA A DATA AO PASSAR O MOUSE NO CURRAL). DISTRIBUIÇÃO: 20/30/30/20 OU PERCENTUAIS CONFIGURADOS; BAIAS A1 A B5: QUATRO TRATOS. DEMAIS CONFINAMENTO: DOIS TRATOS (1º E 4º). SEMI: UM TRATO. SEM LEITURA OU PREVISÃO COMPROVADA, MOSTRA —. SEMI USA SUA PRÓPRIA LEITURA DO DIA ANTERIOR. A PREVISÃO E OS DESCONTOS SÃO DEFINIDOS EXCLUSIVAMENTE NA LEITURA DE COCHO. '+'');
  trGradeRestaurar();
  trCalc();
- // Publicação atômica lógica: o marcador é gravado por último.
- if(typeof perfilLogado!=='undefined'&&perfilLogado==='ADMIN'&&trData()===data){
-  try{await trPublicarGradeOficial(data)}
-  catch(e){if(aviso)aviso.textContent='ERRO AO PUBLICAR PREVISÃO OFICIAL: '+e.message;trToast('PREVISÃO NÃO PUBLICADA: '+e.message,true)}
- }
+ // A grade é publicada SOMENTE após alteração explícita no checkbox ou lápis.
+ // Nunca sobrescrever a previsão oficial apenas por abrir a tela.
 
  const hist=salvos.sort((a,b)=>b.data.localeCompare(a.data));
  const trLista=document.getElementById('tr_listagem');if(trLista)trLista.innerHTML=hist.length?'<div class="table-wrap"><table><thead><tr><th>DATA</th><th>CURRAL</th><th>REALIZADO</th></tr></thead><tbody>'+hist.map(r=>'<tr><td>'+trEsc(r.data)+'</td><td>'+trEsc(r.local)+'</td><td>'+trFmt(r.v.reduce((a,b)=>a+trN(b),0))+'</td></tr>').join('')+'</tbody></table></div>':'<div class="empty">NENHUMA DISTRIBUIÇÃO SALVA.</div>';
@@ -4628,12 +4644,25 @@ window.trFichaSnapshot=async function(sistema,dia){
  return rows.map(tr=>({local:tr.dataset.local,total:Number(tr.dataset.total),bois:trN(tr.children[4]?.textContent),tratos:[...tr.querySelectorAll('td[data-prev]')].map(td=>td.dataset.ajustado===''?0:Number(td.dataset.ajustado??td.dataset.prev)||0)}));
 };
 
+function trAbrirJanelaImpressao(){
+ // Abrir na interação direta do botão; em celulares o bloqueador pode impedir pop-ups.
+ let w=null;
+ try{w=window.open('','_blank');}catch(e){}
+ if(w)return w;
+ // A impressão fica disponível na própria página, sem exigir liberação de pop-ups.
+ const antiga=document.getElementById('tr_impressao_mobile');if(antiga)antiga.remove();
+ const painel=document.createElement('div');painel.id='tr_impressao_mobile';
+ painel.style.cssText='position:fixed;inset:0;z-index:2147483647;background:#fff;overflow:auto;padding:12px;color:#111';
+ painel.innerHTML='<div class="no-print" style="position:sticky;top:0;background:#fff;padding:10px;display:flex;gap:8px;z-index:2"><button type="button" onclick="window.print()">IMPRIMIR / SALVAR PDF</button><button type="button" onclick="document.getElementById(\'tr_impressao_mobile\').remove()">FECHAR</button></div><iframe title="RELATÓRIO PARA IMPRESSÃO" style="border:0;width:100%;height:85vh"></iframe>';
+ document.body.appendChild(painel);
+ const frame=painel.querySelector('iframe');
+ return {document:frame.contentDocument,focus:()=>frame.contentWindow?.focus(),print:()=>frame.contentWindow?.print(),__mobile:true};
+}
 async function trImprimirRelatorioOficial(){
  const dia=trData();
  if(typeof supa==='undefined'){trToast('SUPABASE INDISPONÍVEL',true);return}
  // Open synchronously to avoid popup blockers after awaited network requests.
- const janela=window.open('','_blank');
- if(!janela){trToast('LIBERE POP-UPS PARA IMPRIMIR',true);return}
+ const janela=trAbrirJanelaImpressao();
  janela.document.write('<html><body style="font-family:Arial;padding:25px">CONSULTANDO OS TRATOS SALVOS NO SUPABASE...</body></html>');
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const kg=v=>Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -5048,6 +5077,20 @@ async function trHistoricoCarregar(){
 // ETAPA 17: CONFERÊNCIA DE CARREGAMENTO. REGISTROS DE CARGA SÃO INDEPENDENTES DA LEITURA.
 let trCargaUltima=null;
 let trCargaRenderSeq=0;
+// A data escolhida na distribuição é soberana. Sincronizar o carregamento
+// somente por ação explícita do usuário, sem restaurar a data anterior.
+let trDistribuicaoSelecaoSeq=0;
+async function trSelecionarDataDistribuicao(){
+ const seq=++trDistribuicaoSelecaoSeq;
+ const dia=document.getElementById('tr_data')?.value;
+ const carga=document.getElementById('tr_carga_data');
+ if(dia&&carga)carga.value=dia;
+ ++trCargaRenderSeq; // invalida consultas antigas que poderiam sobrescrever a tela
+ await tratosRender();
+ if(seq!==trDistribuicaoSelecaoSeq||document.getElementById('tr_data')?.value!==dia)return;
+ await trCargaRender();
+}
+
 async function trCargaRender(){
  const sequencia=++trCargaRenderSeq;
  const cfg=trCochoConfig();
@@ -5107,9 +5150,9 @@ async function trCargaRender(){
   let previstoGradeSistema=null;
   if(!registro){
    if(document.getElementById('tr_data')?.value!==data){
-    const pendentes=[...document.querySelectorAll('#tr_grade_body input[data-f="v"]')].some(i=>!i.disabled&&i.value.trim()!=='');
-    if(pendentes)throw Error('HÁ DISTRIBUIÇÕES NÃO SALVAS NA OUTRA DATA. SALVE-AS ANTES DE TROCAR A DATA.');
-    document.getElementById('tr_data').value=data;
+    // Nunca alterar a data de distribuição como efeito colateral de uma consulta de carga.
+    // Uma carga de outro dia não pode substituir a data escolhida pelo operador.
+    throw Error('DATA DO CARREGAMENTO DIFERENTE DA DISTRIBUIÇÃO. SELECIONE A MESMA DATA NOS DOIS CAMPOS.');
    }
    // Uma grade antiga no DOM não prova que suas previsões foram atualizadas.
    // Reconsultar a fonte oficial ANTES de calcular qualquer ingrediente.
@@ -5495,7 +5538,7 @@ async function trSincronizarPrevisaoFicha(dia,sistema){
  trCalc();
 }
 async function trImprimirPrevisaoConferida(){
- const janela=window.open('','_blank');if(!janela){trToast('LIBERE POP-UPS',true);return;}
+ const janela=trAbrirJanelaImpressao();
  janela.document.write('<p>CONSULTANDO DIETA ATIVA E PREVISÃO...</p>');
  try{
   const dia=document.getElementById('tr_carga_data').value;

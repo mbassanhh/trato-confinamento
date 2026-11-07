@@ -1285,6 +1285,23 @@ body{background:#f4f8f7}
 #peso_estimado_tabela .peso-estimado-tabela th:not(:first-child),#peso_estimado_tabela .peso-estimado-tabela td:not(:first-child){text-align:right}
 @media(max-width:760px){#peso_estimado_tabela .peso-estimado-tabela th,#peso_estimado_tabela .peso-estimado-tabela td{font-size:10px;padding:6px 3px}}
 </style>
+<style id="rel-leilao-ajuste-exclusivo">
+#relatorios .panel{max-width:100%;min-width:0;overflow:visible}
+#relatorios .rel-leilao-sem-rolagem{width:100%;max-width:100%;overflow:visible}
+#relatorios .rel-leilao-tabela{width:100%;min-width:0!important;max-width:100%;table-layout:fixed;border-collapse:collapse;font-size:clamp(7px,.68vw,10px)}
+#relatorios .rel-leilao-tabela th,#relatorios .rel-leilao-tabela td{padding:5px 2px;white-space:normal;overflow-wrap:anywhere;word-break:normal;line-height:1.25;text-align:center}
+#relatorios .rel-leilao-tabela th:nth-child(1){width:9%}
+#relatorios .rel-leilao-tabela th:nth-child(2){width:3%}
+#relatorios .rel-leilao-tabela th:nth-child(3){width:5%}
+#relatorios .rel-leilao-tabela th:nth-child(4),#relatorios .rel-leilao-tabela th:nth-child(8){width:7%}
+#relatorios .rel-leilao-tabela th:nth-child(5),#relatorios .rel-leilao-tabela th:nth-child(6){width:6%}
+#relatorios .rel-leilao-tabela th:nth-child(7){width:5%}
+#relatorios .rel-leilao-tabela th:nth-child(9){width:4%}
+#relatorios .rel-leilao-tabela th:nth-child(10){width:8%}
+#relatorios .rel-leilao-tabela th:nth-child(n+11){width:6.8%}
+@media(max-width:760px){#relatorios .rel-leilao-tabela{font-size:7px}#relatorios .rel-leilao-tabela th,#relatorios .rel-leilao-tabela td{padding:3px 1px}#relatorios .kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media print{#relatorios .rel-leilao-tabela{font-size:7px!important}#relatorios .rel-leilao-tabela th,#relatorios .rel-leilao-tabela td{padding:3px 1px!important}}
+</style>
 </head>
 <body>
 <div id="supaLogin" style="position:fixed;inset:0;background:#f3f6f8;z-index:99999;display:flex;align-items:center;justify-content:center;padding:18px">
@@ -1821,7 +1838,7 @@ body{background:#f4f8f7}
     </section>
 
     <section id="graficos" class="page"><div id="graficosConteudo" class="chart-grid"></div></section>
-  <section id="relatorios" class="page"><div class="panel"><h2>Relatórios / Impressão</h2><p>Imprima a listagem atual pelo botão no topo.</p></div></section>
+  <section id="relatorios" class="page"><div class="panel"><div class="section-head"><div><h2>RELATÓRIO DE ANIMAIS PARA O LEILÃO</h2><p>Consulta atualizada do estoque ativo na localidade LEILÃO. Todos os animais, independentemente da data de movimentação. Consulta e impressão não alteram dados.</p></div><div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="button" onclick="relLeilaoAtualConsultar()">ATUALIZAR RELATÓRIO</button><button class="btn" type="button" onclick="relLeilaoAtualImprimir()">IMPRIMIR / SALVAR PDF</button></div></div><div id="rel_leilao_atual_resultado" class="notice">Clique em ATUALIZAR RELATÓRIO para consultar o estoque atual no Supabase.</div></div></section>
 <div id="assinaturaGlobal" style="margin:28px 8px 8px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:12px;font-weight:800;font-style:italic;color:#17242d">
 <span>FAZENDA NOVA ESPERANÇA</span>
 <span>DESENVOLVIDO POR MARCO BASSAN | SET/2026</span>
@@ -2062,7 +2079,7 @@ async function abrirHistoricoCocho(imprimir=false){
  await consultarHistoricoCocho();
  if(imprimir)setTimeout(imprimirFichaCocho,200);
 }
-function showPage(id,btn){const anterior=document.querySelector('.page.active')?.id;document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');if(id==='lote'&&anterior!=='lote')limparNovaPesagem();if(id==='cocho')carregarModuloCocho();renderAll();if(id==='dashboard'&&typeof window.carregarGraficoFinanceiroOficial==='function')window.carregarGraficoFinanceiroOficial();else if(id==='financeiro'&&typeof atualizarFinanceiro==='function')atualizarFinanceiro()}
+function showPage(id,btn){const anterior=document.querySelector('.page.active')?.id;document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');if(id==='lote'&&anterior!=='lote')limparNovaPesagem();if(id==='cocho')carregarModuloCocho();if(id==='relatorios')relLeilaoCarregar();renderAll();if(id==='dashboard'&&typeof window.carregarGraficoFinanceiroOficial==='function')window.carregarGraficoFinanceiroOficial();else if(id==='financeiro'&&typeof atualizarFinanceiro==='function')atualizarFinanceiro()}
 function pad(n){return String(n).padStart(2,'0')}
 function dias(){let e=$('l_entrada').value,s=$('l_saida').value;if(!e||!s)return '';let a=new Date(e+'T00:00:00'),b=new Date(s+'T00:00:00');return Math.max(0,Math.round((b-a)/86400000))}
 function calc(){let d=dias();$('a_dias').value=d===''?'':d;let pe=parseFloat($('a_pe').value),ps=parseFloat($('a_ps').value),g=(isFinite(pe)&&isFinite(ps)&&d>0)?(ps-pe)/d:'';$('a_gmd').value=g===''?'':g.toFixed(3);let diaria=parseFloat($('l_diaria').value)||0,atual=d===''?'':diaria*d,compra=parseFloat($('l_compra').value)||0,acum=parseFloat($('a_acum').value);if(!isFinite(acum))acum=parseFloat($('l_acum').value)||0;custo=atual===''?'':compra+atual+acum;$('a_atual').value=atual===''?'':atual.toFixed(2);$('a_acum').value=acum===''?'':acum.toFixed(2);$('a_custo').value=custo===''?'':custo.toFixed(2)}
@@ -2554,6 +2571,51 @@ function renderFinanceiro(){
 }
 
 
+
+// Relatório de transferências ao LEILÃO: leitura exclusiva, sem atualizar dados.
+async function relLeilaoCarregar(){
+ const el=document.getElementById('rel_leilao_resultado');if(!el)return;
+ const dia=document.getElementById('rel_leilao_data')?.value;
+ if(!dia){el.textContent='INFORME A DATA.';return;}
+ el.textContent='CONSULTANDO MOVIMENTAÇÕES NO BANCO...';
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const fmt=(v,d=2)=>Number(v).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+ const br=v=>String(v||'').split('-').reverse().join('/');
+ try{
+  let mov=[];
+  for(let inicio=0;inicio<10000;inicio+=1000){
+   const r=await supa.from('movimentacoes_animais').select('animal_id,brinco,origem,destino,data_movimentacao,data_entrada_origem,dias_origem,peso_entrada_origem,custo_ciclo').eq('data_movimentacao',dia).eq('destino','LEILÃO').order('brinco').range(inicio,inicio+999);
+   if(r.error)throw r.error;mov.push(...(r.data||[]));if((r.data||[]).length<1000)break;
+  }
+  const ids=[...new Set(mov.map(x=>x.animal_id).filter(Boolean))];
+  const animaisPorId=new Map();
+  for(let i=0;i<ids.length;i+=100){const r=await supa.from('animais').select('id,brinco,peso_saida,status,localizacao').in('id',ids.slice(i,i+100));if(r.error)throw r.error;(r.data||[]).forEach(a=>animaisPorId.set(String(a.id),a));}
+  const registros=mov.map(m=>{
+   const a=animaisPorId.get(String(m.animal_id));const entrada=Number(m.peso_entrada_origem),saida=Number(a?.peso_saida);
+   const dias=m.data_entrada_origem?Math.round((new Date(dia+'T12:00:00')-new Date(String(m.data_entrada_origem).slice(0,10)+'T12:00:00'))/86400000):Number(m.dias_origem);
+   // Peso de saída atual só é válido se o animal ainda está no LEILÃO e não houve movimento posterior.
+   const pesoValido=a&&String(a.localizacao||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase()==='LEILAO';
+   const gmd=pesoValido&&entrada>0&&saida>0&&Number.isFinite(dias)&&dias>0?(saida-entrada)/dias:null;
+   return {...m,entrada,saida:pesoValido?saida:null,dias,gmd};
+  });
+  const grupos=new Map();for(const x of registros){const k=x.origem||'NÃO INFORMADA';if(!grupos.has(k))grupos.set(k,[]);grupos.get(k).push(x);}
+  const media=lista=>{const validos=lista.filter(x=>Number.isFinite(x.gmd));return validos.length?fmt(validos.reduce((s,x)=>s+x.gmd,0)/validos.length,3):'—';};
+  const qtdGmdValidos=registros.filter(x=>Number.isFinite(x.gmd)).length;
+  let h='<div class="notice"><b>FAZENDA NOVA ESPERANÇA — '+esc(br(dia))+'</b><div style="font-size:19px;margin-top:6px"><b>TOTAL ENVIADO AO LEILÃO: '+registros.length+' ANIMAIS</b></div><div>GMD MÉDIO DOS ANIMAIS COM DADOS VÁLIDOS: <b>'+media(registros)+' KG/DIA</b></div><div><b>'+qtdGmdValidos+' ANIMAIS</b> CONSIDERADOS NA MÉDIA · '+(registros.length-qtdGmdValidos)+' SEM GMD CALCULÁVEL (EXCLUÍDOS DA MÉDIA)</div></div>';
+  h+='<div class="table-wrap"><table style="min-width:700px"><thead><tr><th>ORIGEM</th><th>ANIMAIS</th><th>GMD MÉDIO (KG/DIA)</th><th>GMD APURADOS</th></tr></thead><tbody>';
+  for(const [nome,ls] of grupos)h+='<tr><td>'+esc(nome)+'</td><td>'+ls.length+'</td><td>'+media(ls)+'</td><td>'+ls.filter(x=>x.gmd!==null).length+'</td></tr>';
+  h+='<tr style="font-weight:bold;background:#f1f3f4"><td>TOTAL</td><td>'+registros.length+'</td><td>'+media(registros)+'</td><td>'+registros.filter(x=>x.gmd!==null).length+'</td></tr></tbody></table></div>';
+  h+='<h3 style="margin:18px 0 8px">DETALHAMENTO POR ANIMAL</h3><div class="table-wrap"><table style="min-width:900px"><thead><tr><th>ORIGEM</th><th>BRINCO</th><th>DATA ENTRADA CICLO</th><th>PESO ENTRADA (KG)</th><th>PESO SAÍDA (KG)</th><th>DIAS</th><th>GMD (KG/DIA)</th></tr></thead><tbody>';
+  for(const x of registros)h+='<tr><td>'+esc(x.origem)+'</td><td><b>'+esc(x.brinco)+'</b></td><td>'+esc(x.data_entrada_origem?br(x.data_entrada_origem):'—')+'</td><td>'+((x.entrada>0)?fmt(x.entrada,0):'—')+'</td><td>'+((x.saida>0)?fmt(x.saida,0):'—')+'</td><td>'+((x.dias>0)?x.dias:'—')+'</td><td><b>'+(x.gmd!==null?fmt(x.gmd,3):'PENDENTE')+'</b></td></tr>';
+  h+='</tbody></table></div><div class="notice">GMD = (PESO DE SAÍDA − PESO DE ENTRADA DO CICLO) ÷ DIAS, CONTANDO O PRIMEIRO DIA E NÃO O ÚLTIMO. GMD PENDENTE QUANDO FALTA PESO OU DATA VÁLIDA. ANIMAIS PENDENTES NÃO ENTRAM NO DIVISOR DA MÉDIA E NÃO SÃO CONSIDERADOS COMO GMD ZERO. NÃO UTILIZA PESO ESTIMADO. TRANSFERÊNCIA NÃO É VENDA. DADOS CONSULTADOS NO SUPABASE, SEM ALTERAR CADASTROS.</div>';
+  el.innerHTML=h;
+ }catch(e){el.textContent='ERRO AO CONSULTAR MOVIMENTAÇÕES: '+String(e.message||e);}
+}
+function relLeilaoImprimir(){
+ const el=document.getElementById('rel_leilao_resultado');if(!el||!el.querySelector('table')){alert('CONSULTE O RELATÓRIO ANTES DE IMPRIMIR.');return;}
+ const w=window.open('','_blank','width=1200,height=850');if(!w){alert('PERMITA JANELAS POP-UP PARA IMPRIMIR.');return;}
+ w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>RELATÓRIO MOVIMENTAÇÕES PARA LEILÃO</title><style>@page{size:A4 landscape;margin:10mm}body{font-family:Arial,sans-serif;font-size:10px}h1{font-size:17px}table{width:100%;border-collapse:collapse;font-size:9px;margin:8px 0 15px}th,td{border:1px solid #999;padding:4px;text-align:left}th{background:#eee}tr{break-inside:avoid}thead{display:table-header-group}.notice{padding:7px;border:1px solid #ccc;margin:8px 0}.table-wrap{overflow:visible}button{margin-bottom:12px}@media print{button{display:none}}</style></head><body><button onclick="window.print()">IMPRIMIR / SALVAR PDF</button><h1>FAZENDA NOVA ESPERANÇA</h1>'+el.innerHTML+'<p>Desenvolvido por Marco Bassan</p></body></html>');w.document.close();w.focus();setTimeout(()=>w.print(),350);
+}
 
 function selecionarRelatorioVenda(id){
  document.querySelectorAll('#relatorios_vendas_selecionados .relatorio-venda-individual').forEach(el=>{el.style.display=el.id===id?'block':'none';});
@@ -6327,4 +6389,105 @@ async function auditoriaCarregar(mais=false){
 </script>
 
 
+<script>
+function relCustos41Imprimir(){
+ const el=document.getElementById('rel_custos_41_conteudo');if(!el)return;
+ const w=window.open('','_blank','width=1300,height=900');if(!w){alert('PERMITA JANELAS POP-UP PARA IMPRIMIR.');return;}
+ w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>RELATÓRIO DE CUSTOS — 41 ANIMAIS</title><style>@page{size:A3 landscape;margin:9mm}body{font-family:Arial,sans-serif;color:#222;font-size:9px}.notice{padding:8px;margin:8px 0;border:1px solid #aaa}.kpis{display:flex;gap:10px;margin:10px 0}.kpi{border:1px solid #aaa;padding:8px;flex:1}.kpi span{display:block;font-size:9px}.kpi strong{font-size:15px}table{border-collapse:collapse;width:100%;font-size:8px}th,td{border:1px solid #aaa;padding:4px;text-align:left}th{background:#eee}tr{break-inside:avoid}</style></head><body><h2>FAZENDA NOVA ESPERANÇA — RELATÓRIO DE CUSTOS — 41 ANIMAIS</h2>'+el.innerHTML+'</body></html>');
+ w.document.close();w.focus();setTimeout(()=>w.print(),350);
+}
+
+</script>
+<script>
+// RELATÓRIO LEILÃO ATUAL — SOMENTE LEITURA. Não interfere nos demais módulos.
+async function relLeilaoAtualConsultar(){
+ const el=document.getElementById('rel_leilao_atual_resultado');if(!el)return;
+ el.textContent='CONSULTANDO ANIMAIS ATIVOS NO LEILÃO...';
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const fmt=(v,n=2)=>Number(v).toLocaleString('pt-BR',{minimumFractionDigits:n,maximumFractionDigits:n});
+ const moeda=v=>Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+ const br=v=>v?String(v).slice(0,10).split('-').reverse().join('/'):'—';
+ const num=v=>v===null||v===undefined||v===''?null:Number(v);
+ const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();
+ try{
+  const ativos=[];
+  for(let i=0;i<10000;i+=1000){
+   const r=await supa.from('animais').select('id,brinco,localizacao,status,origem,data_entrada,peso_entrada,peso_saida,data_saida,preco_compra,custo_acumulado,custo_atual,valor_diaria,origem_compra,qtd_dias').eq('status','ATIVO').in('localizacao',['LEILÃO','LEILAO']).order('brinco').range(i,i+999);
+   if(r.error)throw r.error;ativos.push(...(r.data||[]));if((r.data||[]).length<1000)break;
+  }
+  const ids=ativos.map(x=>x.id).filter(Boolean), movimentos=[];
+  for(let i=0;i<ids.length;i+=100){
+   const r=await supa.from('movimentacoes_animais').select('animal_id,origem,destino,data_movimentacao,data_entrada_origem,dias_origem,peso_entrada_origem,custo_ciclo,acumulado_apos_ciclo').in('animal_id',ids.slice(i,i+100)).order('data_movimentacao',{ascending:false});
+   if(r.error)throw r.error;movimentos.push(...(r.data||[]));
+  }
+  const ultima=new Map();
+  for(const m of movimentos){if(!ultima.has(String(m.animal_id))&&norm(m.destino)==='LEILAO')ultima.set(String(m.animal_id),m);}
+  // MESMA FONTE DA TELA DIÁRIAS: referência histórica ponderada + fechamentos posteriores.
+  const diarios=[];
+  for(let i=0;i<10000;i+=1000){
+   const r=await supa.from('nutri_custos_diarios').select('localizacao,data_trato,custo_diaria_cabeca,quantidade_animais,fechado').eq('fechado',true).order('data_trato',{ascending:false}).range(i,i+999);
+   if(r.error)throw r.error;diarios.push(...(r.data||[]));if((r.data||[]).length<1000)break;
+  }
+  const diariasPorLocal=new Map();
+  for(const d of diarios){
+   const k=norm(d.localizacao);
+   if(!diariasPorLocal.has(k))diariasPorLocal.set(k,[]);
+   if(d.custo_diaria_cabeca!==null&&Number.isFinite(Number(d.custo_diaria_cabeca))&&Number(d.quantidade_animais)>0)diariasPorLocal.get(k).push(d);
+  }
+  const mediaOficial=(local,limite)=>{
+   const chave=norm(local);
+   const sistema=(chave.startsWith('BAIA ')||chave==='VINHACA'||chave==='BARRACAO'||chave==='CASINHA CARLINHOS'||/^PASTO [AB][12]$/.test(chave)||chave==='SEDE PIQUETE'||chave.startsWith('PIQUETEAMENTO ')||chave==='MOMBACA')?'CONFINAMENTO':'SEMI';
+   const ref=MEDIA_HISTORICA_REFERENCIA_22_10[sistema+'|'+chave]||MEDIA_HISTORICA_REFERENCIA_22_10['SEMI|'+chave]||null;
+   const baseDias=ref&&ref.ate<limite?Number(ref.dias)||0:0;
+   const posteriores=(diariasPorLocal.get(chave)||[]).filter(d=>d.data_trato<limite&&(!ref||!baseDias||d.data_trato>ref.ate));
+   const soma=baseDias*Number(ref?.media||0)+posteriores.reduce((t,d)=>t+Number(d.custo_diaria_cabeca),0);
+   const n=baseDias+posteriores.length;
+   return n?{valor:soma/n,dias:n,base:baseDias}:null;
+  };
+  const linhas=ativos.map(a=>{
+   const m=ultima.get(String(a.id));
+   const pe=num(m?.peso_entrada_origem)??num(a.peso_entrada);
+   const ps=num(a.peso_saida);
+   const entrada=m?.data_entrada_origem||a.data_entrada;
+   const saida=m?.data_movimentacao||null;
+   const dias=entrada&&saida?Math.round((Date.parse(saida+'T12:00:00Z')-Date.parse(entrada+'T12:00:00Z'))/86400000):(num(m?.dias_origem)??num(a.qtd_dias));
+   const gmd=pe!==null&&ps!==null&&dias>0?(ps-pe)/dias:null;
+   const compra=num(a.preco_compra),acumulado=num(a.custo_acumulado);
+   const localOrigem=norm(m?.origem||a.origem);
+   const diariaBanco=num(a.valor_diaria);
+   const media=saida?mediaOficial(localOrigem,saida):null;
+   // Não usar apenas os fechamentos recentes: isso descartava a base anterior a 26/10.
+   // Fonte única com a média ponderada oficial exibida em DIÁRIAS.
+   const diaria=media?media.valor:diariaBanco;
+   const diariaFonte=media?'MÉDIA OFICIAL ('+media.dias+' DIAS)':diariaBanco!==null?'CADASTRO':'SEM REGISTRO';
+   // Fórmulas da planilha: N = I * M; O = SOMA(K:L,N). Não utilizar a coluna custo_atual do BD como parcela adicional.
+   const atual=dias!==null&&dias>=0&&diaria!==null?dias*diaria:null;
+   const custoTotal=[compra,acumulado,atual].some(v=>v!==null)?(compra??0)+(acumulado??0)+(atual??0):null;
+   return {a,m,pe,ps,dias,gmd,compra,acumulado,atual,diaria,diariaFonte,custoTotal,entrada,saida};
+  });
+  // Agrupar por localidade de origem; dentro do grupo, ordenar pelo número do brinco.
+  linhas.sort((x,y)=>norm(x.m?.origem||x.a.origem).localeCompare(norm(y.m?.origem||y.a.origem),'pt-BR',{numeric:true})||String(x.a.brinco||'').localeCompare(String(y.a.brinco||''),'pt-BR',{numeric:true}));
+  const validos=linhas.filter(x=>x.gmd!==null),gmd=validos.length?validos.reduce((s,x)=>s+x.gmd,0)/validos.length:null;
+  const custoValidos=linhas.filter(x=>x.custoTotal!==null),custoTotal=custoValidos.reduce((s,x)=>s+x.custoTotal,0);
+  const mediaCompra=linhas.filter(x=>x.compra>0&&x.custoTotal!==null);
+  const mediaCusto=mediaCompra.length?mediaCompra.reduce((s,x)=>s+x.custoTotal,0)/mediaCompra.length:null;
+  let h='<div class="notice"><b>FAZENDA NOVA ESPERANÇA — ESTOQUE ATUAL DO LEILÃO</b> · CONSULTA EM TEMPO REAL · NÃO É VENDA</div>';
+  h+='<div class="kpis" style="grid-template-columns:repeat(4,minmax(0,1fr))"><div class="kpi"><span>ANIMAIS ATIVOS NO LEILÃO</span><strong>'+linhas.length+'</strong></div><div class="kpi"><span>GMD MÉDIO (KG/DIA)</span><strong>'+(gmd===null?'—':fmt(gmd,3))+'</strong></div><div class="kpi"><span>ANIMAIS COM GMD VÁLIDO</span><strong>'+validos.length+' / '+linhas.length+'</strong></div><div class="kpi"><span>CUSTO MÉDIO FINAL*</span><strong>'+(mediaCusto===null?'—':moeda(mediaCusto))+'</strong></div></div>';
+  h+='<div class="rel-leilao-sem-rolagem"><table class="rel-leilao-tabela"><thead><tr><th>ORIGEM / LOCAL ANTERIOR</th><th>Nº</th><th>BRINCO</th><th>DATA ENTRADA</th><th>PESO ENTRADA (KG)</th><th>PESO SAÍDA (KG)</th><th>GMD (KG/DIA)</th><th>DATA MOV. LEILÃO</th><th>DIAS</th><th>ORIGEM COMPRA</th><th>PREÇO COMPRA (R$)</th><th>ACUMULADO (R$)</th><th>VALOR DIÁRIA (R$)</th><th>CUSTO ATUAL (R$)</th><th>TOTAL CUSTO (R$)</th></tr></thead><tbody>';
+  const showNum=(v,d=2)=>v===null||!Number.isFinite(v)?'—':fmt(v,d);
+  const showMoney=v=>v===null||!Number.isFinite(v)?'—':moeda(v);
+  linhas.forEach((x,i)=>{const a=x.a,m=x.m;
+   h+='<tr><td>'+esc(m?.origem||a.origem||'—')+'</td><td>'+(i+1)+'</td><td><b>'+esc(a.brinco||'SB')+'</b></td><td>'+br(x.entrada)+'</td><td>'+showNum(x.pe,0)+'</td><td>'+showNum(x.ps,0)+'</td><td><b>'+showNum(x.gmd,3)+'</b></td><td>'+br(x.saida)+'</td><td>'+showNum(x.dias,0)+'</td><td>'+esc(a.origem_compra||'—')+'</td><td>'+showMoney(x.compra)+'</td><td>'+showMoney(x.acumulado)+'</td><td>'+showMoney(x.diaria)+'</td><td>'+showMoney(x.atual)+'</td><td><b>'+showMoney(x.custoTotal)+'</b></td></tr>';
+  });
+  h+='</tbody></table></div><div class="notice">GMD MÉDIO: SOMENTE ANIMAIS COM PESOS E DIAS VÁLIDOS; DEMAIS NÃO ENTRAM NO DIVISOR. *CUSTO MÉDIO FINAL: SOMENTE ANIMAIS COM PREÇO DE COMPRA MAIOR QUE ZERO E COMPONENTES DE CUSTO INFORMADOS ('+mediaCompra.length+' ANIMAIS). CUSTO TOTAL CONFORME PLANILHA: SOMA DOS VALORES DISPONÍVEIS DE COMPRA, ACUMULADO E DIAS × DIÁRIA. COMPONENTES AUSENTES NÃO SÃO ESTIMADOS. LINHAS COM ALGUM COMPONENTE INFORMADO ('+custoValidos.length+' ANIMAIS; SOMA '+moeda(custoTotal)+'). DIÁRIA: MESMA MÉDIA PONDERADA OFICIAL DA TELA DIÁRIAS, COM BASE HISTÓRICA E FECHAMENTOS POSTERIORES SEM DUPLICAR DATAS. A MÉDIA NÃO SUBSTITUI O CUSTO INDIVIDUAL HISTÓRICO DE CICLOS ANTERIORES. CAMPOS SEM FONTE APARECEM COMO —. RELATÓRIO DE CONSULTA, SEM GRAVAÇÃO.</div>';
+  el.innerHTML=h;
+ }catch(e){el.textContent='ERRO AO CONSULTAR O LEILÃO: '+String(e.message||e);}
+}
+function relLeilaoAtualImprimir(){
+ const el=document.getElementById('rel_leilao_atual_resultado');if(!el||!el.querySelector('table')){alert('CONSULTE O RELATÓRIO ANTES DE IMPRIMIR.');return;}
+ const w=window.open('','_blank','width=1300,height=900');if(!w){alert('LIBERE A JANELA DE IMPRESSÃO NO NAVEGADOR.');return;}
+ w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>FAZENDA NOVA ESPERANÇA — LEILÃO</title><style>@page{size:A3 landscape;margin:7mm}body{font-family:Arial,sans-serif;font-size:9px;color:#222}.kpis{display:flex;gap:8px;margin:10px 0}.kpi{border:1px solid #ccc;padding:8px;flex:1}.kpi span{display:block;font-size:9px}.kpi strong{font-size:15px}table{width:100%;min-width:0!important;table-layout:fixed;border-collapse:collapse;font-size:6.5px}th,td{border:1px solid #bbb;padding:2px;text-align:center;white-space:normal;overflow-wrap:anywhere}th{background:#eee}tr{break-inside:avoid}.notice{margin:10px 0}</style></head><body><h2>FAZENDA NOVA ESPERANÇA — ANIMAIS ATIVOS PARA LEILÃO</h2>'+el.innerHTML+'</body></html>');
+ w.document.close();w.focus();setTimeout(()=>w.print(),350);
+}
+</script>
 </body></html>

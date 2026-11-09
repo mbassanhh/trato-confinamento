@@ -4065,7 +4065,7 @@ async function tgHomCarregarFicha(){
   const norm=v=>String(v||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
   const locais=[...document.querySelectorAll('#tr_grade_body tr')].filter(tr=>norm(tr.dataset.sistema)===tgSistema && tr.querySelector('[data-tr-dieta]')?.checked!==false).map(tr=>{
    if(tr.dataset.total==null||tr.dataset.total==='')return null;
-   const divisao=[...tr.querySelectorAll('td[data-prev]')].map(td=>td.dataset.ajustado===''?0:Number(td.dataset.ajustado??td.dataset.prev??0));
+   const divisao=[...tr.querySelectorAll('td[data-prev]')].map(td=>Number(td.dataset.prev??0));
    if(divisao.length!==4||divisao.some(v=>!Number.isFinite(v)))throw Error('PREVISÃO INCOMPLETA PARA '+tr.dataset.local);
    return {nome:tr.dataset.local,divisao:tgSistema==='SEMI'?[divisao.reduce((a,b)=>a+b,0),0,0,0]:divisao};
   }).filter(Boolean);
@@ -4132,9 +4132,21 @@ async function tgHomCarregarFicha(){
     const linha=locais.find(l=>normLocal(l.nome)===nome);
     if(!linha)throw Error('NOTA 2 SEM CURRAL NA FICHA MÓVEL: '+a.localizacao);
     const desconto=Number(a.quantidade_kg);
-    if(!Number.isFinite(desconto)||desconto<0||desconto>Number(linha.divisao[0]||0)+0.001)
-      throw Error('DESCONTO NOTA 2 INCOMPATÍVEL COM PRIMEIRO TRATO: '+a.localizacao);
-    linha.divisao[0]-=desconto;
+    if(!Number.isFinite(desconto)||desconto<0)throw Error('NOTA 2 INVÁLIDA: '+a.localizacao);
+    if(desconto>Number(linha.divisao[0]||0)+0.001){
+      // A grade do administrativo pode já conter o desconto depois do Trato 1.
+      // Só aceitar esta condição quando o banco confirmar o Trato 1 efetivamente realizado.
+      const [c1,r1]=await Promise.all([
+       supa.from('tratos_carregamentos').select('id').eq('data_trato',dia).eq('sistema',tgSistema).eq('carga','1').limit(1),
+       supa.from('tratos_realizados').select('id').eq('data_trato',dia).eq('sistema',tgSistema).not('trato_1','is',null).limit(1)
+      ]);
+      if(c1.error||r1.error||!(c1.data||[]).length||!(r1.data||[]).length)
+       throw Error('DESCONTO NOTA 2 INCOMPATÍVEL COM PRIMEIRO TRATO: '+a.localizacao);
+      // Não descontar novamente nem modificar as previsões dos tratos seguintes.
+      tgHomOfflineAviso='TRATO 1 JÁ REGISTRADO — NOTA 2 PRESERVADA, SEM DUPLICAR DESCONTO';
+    }else{
+      linha.divisao[0]-=desconto;
+    }
     nota2+=desconto;jaMarcados.add(nome);
   }
   const cargas=[0,1,2,3].map(i=>locais.reduce((t,r)=>t+Number(r.divisao[i]||0),0));
@@ -4145,22 +4157,38 @@ async function tgHomCarregarFicha(){
   const planos={};
   for(const n of (tgSistema==='SEMI'?[1]:[1,2,3,4])){
    const idx=n-1;
-   planos[n]={ingredientes:ingredientes.map(i=>[i.nome,cargas[idx]*i.frac,i.id]),currais:locais.filter(l=>l.divisao[idx]>0).map(l=>[l.nome,l.divisao[idx]])};
+   planos[n]={ingredientes:ingredientes.map(i=>[i.nome,cargas[idx]*i.frac,i.id]),currais:tgOrdenarCurrais(locais.filter(l=>l.divisao[idx]>0).map(l=>[l.nome,l.divisao[idx]]))};
   }
   if(tgSistema!==sistemaSolicitado)return;
-  tgHomFicha={dia,sistema:tgSistema,planos,versaoDieta:String(versao.id),origem:gradeDisponivel?'GRADE OFICIAL':'LEITURAS OFICIAIS + CONFIGURAÇÃO DE TRATOS',gradeDisponivel};
+  tgHomFicha={dia,sistema:tgSistema,planos,sobraRecebidaKg:sobra,versaoDieta:String(versao.id),origem:gradeDisponivel?'GRADE OFICIAL':'LEITURAS OFICIAIS + CONFIGURAÇÃO DE TRATOS',gradeDisponivel};
   try{localStorage.setItem('tg_offline_ficha_'+dia+'_'+tgSistema,JSON.stringify(tgHomFicha));}catch(cacheError){console.warn('CACHE DE PREVISÕES NÃO SALVO',cacheError);}
  }catch(e){
   if(tgSistema!==sistemaSolicitado)return;
   tgHomFichaErro=String(e.message||e);
   try{
    const cache=JSON.parse(localStorage.getItem('tg_offline_ficha_'+dia+'_'+tgSistema)||'null');
-   if(!navigator.onLine&&cache&&cache.dia===dia&&cache.sistema===tgSistema&&cache.planos){
-    tgHomFicha=cache;tgHomFichaErro='';tgHomOfflineAviso='PREVISÃO SALVA NO DISPOSITIVO — SEM CONSULTA ATUALIZADA';
+   if(cache&&cache.dia===dia&&cache.sistema===tgSistema&&cache.planos){
+    if(!navigator.onLine){
+     tgHomFicha=cache;tgHomFichaErro='';tgHomOfflineAviso='PREVISÃO SALVA NO DISPOSITIVO — SEM CONSULTA ATUALIZADA';
+    }else if(/^DESCONTO NOTA 2 INCOMPATÍVEL COM PRIMEIRO TRATO:/.test(tgHomFichaErro)){
+     // Após o primeiro trato, a grade administrativa pode refletir os realizados.
+     // Nunca recalcular os descontos do trato 1 sobre essa grade modificada.
+     // Reutilizar apenas a ficha congelada no dispositivo se o banco confirmar
+     // que já houve carregamento e distribuição do primeiro trato.
+     const [c,r]=await Promise.all([
+      supa.from('tratos_carregamentos').select('id').eq('data_trato',dia).eq('sistema',tgSistema).eq('carga','1').limit(1),
+      supa.from('tratos_realizados').select('id').eq('data_trato',dia).eq('sistema',tgSistema).not('trato_1','is',null).limit(1)
+     ]);
+     if(!c.error&&!r.error&&(c.data||[]).length&&(r.data||[]).length){
+      tgHomFicha=cache;tgHomFichaErro='';
+      tgHomOfflineAviso='FICHA ORIGINAL PRESERVADA — TRATO 1 JÁ REALIZADO. PREVISÕES CONGELADAS PARA OS PRÓXIMOS TRATOS';
+     }
+    }
    }
   }catch(cacheError){console.warn('PREVISÃO OFFLINE INDISPONÍVEL',cacheError);}
  }
  if(tgSistema!==sistemaSolicitado)return;
+ await tgHomRecuperarCarregamentosBanco();
  tgHomAtualizarOpcoes('');tgHomRender();
 }
 
@@ -4182,6 +4210,10 @@ function trOrdenarIngredientes(lista){
  return [...lista].sort((a,b)=>trOrdemIngrediente(a.nome??a[0])-trOrdemIngrediente(b.nome??b[0]));
 }
 
+// Ordem operacional solicitada para a distribuição; chaves canônicas evitam duplicações visuais.
+const TG_ORDEM_DISTRIBUICAO=['BAIA A1','BAIA A2','BAIA A3','BAIA A4','BAIA A5','PASTO A1','PASTO A2','PASTO B2','PASTO B1','BAIA B5','BAIA B4','BAIA B3','BAIA B2','BAIA B1','VINHACA','CASINHA CARLINHOS','BARRACAO','SEDE PIQUETE','PIQUETEAMENTO BAIXO','PIQUETEAMENTO ASFALTO','MOMBACA'];
+function tgOrdemChave(nome){return String(nome||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().replace(/^([AB][1-5])$/,'BAIA $1').replace(/^SEDE$/,'SEDE PIQUETE').replace(/^PQT\.?\s+BAIXO$|^PIQ\.?\s+BAIXO$/,'PIQUETEAMENTO BAIXO').replace(/^PQT\.?\s+ASFALTO$|^PIQ\.?\s+ASFALTO$/,'PIQUETEAMENTO ASFALTO');}
+function tgOrdenarCurrais(lista){const m=new Map();for(const x of lista||[]){const k=tgOrdemChave(x[0]);if(!m.has(k))m.set(k,[x[0],Number(x[1])||0]);else m.get(k)[1]+=Number(x[1])||0;}return [...m.values()].sort((a,b)=>{const ia=TG_ORDEM_DISTRIBUICAO.indexOf(tgOrdemChave(a[0])),ib=TG_ORDEM_DISTRIBUICAO.indexOf(tgOrdemChave(b[0]));return (ia<0?999:ia)-(ib<0?999:ib)||String(a[0]).localeCompare(String(b[0]),'pt-BR');});}
 // Redistribuição local por curral: preservar os lançamentos confirmados e
 // repartir apenas o saldo do dia entre os tratos ainda não realizados.
 function tgHomPlanoDinamico(n){
@@ -4211,7 +4243,7 @@ function tgHomPlanoDinamico(n){
  const total=currais.reduce((a,x)=>a+x[1],0);
  const receita=base.ingredientes.reduce((a,x)=>a+Number(x[1]),0);
  const ingredientes=receita>0?base.ingredientes.map(x=>[x[0],total*Number(x[1])/receita,x[2]]):[];
- return {ingredientes,currais};
+ return {ingredientes,currais:tgOrdenarCurrais(currais)};
 }
 function tgHomLista(n,fase){const plano=tgHomPlanoDinamico(Number(n));return plano?.[fase==='ingredientes'?'ingredientes':'currais']||[];}
 function tgHomPronto(n){return tgSistema==='SEMI'||n===1||Array.from({length:n-1},(_,i)=>i+1).every(k=>tgHomDadosNumero(k).fase==='concluido');}
@@ -4220,13 +4252,73 @@ function tgHomPlanoValido(n){const p=tgHomFicha?.planos?.[n];return !!(p&&p.ingr
 // HOMOLOGAÇÃO LOCAL: nenhuma chamada de gravação ao banco de produção.
 const tgHomExemplo={ingredientes:[],currais:[]}; // NÃO UTILIZAR DADOS FICTÍCIOS
 function tgHomKey(){return 'homologacao_tratos_ficha_v1_'+tgHomDia()+'_'+tgSistema+'_'+document.getElementById('tgCarga').value;}
+// Recuperação conservadora: leitura somente. Nunca substitui lançamentos locais.
+let tgHomRecuperacaoErro='';
+async function tgHomRecuperarCarregamentosBanco(){
+ tgHomRecuperacaoErro='';
+ if(!tgHomFicha||!navigator.onLine||typeof supa==='undefined')return;
+ const dia=tgHomDia(),sistema=tgSistema;
+ try{
+  const q=await supa.from('tratos_carregamentos')
+   .select('id,carga,carregado_kg,tratos_carregamento_ingredientes(insumo_id,carregado_kg)')
+   .eq('data_trato',dia).eq('sistema',sistema);
+  if(q.error)throw q.error;
+  if(dia!==tgHomDia()||sistema!==tgSistema)return;
+  // O banco é a referência para cargas finalizadas. Se uma carga antiga
+  // foi removida do Supabase, não reutilizar seu estado local obsoleto.
+  const cargasNoBanco=new Set((q.data||[]).map(c=>Number(c.carga)));
+  for(const n of (sistema==='SEMI'?[1]:[1,2,3,4])){
+   if(cargasNoBanco.has(n))continue;
+   const local=tgHomDadosNumero(n);
+   const cargaLocalFinalizada=['aguardando_distribuicao','currais','concluido'].includes(local.fase);
+   if(!cargaLocalFinalizada)continue;
+   const pendencias=tgProdFilaLer().filter(x=>x.dia===dia&&x.sistema===sistema&&Number(x.n)===n);
+   if(pendencias.length){
+    throw Error('CARREGAMENTO '+n+' AUSENTE DO BANCO, MAS EXISTEM '+pendencias.length+' LANÇAMENTO(S) PENDENTE(S) NO CELULAR. NÃO REINICIE NEM REPITA.');
+   }
+   localStorage.removeItem('homologacao_tratos_ficha_v1_'+dia+'_'+sistema+'_'+n);
+   tgHomLog('CARGA_LOCAL_OBSOLETA_REMOVIDA',{dia,sistema,carregamento:n,motivo:'AUSENTE_NO_SUPABASE'});
+  }
+  for(const carga of q.data||[]){
+   const n=Number(carga.carga);
+   if(!Number.isInteger(n)||n<1||n>(sistema==='SEMI'?1:4))continue;
+   const local=tgHomDadosNumero(n);
+   if(local.fase!=='ingredientes'||Object.keys(local.registros||{}).length)continue;
+   const plano=tgHomFicha.planos?.[n];
+   if(!plano)continue;
+   const itens=carga.tratos_carregamento_ingredientes||[];
+   const esperados=plano.ingredientes||[];
+   if(itens.length!==esperados.length)throw Error('CARREGAMENTO '+n+' INCOMPLETO OU COM QUANTIDADE DE INGREDIENTES DIFERENTE.');
+   const registros={};
+   for(let j=0;j<esperados.length;j++){
+    const id=String(esperados[j][2]||'');
+    const encontrados=itens.filter(i=>String(i.insumo_id)===id);
+    if(!id||encontrados.length!==1)throw Error('INGREDIENTES DO CARREGAMENTO '+n+' NÃO CONFEREM COM A FICHA.');
+    const kg=Number(encontrados[0].carregado_kg);
+    if(!Number.isFinite(kg)||kg<0)throw Error('PESO INVÁLIDO NO BANCO.');
+    registros['I'+j]=kg;
+   }
+   const total=Object.values(registros).reduce((a,b)=>a+b,0);
+   if(Math.abs(total-Number(carga.carregado_kg))>0.01)throw Error('TOTAL DO CARREGAMENTO '+n+' DIVERGENTE NO BANCO.');
+   local.registros=registros;
+   local.fase='aguardando_distribuicao';
+   local.planoCongelado=JSON.parse(JSON.stringify(plano));
+   local.versaoDieta=tgHomFicha.versaoDieta;
+   local.recuperadoDoBanco=true;
+   tgHomSalvar(local,n);
+  }
+ }catch(e){
+  tgHomRecuperacaoErro='NÃO FOI POSSÍVEL CONFERIR OS CARREGAMENTOS NO SUPABASE: '+String(e.message||e)+'. NÃO REPITA OS INGREDIENTES.';
+ }
+}
 function tgHomDadosNumero(n){try{return JSON.parse(localStorage.getItem('homologacao_tratos_ficha_v1_'+tgHomDia()+'_'+tgSistema+'_'+n))||{fase:'ingredientes',registros:{}};}catch(e){return {fase:'ingredientes',registros:{}};}}
 function tgHomDados(){try{return JSON.parse(localStorage.getItem(tgHomKey()))||{fase:'ingredientes',registros:{}};}catch(e){return {fase:'ingredientes',registros:{}};}}
 function tgHomSalvar(d,n){const numero=Number(n||document.getElementById('tgCarga').value);if(!numero)throw new Error('CARREGAMENTO NÃO SELECIONADO');localStorage.setItem('homologacao_tratos_ficha_v1_'+tgHomDia()+'_'+tgSistema+'_'+numero,JSON.stringify(d));}
 function tgHomEsc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function tgHomCargasConcluidas(){
- const cargas=tgSistema==='SEMI'?[1]:[1,2,3,4];
- return cargas.filter(n=>['aguardando_distribuicao','currais'].includes(tgHomDadosNumero(n).fase));
+ const cargas=tgSistema==='SEMI'?[1]:[1,2,3,4],dia=tgHomDia(),sistema=tgSistema;
+ return cargas.filter(n=>['aguardando_distribuicao','currais'].includes(tgHomDadosNumero(n).fase)
+   && !tgProdFilaLer().some(x=>x.dia===dia&&x.sistema===sistema&&Number(x.n)===n&&x.etapa==='ingredientes'));
 }
 // Seleção explícita obrigatória para abrir qualquer distribuição, inclusive após recarregar.
 let tgHomDistribuicaoSelecionada='';
@@ -4271,11 +4363,25 @@ function tgHomLog(tipo,detalhes){
 
 function tgHomOfflineStatus(){
  const area=document.getElementById('tgOfflineStatus');if(!area)return;
- let fila=[];try{fila=JSON.parse(localStorage.getItem('tg_offline_fila_v1')||'[]');}catch(e){}
- const n=tgProdFilaLer().length;
- const rede=navigator.onLine?'REDE DISPONÍVEL':'SEM INTERNET';
- area.textContent=rede+' · '+n+' ETAPA(S) PENDENTE(S) NO SUPABASE'+(tgHomOfflineAviso?' · PREVISÃO EM CACHE':'');
- area.style.color=navigator.onLine?'#225d45':'#a32320';if(n){const b=document.createElement('button');b.textContent='SINCRONIZAR';b.onclick=tgProdSincronizar;b.style.cssText='margin-left:8px;padding:5px 9px;background:#315d4b;color:white;border-radius:6px';area.appendChild(b);}
+ const fila=tgProdFilaLer(),n=fila.length;
+ area.replaceChildren();
+ const resumo=document.createElement('span');
+ resumo.textContent=(navigator.onLine?'REDE DISPONÍVEL':'SEM INTERNET')+' · '+n+' ETAPA(S) PENDENTE(S) NO SUPABASE'+(tgHomOfflineAviso?' · PREVISÃO EM CACHE':'');
+ area.appendChild(resumo);
+ area.style.color=navigator.onLine?'#225d45':'#a32320';
+ if(n){
+  const botao=document.createElement('button');
+  botao.type='button';botao.textContent=tgProdEmCurso?'SINCRONIZANDO...':'SINCRONIZAR PENDÊNCIAS';
+  botao.disabled=tgProdEmCurso;
+  botao.onclick=()=>tgProdSincronizar();
+  botao.style.cssText='display:inline-block;margin:8px 0 4px 10px;padding:9px 14px;background:#315d4b;color:white;border-radius:6px;border:0;font-weight:700;cursor:pointer';
+  area.appendChild(botao);
+ }
+ if(tgProdUltimoErro){
+  const aviso=document.createElement('div');aviso.style.cssText='color:#a32320;font-weight:700;margin-top:6px';
+  aviso.textContent='PENDENTE NO SUPABASE: '+tgProdUltimoErro+' — NÃO REPITA O LANÇAMENTO';
+  area.appendChild(aviso);
+ }
 }
 window.addEventListener('online',tgHomOfflineStatus);
 window.addEventListener('offline',tgHomOfflineStatus);
@@ -4283,7 +4389,7 @@ document.addEventListener('DOMContentLoaded',tgHomOfflineStatus);
 
 
 // TRATOS MÓVEL: fila persistente e conferência por etapa. Não altera os demais módulos.
-const TG_PROD_KEY='tg_tratos_pendentes_v2';let tgProdEmCurso=false;
+const TG_PROD_KEY='tg_tratos_pendentes_v2';let tgProdEmCurso=false;let tgProdUltimoErro='';
 function tgProdFilaLer(){try{return JSON.parse(localStorage.getItem(TG_PROD_KEY)||'[]')}catch(e){return []}}
 function tgProdFilaGravar(f){localStorage.setItem(TG_PROD_KEY,JSON.stringify(f));}
 function tgProdFilaAdicionar(n,d){
@@ -4353,17 +4459,52 @@ async function tgProdEnviar(x){
  throw Error('ETAPA DESCONHECIDA');
 }
 async function tgProdSincronizar(){
- if(tgProdEmCurso||!navigator.onLine||!tgProdFilaLer().length)return;tgProdEmCurso=true;
- try{for(const x of tgProdFilaLer()){
-  try{await tgProdEnviar(x);tgProdFilaGravar(tgProdFilaLer().filter(v=>v.chave!==x.chave));}
-  catch(e){const el=document.getElementById('tgOfflineStatus');if(el){el.textContent='PENDENTE NO SUPABASE: '+String(e.message||e)+' — NÃO REPITA O LANÇAMENTO';el.style.color='#a32320';}return;}
- }tgHomOfflineStatus();}finally{tgProdEmCurso=false;}
+ if(tgProdEmCurso||!navigator.onLine||!tgProdFilaLer().length){tgHomOfflineStatus();return;}
+ tgProdEmCurso=true;tgProdUltimoErro='';tgHomOfflineStatus();
+ try{
+  for(const x of tgProdFilaLer()){
+   try{
+    await tgProdEnviar(x);
+    tgProdFilaGravar(tgProdFilaLer().filter(v=>v.chave!==x.chave));
+   }catch(e){
+    tgProdUltimoErro=String(e.message||e);
+    break;
+   }
+  }
+ }finally{
+  tgProdEmCurso=false;
+  tgHomOfflineStatus();
+  if(tgSistema&&tgHomFicha)tgHomRender();
+ }
 }
 window.addEventListener('online',()=>{if(perfilLogado==='TRATADOR')tgProdSincronizar()});
 
 function tgHomDia(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
 function tgHomSobraKey(){return 'homologacao_sobra_vagao_v1_'+tgHomDia()+'_'+tgSistema;}
+const tgHomSobraConsultas={};
 function tgHomSobraRegistro(){try{return JSON.parse(localStorage.getItem(tgHomSobraKey()))||null;}catch(e){return null;}}
+async function tgHomConsultarSobraBanco(){
+ const dia=tgHomDia(),sistema=tgSistema,key=dia+'|'+sistema;
+ if(tgHomSobraConsultas[key]==='pendente')return;
+ tgHomSobraConsultas[key]='pendente';
+ try{
+  if(typeof supa==='undefined'||!navigator.onLine)throw Error('SEM CONEXÃO');
+  const r=await supa.from('tratos_ajustes_df').select('quantidade_kg,observacao').eq('data_referencia',dia).eq('sistema',sistema).eq('tipo','SOBRA_VAGAO');
+  if(r.error)throw r.error;
+  const fechamento=(r.data||[]).filter(x=>String(x.observacao||'').startsWith('FECHAMENTO_MOVEL_DIA:'));
+  if(fechamento.length>1)throw Error('FECHAMENTOS DUPLICADOS');
+  if(fechamento.length){
+   const peso=Number(fechamento[0].quantidade_kg),resumo=tgHomResumoSistema();
+   localStorage.setItem(tgHomSobraKey(),JSON.stringify({tipo:'SOBRA_FINAL_VAGAO',data_referencia:dia,sistema,existe:peso>0,quantidade_kg:peso,total_carregado_kg:resumo.carregado,total_distribuido_kg:resumo.distribuido,diferenca_calculada_kg:resumo.diferenca,origem:'SUPABASE_FECHAMENTO_CONFIRMADO'}));
+  }else{
+   // Descartar cache antigo que classificou a sobra recebida como sobra final.
+   const cache=tgHomSobraRegistro();
+   if(cache?.origem==='SUPABASE_CONFIRMADO')localStorage.removeItem(tgHomSobraKey());
+  }
+  tgHomSobraConsultas[key]='ok';
+  if(tgHomDia()===dia&&tgSistema===sistema)tgHomRender();
+ }catch(e){tgHomSobraConsultas[key]='erro';}
+}
 function tgHomResumoSistema(){
  const cargas=tgSistema==='SEMI'?[1]:[1,2,3,4];let carregado=0,distribuido=0;
  for(const n of cargas){const d=tgHomDadosNumero(n);for(let i=0;i<tgHomLista(n,'ingredientes').length;i++)carregado+=Number(d.registros?.['I'+i]||0);for(let i=0;i<tgHomLista(n,'currais').length;i++)distribuido+=Number(d.registros?.['C'+i]||0);}
@@ -4374,55 +4515,79 @@ function tgHomFmt(v){return Math.round(Number(v)||0).toLocaleString('pt-BR',{max
 function tgHomRenderSobra(){
  if(!tgHomSistemaDistribuido())return '';
  const r=tgHomResumoSistema(),salvo=tgHomSobraRegistro();
- let h='<div style="margin-top:20px;padding:16px;border:1px solid #9ebdad;border-radius:12px;background:#f5faf7"><h3 style="margin:0 0 10px;color:#245c46">FECHAMENTO — SOBRA DO VAGÃO</h3><p>'+tgHomEsc(tgSistema)+' • '+tgHomDia().split('-').reverse().join('/')+'</p>'+
+ if(tgHomSobraConsultas[tgHomDia()+'|'+tgSistema]===undefined)Promise.resolve().then(()=>tgHomConsultarSobraBanco());
+ let h='<div style="margin-top:20px;padding:16px;border:1px solid #9ebdad;border-radius:12px;background:#f5faf7"><h3 style="margin:0 0 10px;color:#245c46">FECHAMENTO — SOBRA FINAL DO VAGÃO</h3><p>'+tgHomEsc(tgSistema)+' • '+tgHomDia().split('-').reverse().join('/')+'</p>'+
  '<p><strong>TOTAL CARREGADO: '+tgHomFmt(r.carregado)+' KG</strong></p><p><strong>TOTAL DISTRIBUÍDO: '+tgHomFmt(r.distribuido)+' KG</strong></p>'+
  '<p><strong>'+(r.diferenca<0?'DIVERGÊNCIA (DISTRIBUÍDO A MAIOR): '+tgHomFmt(-r.diferenca):'DIFERENÇA CALCULADA: '+tgHomFmt(r.diferenca))+' KG</strong></p>';
- if(salvo){h+='<p style="color:#176b36;font-weight:800">SOBRA DO VAGÃO CONFIRMADA ✓</p><p>EXISTE SOBRA: '+(salvo.existe?'SIM':'NÃO')+'</p><p>PESO FÍSICO CONFIRMADO: '+tgHomFmt(salvo.quantidade_kg)+' KG</p><p style="font-size:12px">REGISTRO BLOQUEADO PARA O TRATADOR.</p>';}
- else{h+='<label style="display:block;font-weight:700;margin:14px 0 7px">EXISTE SOBRA FÍSICA NO VAGÃO?</label><div style="display:flex;gap:18px;margin-bottom:12px"><label><input type="radio" name="tgHomExisteSobra" value="sim" onchange="tgHomAlternarSobra()"> SIM</label><label><input type="radio" name="tgHomExisteSobra" value="nao" onchange="tgHomAlternarSobra()"> NÃO</label></div><div id="tgHomPesoSobraBox" style="display:none"><label for="tgHomPesoSobra">PESO REAL DA SOBRA (KG)</label><input id="tgHomPesoSobra" type="number" inputmode="decimal" min="0" step="1" placeholder="INFORME O PESO" style="width:100%;padding:14px;font-size:22px;border:1px solid #bacac2;border-radius:9px;margin:9px 0"></div><p id="tgHomSobraErro" style="color:#a12525;font-weight:700"></p><button type="button" style="width:100%;background:#315d4b;color:white" onclick="tgHomConfirmarSobra()">CONFIRMAR SOBRA DO VAGÃO</button>';}
+ if(salvo){h+='<p style="color:#176b36;font-weight:800">SOBRA FINAL DO VAGÃO CONFIRMADA ✓</p><p>EXISTE SOBRA: '+(salvo.existe?'SIM':'NÃO')+'</p><p>PESO FÍSICO CONFIRMADO: '+tgHomFmt(salvo.quantidade_kg)+' KG</p><p style="font-size:12px">REGISTRO BLOQUEADO PARA O TRATADOR.</p>';}
+ else{h+='<label style="display:block;font-weight:700;margin:14px 0 7px">EXISTE SOBRA FÍSICA AO FINAL DO DIA NO VAGÃO?</label><div style="display:flex;gap:18px;margin-bottom:12px"><label><input type="radio" name="tgHomExisteSobra" value="sim" onchange="tgHomAlternarSobra()"> SIM</label><label><input type="radio" name="tgHomExisteSobra" value="nao" onchange="tgHomAlternarSobra()"> NÃO</label></div><div id="tgHomPesoSobraBox" style="display:none"><label for="tgHomPesoSobra">PESO REAL DA SOBRA (KG)</label><input id="tgHomPesoSobra" type="number" inputmode="decimal" min="0" step="1" placeholder="INFORME O PESO" style="width:100%;padding:14px;font-size:22px;border:1px solid #bacac2;border-radius:9px;margin:9px 0"></div><p id="tgHomSobraErro" style="color:#a12525;font-weight:700"></p><button type="button" style="width:100%;background:#315d4b;color:white" onclick="tgHomConfirmarSobra()">CONFIRMAR SOBRA FINAL DO VAGÃO</button>';}
  return h+'</div>';
 }
 function tgHomAlternarSobra(){const sim=document.querySelector('input[name="tgHomExisteSobra"]:checked')?.value==='sim';const box=document.getElementById('tgHomPesoSobraBox');if(box)box.style.display=sim?'':'none';}
 async function tgHomConfirmarSobra(){
  if(!tgHomFicha||!tgSistema||!tgHomSistemaDistribuido()||tgHomSobraRegistro())return;
  const escolha=document.querySelector('input[name="tgHomExisteSobra"]:checked')?.value,erro=document.getElementById('tgHomSobraErro');
- if(!escolha){if(erro)erro.textContent='CONFIRME SE EXISTE SOBRA NO VAGÃO.';return;}
+ if(!escolha){if(erro)erro.textContent='CONFIRME SE EXISTE SOBRA FINAL NO VAGÃO.';return;}
  const texto=document.getElementById('tgHomPesoSobra')?.value.trim()||'',peso=escolha==='nao'?0:Number(texto);
- if(escolha==='sim'&&(!texto||!Number.isFinite(peso)||peso<=0||!Number.isInteger(peso))){if(erro)erro.textContent='INFORME O PESO FÍSICO DA SOBRA, MAIOR QUE ZERO.';return;}
+ if(escolha==='sim'&&(!texto||!Number.isFinite(peso)||peso<=0||!Number.isInteger(peso))){if(erro)erro.textContent='INFORME O PESO FÍSICO FINAL DA SOBRA.';return;}
  const botao=document.querySelector('button[onclick="tgHomConfirmarSobra()"]');if(botao)botao.disabled=true;
  const dia=tgHomDia(),sistema=tgSistema;
  try{
-  if(!navigator.onLine)throw Error('SEM INTERNET — SOBRA AINDA NÃO SALVA NO SUPABASE');
-  await tgProdEnviar({dia,sistema,etapa:'sobra',peso});
-  const confirmacao=await supa.from('tratos_ajustes_df').select('quantidade_kg').eq('data_referencia',dia).eq('sistema',sistema).eq('tipo','SOBRA_VAGAO');
+  if(!navigator.onLine)throw Error('SEM INTERNET — FECHAMENTO NÃO SALVO');
+  const existente=await supa.from('tratos_ajustes_df').select('quantidade_kg,observacao').eq('data_referencia',dia).eq('sistema',sistema).eq('tipo','SOBRA_VAGAO');
+  if(existente.error)throw existente.error;
+  const finais=(existente.data||[]).filter(x=>String(x.observacao||'').startsWith('FECHAMENTO_MOVEL_DIA:'));
+  if(finais.length){if(finais.length!==1||Math.abs(Number(finais[0].quantidade_kg)-peso)>.001)throw Error('FECHAMENTO FINAL DIFERENTE NO BANCO');}
+  else{
+   // Registrar o fechamento separadamente da sobra recebida do dia anterior.
+   const w=await supa.from('tratos_ajustes_df').insert({data_informada:dia,data_referencia:dia,sistema,tipo:'SOBRA_VAGAO',quantidade_kg:peso,desconto_selecionado:false,observacao:'FECHAMENTO_MOVEL_DIA: '+dia+' — SOBRA FINAL APÓS DISTRIBUIÇÕES'});
+   if(w.error)throw w.error;
+  }
+  const confirmacao=await supa.from('tratos_ajustes_df').select('quantidade_kg,observacao').eq('data_referencia',dia).eq('sistema',sistema).eq('tipo','SOBRA_VAGAO');
   if(confirmacao.error)throw confirmacao.error;
-  if(!confirmacao.data?.some(v=>Math.abs(Number(v.quantidade_kg)-peso)<0.001))throw Error('BANCO NÃO CONFIRMOU A SOBRA');
+  if(!confirmacao.data?.some(v=>String(v.observacao||'').startsWith('FECHAMENTO_MOVEL_DIA:')&&Math.abs(Number(v.quantidade_kg)-peso)<.001))throw Error('BANCO NÃO CONFIRMOU O FECHAMENTO');
   const resumo=tgHomResumoSistema();
-  localStorage.setItem(tgHomSobraKey(),JSON.stringify({tipo:'SOBRA_VAGAO',data_referencia:dia,sistema,existe:escolha==='sim',quantidade_kg:peso,total_carregado_kg:resumo.carregado,total_distribuido_kg:resumo.distribuido,diferenca_calculada_kg:resumo.diferenca,confirmado_em:new Date().toISOString(),origem:'SUPABASE_CONFIRMADO'}));
-  // Remover eventual item da fila após a confirmação real; não reenvia uma sobra duplicada.
-  tgProdFilaGravar(tgProdFilaLer().filter(v=>v.chave!==[dia,sistema,0,'sobra'].join('|')));
-  tgHomLog('SOBRA_VAGAO_CONFIRMADA',{existe:escolha==='sim',peso_kg:peso,confirmado_supabase:true});
+  localStorage.setItem(tgHomSobraKey(),JSON.stringify({tipo:'SOBRA_FINAL_VAGAO',data_referencia:dia,sistema,existe:peso>0,quantidade_kg:peso,total_carregado_kg:resumo.carregado,total_distribuido_kg:resumo.distribuido,diferenca_calculada_kg:resumo.diferenca,origem:'SUPABASE_FECHAMENTO_CONFIRMADO'}));
+  tgHomLog('SOBRA_FINAL_VAGAO_CONFIRMADA',{existe:escolha==='sim',peso_kg:peso,confirmado_supabase:true});
   tgHomRender();tgHomOfflineStatus();
- }catch(e){
-  if(erro)erro.textContent='NÃO FOI POSSÍVEL CONFIRMAR NO SUPABASE: '+String(e.message||e)+'. NÃO FOI MARCADO COMO SALVO.';
-  if(botao)botao.disabled=false;
- }
+ }catch(e){if(erro)erro.textContent='NÃO FOI POSSÍVEL CONFIRMAR NO SUPABASE: '+String(e.message||e);if(botao)botao.disabled=false;}
 }
 function tgHomContador(numero,fase){
  const d=tgHomDadosNumero(numero),r=d.registros||{};
  const soma=(tipo)=>tgHomLista(numero,tipo==='I'?'ingredientes':'currais').reduce((v,x,j)=>v+Number(r[tipo+j]||0),0);
  const carregado=soma('I'),distribuido=soma('C');
  const emDistribuicao=fase==='currais'||fase==='concluido';
- const atual=emDistribuicao?carregado-distribuido:carregado;
+ const sobraRecebida=emDistribuicao&&numero===1&&tgSistema==='CONFINAMENTO'?Number(tgHomFicha?.sobraRecebidaKg||0):0;
+ const disponivel=carregado+sobraRecebida;
+ const atual=emDistribuicao?disponivel-distribuido:carregado;
  const titulo=emDistribuicao?'SALDO NO VAGÃO — TRATO '+numero:'TOTAL CARREGADO — CARREGAMENTO '+numero;
  const divergencia=emDistribuicao&&atual<0;
- return '<div class="tg-contador-vagao" role="status" aria-live="polite"><div class="tg-contador-titulo">'+titulo+'</div><div class="tg-contador-numero">'+tgHomFmt(Math.abs(atual))+' <small>KG</small></div>'+
- (divergencia?'<div class="tg-contador-alerta">DIVERGÊNCIA: DISTRIBUÍDO A MAIOR</div>':
+ return '<div class="tg-contador-vagao" role="status" aria-live="polite"><div class="tg-contador-titulo">'+titulo+'</div><div class="tg-contador-numero">'+(atual<0?'−':'')+tgHomFmt(Math.abs(atual))+' <small>KG</small></div>'+
+ (divergencia?'<div class="tg-contador-alerta">SALDO NEGATIVO: DISTRIBUÍDO '+tgHomFmt(-atual)+' KG A MAIS QUE O DISPONÍVEL NO VAGÃO. CONFIRA ANTES DE FINALIZAR.</div>':
  (emDistribuicao?'<div class="tg-contador-detalhe">CARREGADO '+tgHomFmt(carregado)+' KG · DISTRIBUÍDO '+tgHomFmt(distribuido)+' KG</div>':'<div class="tg-contador-detalhe">SOMA DOS INGREDIENTES CONFIRMADOS</div>'))+'</div>';
+}
+function tgHomResumoIngredientes(numero){
+ const d=tgHomDadosNumero(numero),lista=tgHomLista(numero,'ingredientes');
+ if(!lista.length)return '';
+ const registros=d.registros||{};
+ let soma=0,confirmados=0;
+ const linhas=lista.map((x,j)=>{
+  const ok=Object.prototype.hasOwnProperty.call(registros,'I'+j);
+  const kg=ok?Number(registros['I'+j]):0;
+  if(ok){soma+=kg;confirmados++;}
+  return '<tr><td style="padding:7px 5px;border-bottom:1px solid #e5ebe8">'+tgHomEsc(x[0])+'</td><td style="padding:7px 5px;text-align:right;border-bottom:1px solid #e5ebe8;font-weight:700;color:'+(ok?'#176b36':'#888')+'">'+(ok?tgHomFmt(kg)+' KG':'PENDENTE')+'</td></tr>';
+ }).join('');
+ return '<section style="margin-top:14px;padding:12px;border:1px solid #b7cec0;border-radius:10px;background:#fff">'+
+ '<div style="font-weight:800;color:#245c46">REALIZADO — CARREGAMENTO '+numero+'</div>'+
+ '<table style="width:100%;font-size:13px;border-collapse:collapse;margin-top:8px">'+linhas+'</table>'+
+ '<div style="margin-top:10px;font-weight:800;font-size:18px;color:#245c46">TOTAL REALIZADO: '+tgHomFmt(soma)+' KG</div>'+
+ '<div style="font-size:12px;color:#566">'+confirmados+' DE '+lista.length+' INGREDIENTES CONFIRMADOS'+(confirmados<lista.length?' — EM ANDAMENTO':' — COMPLETO')+'</div></section>';
 }
 function tgHomRender(){
  if(!tgSistema)return;
  const el=document.getElementById('tgHomTela');if(!el)return;
  tgHomOfflineStatus();
+ if(tgHomRecuperacaoErro){el.innerHTML='<p style="color:#a12525;font-weight:700">'+tgHomEsc(tgHomRecuperacaoErro)+'</p>';return;}
  if(!tgHomFicha){el.innerHTML='<p style="color:#a12525;font-weight:700">'+(tgHomFichaErro?'FICHA OFICIAL INDISPONÍVEL: '+tgHomEsc(tgHomFichaErro):'CARREGANDO PREVISÕES OFICIAIS...')+'</p>'+(perfilLogado==='TRATADOR'?'':tgHomBotaoReiniciar());return;}
  const avisoFonte='';
  const numero=Number(tgHomModo==='distribuicao'?tgHomDistribuicaoSelecionada?.split('|')[1]:document.getElementById('tgCarga').value);
@@ -4443,7 +4608,8 @@ function tgHomRender(){
   if(tgHomSistemaDistribuido())h+=tgHomRenderSobra();
   h+='<button type="button" onclick="tgHomVoltarCarregamento()">VOLTAR AOS CARREGAMENTOS</button>';
  }else if(!numero){
-  h='<p style="color:#66746d">SELECIONE UM CARREGAMENTO PARA INICIAR.</p>';
+  const pendentes=(tgSistema==='SEMI'?[1]:[1,2,3,4]).some(n=>tgHomPlanoValido(n)&&tgHomDadosNumero(n).fase==='ingredientes');
+  h='<p style="color:#66746d;font-weight:700">'+(pendentes?'SELECIONE O CARREGAMENTO ACIMA PARA INICIAR.':'NÃO HÁ CARREGAMENTO NOVO DISPONÍVEL. VERIFIQUE OS LANÇAMENTOS SALVOS NO SUPABASE E ATUALIZE A PÁGIN.')+'</p>';
  }else if(fase==='ingredientes'&&!tgHomPronto(numero)&&!d.planoCongelado){
   const anterior=numero-1;
   h='<div class="tg-step-heading"><h3>CARREGAMENTO '+numero+' / TRATO '+numero+'</h3></div><p style="font-size:17px;color:#9a342a;font-weight:700">AGUARDANDO A DISTRIBUIÇÃO DO TRATO '+anterior+'.</p><p>A PREVISÃO DESTE CARREGAMENTO SERÁ RECALCULADA APÓS O TRATO ANTERIOR, PARA NÃO UTILIZAR PESOS DESATUALIZADOS.</p>';
@@ -4456,9 +4622,13 @@ function tgHomRender(){
   // Contador será exibido abaixo do campo de peso, não no topo.
 
   if(fase==='currais'||fase==='concluido')h+='<p class="tg-carga-resumo">'+tgHomEsc(tgHomTituloCarga(numero,d))+'</p>';
+  // Resumo detalhado removido a pedido; manter apenas o contador compacto existente.
+
   if(i>=0&&['ingredientes','currais'].includes(fase)){
    const x=lista[i];
-   h+='<div class="tg-muted">'+(i+1)+' / '+lista.length+'</div><div class="tg-item-destaque">'+tgHomEsc(x[0])+'</div><div class="tg-amount" style="text-align:center">'+tgHomFmt(x[1])+' KG</div><label for="tgHomPeso">PESO REALIZADO (KG)</label><input id="tgHomPeso" type="number" inputmode="decimal" min="0" step="1" placeholder="INFORME O PESO" style="width:100%;padding:14px;font-size:22px;border:1px solid #bacac2;border-radius:9px;margin:9px 0">'+tgHomContador(numero,fase)+'<button type="button" style="width:100%;background:#315d4b;color:white" onclick="tgHomConfirmar()">CONFIRMAR E PRÓXIMO →</button>'; 
+   h+='<div class="tg-muted">'+(i+1)+' / '+lista.length+'</div><div class="tg-item-destaque">'+tgHomEsc(x[0])+'</div><div class="tg-amount" style="text-align:center">'+tgHomFmt(x[1])+' KG</div><label for="tgHomPeso">PESO REALIZADO (KG)</label><input id="tgHomPeso" type="number" inputmode="decimal" min="0" step="1" placeholder="INFORME O PESO" style="width:100%;padding:14px;font-size:22px;border:1px solid #bacac2;border-radius:9px;margin:9px 0">'+tgHomContador(numero,fase)+'<button type="button" style="width:100%;background:#315d4b;color:white" onclick="tgHomConfirmar()">CONFIRMAR E PRÓXIMO →</button>';
+   if(fase==='currais'&&i>0)h+='<button type="button" style="display:block;width:100%;margin-top:12px;background:#fff;color:#9a342a;border:1px solid #cda49f;border-radius:9px;padding:12px;font-weight:700" onclick="tgHomDescartarDistribuicaoTeste()">DESCARTAR DISTRIBUIÇÕES DE TESTE NÃO FINALIZADAS</button>';
+ 
   }else if(fase==='ingredientes'){
    h+='<button type="button" onclick="tgHomFinalizarCarga()">FINALIZAR CARREGAMENTO</button>';
   }else if(fase==='concluido'&&tgHomLista(numero,'currais').every((x,j)=>Object.prototype.hasOwnProperty.call(d.registros,'C'+j))){
@@ -4483,6 +4653,25 @@ function tgHomSelecionarDistribuicao(n){
 }
 function tgHomMostrarCargas(){
  tgHomModo='distribuicao';tgHomDistribuicaoSelecionada='';tgHomRender();
+}
+function tgHomDescartarDistribuicaoTeste(){
+ const n=Number(tgHomDistribuicaoSelecionada?.split('|')[1]);
+ if(!n||tgHomModo!=='distribuicao'||!tgSistema)return;
+ const d=tgHomDadosNumero(n);
+ if(d.fase!=='currais')return;
+ const itens=Object.keys(d.registros||{}).filter(k=>/^C\\d+$/.test(k));
+ if(!itens.length)return;
+ const dia=tgHomDia(),sistema=tgSistema;
+ if(tgProdFilaLer().some(x=>x.dia===dia&&x.sistema===sistema&&x.n===n&&x.etapa==='currais')){
+   alert('EXISTE DISTRIBUIÇÃO PENDENTE DE SINCRONIZAÇÃO. NÃO É SEGURO DESCARTAR.');return;
+ }
+ if(!confirm('DESCARTAR OS '+itens.length+' PESOS DE DISTRIBUIÇÃO NÃO FINALIZADOS DO TRATO '+n+'?\\n\\nOS 8 INGREDIENTES E O CARREGAMENTO JÁ GRAVADO NO SUPABASE SERÃO PRESERVADOS. NENHUM DADO DO BANCO SERÁ EXCLUÍDO.'))return;
+ for(const k of itens)delete d.registros[k];
+ d.fase='aguardando_distribuicao';
+ tgHomSalvar(d,n);
+ tgHomDistribuicaoSelecionada='';
+ tgHomLog('DESCARTE_DISTRIBUICAO_LOCAL',{dia,sistema,trato:n,quantidade:itens.length});
+ tgHomRender();
 }
 function tgHomConfirmar(){
  const n=Number(tgHomModo==='distribuicao'?tgHomDistribuicaoSelecionada?.split('|')[1]:document.getElementById('tgCarga').value);
@@ -5405,7 +5594,7 @@ async function tratosRender(){
  // Lançamentos históricos são preservados no banco, mas só aparecem no planejamento
  // quando há uma localidade vinculada a uma dieta/previsão válida.
 
- const ordemConf=trConfOficial.map(trChaveLocal),ordemSemi=trSemiOficial.map(trChaveLocal);
+ const ordemConf=TG_ORDEM_DISTRIBUICAO.map(trChaveLocal),ordemSemi=trSemiOficial.map(trChaveLocal);
  registros.sort((a,b)=>{
   if(a.sistema!==b.sistema)return a.sistema==='CONFINAMENTO'?-1:1;
   const ordem=a.sistema==='CONFINAMENTO'?ordemConf:ordemSemi;
@@ -5575,7 +5764,7 @@ window.trFichaSnapshot=async function(sistema,dia){
  trCalc();
  const rows=[...document.querySelectorAll('#tr_grade_body tr')].filter(tr=>trNormNome(tr.dataset.sistema)===trNormNome(sistema)&&tr.dataset.total!==''&&tr.querySelector('[data-tr-dieta]')?.checked!==false);
  if(!rows.length)throw Error('NENHUM CURRAL COM PREVISÃO PARA '+sistema+' EM '+dia);
- return rows.map(tr=>({local:tr.dataset.local,total:Number(tr.dataset.total),bois:trN(tr.children[4]?.textContent),tratos:[...tr.querySelectorAll('td[data-prev]')].map(td=>td.dataset.ajustado===''?0:Number(td.dataset.ajustado??td.dataset.prev)||0)}));
+ return rows.map(tr=>({local:tr.dataset.local,total:Number(tr.dataset.total),bois:trN(tr.children[4]?.textContent),tratos:[...tr.querySelectorAll('td[data-prev]')].map(td=>Number(td.dataset.prev)||0)}));
 };
 
 function trAbrirJanelaImpressao(){
@@ -5751,6 +5940,30 @@ async function tratosSalvarDistribuicao(){
  try{const {data:f,error:e}=await supa.from('tratos_fechamentos').select('sistema').eq('data_trato',trData());if(e)throw e;const fechados=new Set((f||[]).map(x=>x.sistema));if([...document.querySelectorAll('#tr_grade_body tr')].some(t=>fechados.has(t.dataset.sistema)&&[...t.querySelectorAll('input[data-f="v"]')].some(i=>!i.disabled&&i.value.trim()!==''))){trToast('HÁ SISTEMA FECHADO ENTRE OS LANÇAMENTOS. NADA FOI SALVO.',true);return}}catch(e){trToast('NÃO FOI POSSÍVEL VERIFICAR FECHAMENTO: '+String(e.message||e),true);return}
  const trs=[...document.querySelectorAll('#tr_grade_body tr')].filter(t=>t.querySelector('[data-tr-dieta]')?.checked!==false);
  const rows=trs.map(trRead);
+ // Fechamento de campos: zero é lançamento explícito. Não preencher um trato futuro
+ // apenas por estar vazio; somente se a meta já foi atingida ou se o quarto
+ // carregamento do sistema estiver salvo (fim do ciclo de quatro tratos).
+ const cargasFim={};
+ for(const sis of [...new Set(rows.map(r=>r.sistema))]){
+  if(sis!=='CONFINAMENTO')continue;
+  const q=await supa.from('tratos_carregamentos').select('carga').eq('data_trato',trData()).eq('sistema',sis).eq('carga',4);
+  if(q.error){trToast('NÃO FOI POSSÍVEL VERIFICAR O ÚLTIMO CARREGAMENTO: '+q.error.message,true);return}
+  cargasFim[sis]=(q.data||[]).length>0;
+ }
+ rows.forEach((r,j)=>{
+  const tr=trs[j],meta=Number(tr.dataset.total);
+  if(!Number.isFinite(meta)||meta<0)return;
+  const ativos=[...tr.querySelectorAll('input[data-f="v"]')];
+  const realizado=r.v.reduce((n,v)=>n+(v===''?0:Number(v)||0),0);
+  const atingiu=realizado>=meta;
+  ativos.forEach(input=>{
+   const i=Number(input.dataset.n);
+   if(input.disabled||input.value.trim()!=='')return;
+   const previstoOriginal=Number(tr.querySelectorAll('td[data-prev]')[i]?.dataset.prev||0);
+   const zeroPrimeiro= i===0 && previstoOriginal===0;
+   if(atingiu||cargasFim[r.sistema]||zeroPrimeiro){input.value='0';r.v[i]='0';}
+  });
+ });
  // Enviar somente tratos novos em campos editáveis, sem reenviar valores já salvos.
  const preenchidos=rows.map((r,j)=>({...r,v:r.v.map((v,i)=>{const input=trs[j].querySelector('input[data-f="v"][data-n="'+i+'"]');return input&&!input.disabled?v:''})})).filter(r=>r.v.some(v=>v!==''));
  if(!preenchidos.length){trToast('NENHUMA ALTERAÇÃO PARA SALVAR');return}
@@ -6063,6 +6276,14 @@ async function trCargaRender(){
   ]);
   if(cargas.error)throw cargas.error;if(distribuicoes.error)throw distribuicoes.error;if(todasCargas.error)throw todasCargas.error;
   const registro=cargas.data?.[0];let salvos=[];
+  const consultaConsolidada=carga==='CONSOLIDADO'&&!registro&&(todasCargas.data||[]).some(x=>/^[1-4]$/.test(String(x.carga)));
+  let somaConsolidada=new Map();
+  if(consultaConsolidada){
+   const idsQ=await supa.from('tratos_carregamentos').select('id').eq('data_trato',data).eq('sistema',sistema).in('carga',['1','2','3','4']);
+   if(idsQ.error)throw idsQ.error;
+   const ids=(idsQ.data||[]).map(x=>x.id);
+   if(ids.length){const valoresQ=await supa.from('tratos_carregamento_ingredientes').select('insumo_id,carregado_kg').in('carregamento_id',ids);if(valoresQ.error)throw valoresQ.error;for(const i of valoresQ.data||[])somaConsolidada.set(String(i.insumo_id),(somaConsolidada.get(String(i.insumo_id))||0)+Number(i.carregado_kg||0));}
+  }
   if(registro){const q=await supa.from('tratos_carregamento_ingredientes').select('insumo_id,previsto_kg,carregado_kg').eq('carregamento_id',registro.id);if(q.error)throw q.error;salvos=q.data||[]}
   const registroCompleto=!!registro&&salvos.length===itens.length&&salvos.every(x=>x.carregado_kg!==null);
   const registroPendente=!!registro&&!registroCompleto;
@@ -6228,7 +6449,7 @@ async function trCargaRender(){
   // Carregamento salvo já contém sua previsão histórica: não aplicar Nota 2 outra vez.
   const descontoVisual=0; // Previsoes por ingrediente historicas ja conciliadas no banco
   const fatorVisual=brutoIngredientes>0?(brutoIngredientes-descontoVisual)/brutoIngredientes:1;
-  const linhas=itens.map(i=>{const old=mapa.get(String(i.insumo_id));const parte=Number(i.batida_kg||i.quantidade_mn||0);return {id:String(i.insumo_id),nome:String(im.get(String(i.insumo_id))?.nome||i.insumo_id),proporcao:parte/somaReceita,prev:historicoCongelado&&old?Number(old.previsto_kg)*fatorVisual:liquidoAtual*parte/somaReceita,real:old?Number(old.carregado_kg):null}});
+  const linhas=itens.map(i=>{const old=mapa.get(String(i.insumo_id));const parte=Number(i.batida_kg||i.quantidade_mn||0);return {id:String(i.insumo_id),nome:String(im.get(String(i.insumo_id))?.nome||i.insumo_id),proporcao:parte/somaReceita,prev:historicoCongelado&&old?Number(old.previsto_kg)*fatorVisual:liquidoAtual*parte/somaReceita,real:old?Number(old.carregado_kg):(consultaConsolidada&&somaConsolidada.has(String(i.insumo_id))?somaConsolidada.get(String(i.insumo_id)):null)}});
   document.getElementById('tr_carga_total_previsto').value=Number(totalPlanejado.toFixed(3));
   document.getElementById('tr_carga_bruto').value=historicoCongelado?totalPlanejado:brutoDaCarga-nota2Confirmada;
   document.getElementById('tr_carga_total_previsto').value=Number(liquidoAtual.toFixed(3));
@@ -6242,14 +6463,14 @@ async function trCargaRender(){
   if(sequencia!==trCargaRenderSeq||data!==document.getElementById('tr_carga_data').value||sistema!==document.getElementById('tr_carga_sistema').value||carga!==document.getElementById('tr_carga_num').value)return;
   const descontoDF=sistema==='CONFINAMENTO'?(historicoCongelado?ajustesConfirmados.filter(a=>a.tipo==='DESCONTO_NOTA_2'&&a.desconto_selecionado===true).reduce((n,a)=>n+Number(a.quantidade_kg||0),0):nota2Confirmada):0;
   const sobraDF=sistema==='CONFINAMENTO'?ajustesConfirmados.filter(a=>a.tipo==='SOBRA_VAGAO').reduce((n,a)=>n+Number(a.quantidade_kg||0),0):0;
-  trCargaUltima={historicoCongelado,descontoDF,sobraDF,sobraFinalDF,nota2Confirmada,data,sistema,carga,versao:String(versao.id),linhas,distribuido,completas,base,todasCargas:todasCargas.data||[],registroSalvo:registroCompleto,registroPendente,registroId:registro?.id||null,temPrevisao:hojeValidos.length>0,dataAnterior};
+  trCargaUltima={historicoCongelado,descontoDF,sobraDF,sobraFinalDF,nota2Confirmada,data,sistema,carga,versao:String(versao.id),linhas,distribuido,completas,base,todasCargas:todasCargas.data||[],registroSalvo:registroCompleto||consultaConsolidada,registroPendente,registroId:registro?.id||null,temPrevisao:hojeValidos.length>0,dataAnterior};
   if(destaqueData)destaqueData.innerHTML='DATA SELECIONADA: <strong>'+data.split('-').reverse().join('/')+'</strong> • SISTEMA: <strong>'+trEsc(sistema)+'</strong><div style="font-size:13px;margin-top:8px">REFERÊNCIA INTERNA DO SISTEMA: <strong>'+(hojeQ.error?'INDISPONÍVEL':trFmt(previstoHoje)+' KG')+'</strong> ('+hojeValidos.length+' LOCAIS COM ANIMAIS)</div><div style="font-size:12px;margin-top:6px">INFORME SOMENTE AS QUANTIDADES EFETIVAMENTE CARREGADAS.</div>';
   area.innerHTML='<div class="table-wrap"><table class="tr-carga-tabela"><thead><tr><th>INGREDIENTE</th><th>PREVISTO KG</th><th>CARREGADO KG (DIGITAR SOMAS)</th><th>TOTAL CARREGADO KG</th><th>DESVIO KG</th><th>DESVIO %</th></tr></thead><tbody>'+linhas.map((x,i)=>'<tr data-ingred="'+i+'"><td>'+trEsc(x.nome)+'</td><td><input type="number" readonly data-t="prev" value="'+Number(x.prev.toFixed(3))+'" style="width:120px"></td><td><input type="text" inputmode="decimal" data-t="real" placeholder="1015+500" value="'+(x.real===null?'':x.real)+'" oninput="trCargaCalcular()" style="width:120px"></td><td data-t="soma" style="font-weight:800">—</td><td data-t="dif">—</td><td data-t="pct">—</td></tr>').join('')+'</tbody></table></div>';
   av.textContent='LANÇAMENTO REAL DE CARREGAMENTO • SISTEMA: '+sistema+' • DIETA VERSÃO '+versao.versao+(registroCompleto?' • CARGA JÁ SALVA':registroPendente?' • REGISTRO PENDENTE DE CONFIRMAÇÃO':' • AINDA NÃO SALVO');
   campoSobra.disabled=!!registro;
-  if(registroCompleto){document.getElementById('tr_carga_data').disabled=false;document.getElementById('tr_carga_total_previsto').disabled=true;area.querySelectorAll('input[data-t="real"]').forEach(e=>e.disabled=true)}else document.getElementById('tr_carga_total_previsto').disabled=true;
+  if(registroCompleto||consultaConsolidada){document.getElementById('tr_carga_data').disabled=false;document.getElementById('tr_carga_total_previsto').disabled=true;area.querySelectorAll('input[data-t="real"]').forEach(e=>e.disabled=true)}else document.getElementById('tr_carga_total_previsto').disabled=true;
   const salvarBtn=document.getElementById('tr_carga_salvar_btn');
-  if(salvarBtn){salvarBtn.disabled=registroCompleto;salvarBtn.textContent=registroCompleto?'CARGA JÁ SALVA':registroPendente?'SALVAR CARREGAMENTO':'SALVAR CARREGAMENTO NO SUPABASE';salvarBtn.style.opacity=registroCompleto?'0.65':'1';salvarBtn.style.cursor=registroCompleto?'not-allowed':'pointer'}
+  if(salvarBtn){salvarBtn.disabled=registroCompleto||consultaConsolidada;salvarBtn.textContent=consultaConsolidada?'CONSULTA DOS CARREGAMENTOS SALVOS':registroCompleto?'CARGA JÁ SALVA':registroPendente?'SALVAR CARREGAMENTO':'SALVAR CARREGAMENTO NO SUPABASE';salvarBtn.style.opacity=(registroCompleto||consultaConsolidada)?'0.65':'1';salvarBtn.style.cursor=(registroCompleto||consultaConsolidada)?'not-allowed':'pointer'}
   trCargaCalcular();
  }catch(e){if(sequencia!==trCargaRenderSeq)return;area.innerHTML='<div class="notice">NÃO FOI POSSÍVEL CARREGAR: '+trEsc(e.message||e)+'</div>';trCargaUltima=null}
 }
@@ -6294,15 +6515,17 @@ function trCargaCalcular(){
   if(pctCel){pctCel.style.fontWeight='800';pctCel.style.color=pctValor===null?'':Math.abs(pctValor)>3?'#ad2921':'#247a42';pctCel.style.background=pctValor===null?'':Math.abs(pctValor)>3?'#ffe8e5':'#e5f5e8'}
 
  });
- const todas=x.todasCargas||[];const outras=todas.filter(c=>c.carga!==x.carga);const somaDia=outras.reduce((a,b)=>a+Number(b.carregado_kg||0),0)+(completos?r:0);const previstoDia=outras.reduce((a,b)=>a+Number(b.previsto_kg||0),0)+p;const cargaDiaCompleta=completos&&outras.every(c=>c.carregado_kg!==null&&c.carregado_kg!==undefined);const dfUnico=trCalcularDFUnico(somaDia,x.distribuido,x.sobraDF||0,x.descontoDF||0,x.sobraFinalDF||0); /* Mesmo balanço físico do histórico: carga + sobra recebida - distribuído - sobra final. */ const diferenca=cargaDiaCompleta?dfUnico.diferenca:null;
+ const todas=x.todasCargas||[];const outras=todas.filter(c=>c.carga!==x.carga);const somaDia=outras.reduce((a,b)=>a+Number(b.carregado_kg||0),0)+(completos?r:(x.registroSalvo?Number((x.todasCargas||[]).find(c=>c.carga===x.carga)?.carregado_kg||0):0));const previstoDia=outras.reduce((a,b)=>a+Number(b.previsto_kg||0),0)+p;const cargaDiaCompleta=completos&&outras.every(c=>c.carregado_kg!==null&&c.carregado_kg!==undefined);const dfUnico=trCalcularDFUnico(somaDia,x.distribuido,x.sobraDF||0,x.descontoDF||0,x.sobraFinalDF||0); /* Mesmo balanço físico do histórico: carga + sobra recebida - distribuído - sobra final. */ const diferenca=cargaDiaCompleta?dfUnico.diferenca:null;
  const desvioPct=completos&&p?(r-p)/p*100:null;
  const distPct=cargaDiaCompleta?dfUnico.percentual:null;
  const estiloPct=v=>v===null?'':('font-weight:800;color:'+(Math.abs(v)>3?'#ad2921':'#247a42')+';background:'+(Math.abs(v)>3?'#ffe8e5':'#e5f5e8')+';');
  const cel=(titulo,valor,estilo='')=>'<div style="border:1px solid #d9e1e5;border-radius:6px;padding:6px 7px;min-width:0;'+estilo+'"><div style="font-size:9px;line-height:1.15;font-weight:700;color:#4c5965;margin-bottom:3px">'+titulo+'</div><div style="font-size:13px;line-height:1.2;font-weight:800;white-space:normal">'+valor+'</div></div>';
  const fmtPct=v=>v===null?'—':trFmt(v)+'%';
- document.getElementById('tr_carga_resumo').innerHTML='<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:7px 0;width:100%">'
+ const cargasSalvas=(x.todasCargas||[]).filter(c=>c.carga!=='CONSOLIDADO'&&c.carregado_kg!==null&&c.carregado_kg!==undefined).sort((a,b)=>Number(a.carga)-Number(b.carga));
+ const resumoCargas=cargasSalvas.length?'<div style="display:flex;flex-wrap:wrap;gap:7px;margin:8px 0">'+cargasSalvas.map(c=>'<div style="border:1px solid #cbd5d1;border-radius:6px;padding:8px 11px;font-weight:700;font-size:13px">CARREGAMENTO '+trEsc(c.carga)+' — REALIZADO: '+trFmt(Number(c.carregado_kg))+' KG</div>').join('')+'</div>':'';
+ document.getElementById('tr_carga_resumo').innerHTML=resumoCargas+'<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:7px 0;width:100%">'
  +cel('PREVISTO APÓS DESCONTOS',trFmt(p)+' KG')
- +cel('CARREGADO REALIZADO',completos?trFmt(r)+' KG':'INCOMPLETO')
+ +cel('CARREGADO REALIZADO',trFmt(somaDia)+' KG'+(completos?'':' (PARCIAL)'))
  +cel('DESVIO CARREGAMENTO',completos?trFmt(r-p)+' KG':'—',estiloPct(desvioPct))
  +cel('DESVIO CARREGAMENTO %',fmtPct(desvioPct),estiloPct(desvioPct))
  +cel('DESVIO CARREGADO × DISTRIBUÍDO %',fmtPct(distPct),estiloPct(distPct))

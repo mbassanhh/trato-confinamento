@@ -295,6 +295,17 @@ body.acesso-tratador #tratadorInicio{padding-top:30px}
 #visaoAbate .va-scroll td{font-variant-numeric:tabular-nums}
 @media(max-width:1100px){#visaoAbate .panel{padding:10px!important}#visaoAbate .va-scroll th,#visaoAbate .va-scroll td{padding:6px 1px!important}}
 @media(max-width:760px){#visaoAbate .va-kpis{grid-template-columns:1fr!important}#visaoAbate .va-scroll table{font-size:7px!important}}
+
+/* VISÃO DO ABATE: largura legível; números e valores monetários nunca quebram entre linhas. */
+#visaoAbate .va-scroll{overflow-x:auto!important;overflow-y:visible!important;width:100%!important;max-width:100%!important}
+#visaoAbate .va-scroll table{width:1900px!important;min-width:1900px!important;table-layout:fixed!important;font-size:11px!important}
+#visaoAbate .va-scroll th,#visaoAbate .va-scroll td{position:static!important;box-sizing:border-box!important;padding:9px 5px!important;overflow-wrap:normal!important;word-break:normal!important;white-space:nowrap!important;line-height:1.35!important;text-align:center!important}
+#visaoAbate .va-scroll th{font-size:10px!important;white-space:normal!important;overflow-wrap:normal!important}
+#visaoAbate .va-scroll th:first-child,#visaoAbate .va-scroll td:first-child{width:190px!important;min-width:190px!important;max-width:190px!important;text-align:left!important;padding-left:12px!important}
+#visaoAbate .va-scroll th:nth-child(2),#visaoAbate .va-scroll td:nth-child(2){width:55px!important;min-width:55px!important;max-width:55px!important}
+#visaoAbate .va-scroll td{font-variant-numeric:tabular-nums!important}
+#visaoAbate .va-total td{font-size:10px!important;white-space:nowrap!important}
+
 </style>
 <style id="visao-abate-estilos">
 #visaoAbate .va-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0 18px}
@@ -331,17 +342,27 @@ body.acesso-tratador #tratadorInicio{padding-top:30px}
 @media print{#visaoAbate .va-scroll{max-height:none!important;overflow:visible!important}#visaoAbate .va-scroll table{width:100%!important;min-width:0!important;font-size:6px!important}#visaoAbate .va-scroll td,#visaoAbate .va-scroll th{padding:3px!important;position:static!important;white-space:normal!important}#visaoAbate .va-scroll th:first-child,#visaoAbate .va-scroll td:first-child{position:static!important;min-width:0!important}}
 </style>
 
-<style id="visao-abate-sem-rolagem-final">
-/* Correção isolada: sobrescreve os estilos antigos que impunham 2350px. */
-#visaoAbate, #visaoAbate .panel {min-width:0!important;max-width:100%!important;overflow-x:clip!important;}
-#visaoAbate .va-scroll {display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;max-height:none!important;overflow:visible!important;border:1px solid #d9e0dc!important;}
-#visaoAbate .va-scroll table {display:table!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;border-spacing:0!important;font-size:clamp(6px,.57vw,9px)!important;}
-#visaoAbate .va-scroll th, #visaoAbate .va-scroll td {position:static!important;left:auto!important;top:auto!important;min-width:0!important;max-width:none!important;width:auto!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;padding:7px 2px!important;text-align:center!important;line-height:1.15!important;}
-#visaoAbate .va-scroll th {font-size:clamp(6px,.52vw,8px)!important;vertical-align:bottom!important;}
-#visaoAbate .va-scroll th:first-child, #visaoAbate .va-scroll td:first-child {position:static!important;left:auto!important;width:13%!important;min-width:0!important;max-width:none!important;text-align:left!important;padding-left:5px!important;}
-#visaoAbate .va-scroll th:nth-child(2), #visaoAbate .va-scroll td:nth-child(2) {width:3.2%!important;}
-#visaoAbate .va-scroll td {font-variant-numeric:tabular-nums!important;}
-@media(max-width:900px){#visaoAbate .panel{padding:8px!important}#visaoAbate .va-scroll th,#visaoAbate .va-scroll td{padding:5px 1px!important;font-size:6px!important}}
+<style id="visao-abate-largura-legivel-final">
+/* 20 colunas financeiras: não dividir moeda ou algarismos. */
+#visaoAbate .va-scroll{width:100%!important;max-width:100%!important;overflow-x:auto!important;overflow-y:auto!important;max-height:650px!important;overscroll-behavior-x:contain!important}
+#visaoAbate .va-scroll table{width:max-content!important;min-width:2100px!important;max-width:none!important;table-layout:auto!important;border-collapse:separate!important;font-size:11px!important}
+#visaoAbate .va-scroll th,#visaoAbate .va-scroll td{white-space:nowrap!important;overflow-wrap:normal!important;word-break:normal!important;hyphens:none!important;min-width:78px!important;max-width:none!important;padding:10px 9px!important;line-height:1.3!important;vertical-align:middle!important}
+#visaoAbate .va-scroll th{white-space:normal!important;min-width:85px!important;font-size:10px!important;line-height:1.15!important}
+#visaoAbate .va-scroll th:first-child,#visaoAbate .va-scroll td:first-child{min-width:235px!important;max-width:235px!important;width:235px!important;white-space:normal!important;overflow-wrap:normal!important;position:sticky!important;left:0!important;text-align:left!important;z-index:4!important}
+#visaoAbate .va-scroll .va-total td{white-space:nowrap!important;font-weight:800!important}
+#visaoAbate .va-scroll .va-total td:first-child{white-space:normal!important;background:#eaf0ec!important}
+@media print{#visaoAbate .va-scroll{overflow:visible!important;max-height:none!important}#visaoAbate .va-scroll table{width:100%!important;min-width:0!important;table-layout:fixed!important;font-size:6px!important}#visaoAbate .va-scroll td,#visaoAbate .va-scroll th{min-width:0!important;padding:3px 1px!important;white-space:normal!important;font-size:6px!important}#visaoAbate .va-scroll td:first-child,#visaoAbate .va-scroll th:first-child{position:static!important;min-width:0!important;max-width:none!important;width:13%!important}}
+</style>
+<style id="visao-abate-sem-rolagem-horizontal-final">
+/* A tabela inteira cabe na largura disponivel; nenhuma coluna e escondida. */
+#visaoAbate .va-scroll{overflow-x:hidden!important;overflow-y:visible!important;max-height:none!important;width:100%!important;max-width:100%!important}
+#visaoAbate .va-scroll table{width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;font-size:clamp(7px,.68vw,10px)!important}
+#visaoAbate .va-scroll th,#visaoAbate .va-scroll td{min-width:0!important;max-width:none!important;width:auto!important;padding:7px 2px!important;font-size:inherit!important;line-height:1.22!important;letter-spacing:-.12px!important;vertical-align:middle!important;white-space:nowrap!important;overflow-wrap:normal!important;word-break:normal!important;hyphens:none!important;position:static!important}
+#visaoAbate .va-scroll th{white-space:normal!important;font-size:clamp(7px,.62vw,9px)!important;padding:8px 1px!important}
+#visaoAbate .va-scroll th:first-child,#visaoAbate .va-scroll td:first-child{width:13.5%!important;min-width:0!important;max-width:none!important;position:static!important;white-space:normal!important;text-align:left!important;padding-left:4px!important}
+#visaoAbate .va-scroll th:not(:first-child),#visaoAbate .va-scroll td:not(:first-child){text-align:center!important}
+#visaoAbate .va-scroll .va-total td{white-space:nowrap!important;font-weight:800!important}
+#visaoAbate .va-scroll .va-total td:first-child{white-space:normal!important}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -1504,6 +1525,17 @@ body{background:#f4f8f7}
 @media(max-width:760px){#relatorios .rel-leilao-tabela{font-size:7px}#relatorios .rel-leilao-tabela th,#relatorios .rel-leilao-tabela td{padding:3px 1px}#relatorios .kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media print{#relatorios .rel-leilao-tabela{font-size:7px!important}#relatorios .rel-leilao-tabela th,#relatorios .rel-leilao-tabela td{padding:3px 1px!important}}
 </style>
+<style id="visao-abate-compacto-final">
+/* 20 colunas na largura da tela, sem sobreposição ou barra horizontal */
+#visaoAbate .va-scroll{width:100%!important;max-width:100%!important;overflow-x:hidden!important;overflow-y:visible!important;max-height:none!important}
+#visaoAbate .va-scroll table{width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;border-spacing:0!important;font-size:8px!important}
+#visaoAbate .va-scroll th,#visaoAbate .va-scroll td{box-sizing:border-box!important;position:static!important;min-width:0!important;max-width:none!important;width:auto!important;padding:7px 1px!important;white-space:nowrap!important;word-break:normal!important;overflow-wrap:normal!important;overflow:hidden!important;text-overflow:clip!important;letter-spacing:-.25px!important;line-height:1.2!important;text-align:center!important;font-size:8px!important;font-variant-numeric:tabular-nums!important}
+#visaoAbate .va-scroll th{font-size:7px!important;white-space:normal!important;overflow-wrap:normal!important;line-height:1.1!important;vertical-align:middle!important}
+#visaoAbate .va-scroll th:first-child,#visaoAbate .va-scroll td:first-child{width:13%!important;min-width:0!important;max-width:none!important;text-align:left!important;padding-left:3px!important;letter-spacing:-.3px!important}
+#visaoAbate .va-scroll th:nth-child(2),#visaoAbate .va-scroll td:nth-child(2){width:3%!important;min-width:0!important;max-width:none!important}
+#visaoAbate .va-scroll .va-total td{font-size:7.5px!important;letter-spacing:-.35px!important;padding:8px 1px!important}
+#visaoAbate .va-scroll .va-total td:first-child{font-size:8px!important;white-space:normal!important}
+</style>
 </head>
 <body>
 <div id="supaLogin" style="position:fixed;inset:0;background:#f3f6f8;z-index:99999;display:flex;align-items:center;justify-content:center;padding:18px">
@@ -1915,7 +1947,7 @@ body{background:#f4f8f7}
 
   <section id="arrobaProduzida" class="page">
     <div class="panel">
-      <div class="section-head"><div><h2>Arroba Produzida</h2><p>Total de arrobas produzidas pelos animais vendidos, classificado por mês e origem. Animais sem peso de entrada não entram nesta apuração.</p></div><span class="tag">PRODUÇÃO MENSAL</span></div>
+      <div class="section-head"><div><h2>Arroba Produzida</h2><p>Arrobas produzidas exclusivamente em abates registrados, por mês e origem. Registros sem arrobas válidas não entram na soma.</p></div><span class="tag">PRODUÇÃO MENSAL</span></div>
       <div class="grid" style="margin-bottom:16px">
         <div class="field"><label>Mês / Ano</label><select id="filtroMesArroba" onchange="renderArrobaProduzida()"></select></div>
       </div>
@@ -2543,82 +2575,86 @@ function animalValidoArrobas(x){
   const pe=Number(x.pe);
   return Number.isFinite(pe)&&pe>0;
 }
-function mesesComVendas(){
-  return [...new Set(animais.filter(x=>(String(x.status||'').toUpperCase()==='VENDA'||String(x.tipoEvento||'').toUpperCase()==='VENDA')&&x.saida&&animalValidoArrobas(x)).map(x=>String(x.saida).slice(0,7)).filter(Boolean))].sort().reverse();
+
+let arrobaAbatesCache=null;
+let arrobaAnimaisCache=[];
+async function carregarAbatesArroba(){
+  const r=await supa.from('abates').select('id,pesagem_id,data_abate,origem,arrobas_produzidas,carcaca_arrobas,rendimento_carcaca').order('data_abate',{ascending:false}).limit(10000);
+  if(r.error)throw r.error;
+  arrobaAbatesCache=r.data||[];
+  const ids=[...new Set(arrobaAbatesCache.map(a=>a.pesagem_id).filter(Boolean))];
+  arrobaAnimaisCache=[];
+  for(let i=0;i<ids.length;i+=50){
+    const v=await supa.from('animais').select('id,pesagem_id,brinco,localizacao,data_saida,peso_entrada,peso_saida').in('pesagem_id',ids.slice(i,i+50)).limit(10000);
+    if(v.error)throw v.error;
+    arrobaAnimaisCache.push(...(v.data||[]));
+  }
 }
 function preencherMesArroba(){
   const sel=$('filtroMesArroba');if(!sel)return;
-  const atual=sel.value,meses=mesesComVendas();
+  const atual=sel.value;
+  const meses=[...new Set((arrobaAbatesCache||[]).map(x=>String(x.data_abate||'').slice(0,7)).filter(Boolean))].sort().reverse();
   sel.innerHTML=meses.map(m=>{const [a,mm]=m.split('-');return `<option value="${m}">${mm}/${a}</option>`}).join('');
   if(atual&&meses.includes(atual))sel.value=atual;
 }
-function renderArrobaProduzida(){
+async function renderArrobaProduzida(){
   const el=$('arrobaProduzidaConteudo'),sel=$('filtroMesArroba');if(!el||!sel)return;
-  preencherMesArroba();const mes=sel.value;
-  if(!mes){el.innerHTML='<div class="empty">Nenhuma venda com peso de entrada válido encontrada.</div>';return}
-  const norm=v=>String(v||'SEM ORIGEM').trim().toUpperCase();
-  const corte=typeof HIST_ARROBA_CORTE!=='undefined'?HIST_ARROBA_CORTE:'2026-09-23';
-
-  /* REGRAS OFICIAIS:
-     1) peso de entrada vazio/nulo/0 não entra; qualquer valor > 0 (inclusive 0,1) entra.
-     2) histórico até a data de corte usa exatamente a aba @PRODUZIDA da planilha oficial.
-     3) novos lotes: @ média do lote é arredondada para 2 casas ANTES de multiplicar pela quantidade. */
-  const vendidosMes=animais.filter(x=>(String(x.status||'').toUpperCase()==='VENDA'||String(x.tipoEvento||'').toUpperCase()==='VENDA')&&String(x.saida||'').slice(0,7)===mes&&animalValidoArrobas(x));
-
-  const mp=new Map();
-  const add=(origem,qtd,arrobas)=>{const o=norm(origem);if(!mp.has(o))mp.set(o,{origem:o,qtd:0,arrobas:0,custoDiarias:0,venda:0,apurado:0});const g=mp.get(o);g.qtd+=qtd;g.arrobas+=arrobas;};
-
-  /* Histórico oficial da planilha: preserva exatamente quantidade e total de @ por lote. */
-  HIST_ARROBA_PRODUZIDA.filter(r=>String(r.data||'').slice(0,7)===mes && r.data<=corte).forEach(r=>add(r.origem,Number(r.qtd)||0,Number(r.arrobas)||0));
-
-  /* Outubro/2026: conferência oficial da planilha enviada em 23/10.
-     Valores por lote = @ produzidas por cabeça (2 casas) × quantidade.
-     Datas futuras após 19/10 seguem dinâmicas, sem duplicar os 15 lotes conferidos. */
-  const planilhaOutubro2026=[
-    ['BAIA B5','2026-10-06',5,20.10],
-    ['BAIA A3','2026-10-06',15,79.05],
-    ['BARRACÃO','2026-10-06',1,0.14],
-    ['BAIA B2','2026-10-07',3,15.99],
-    ['BAIA B4','2026-10-07',14,55.44],
-    ['BAIA A1','2026-10-07',5,29.25],
-    ['PQT BAIXO','2026-10-14',18,86.40],
-    ['BAIA B5','2026-10-14',4,19.36],
-    ['BAIA A1','2026-10-15',14,81.34],
-    ['BAIA B2','2026-10-15',2,10.80],
-    ['BAIA B4','2026-10-15',5,23.05],
-    ['PASTO B1','2026-10-15',1,3.16],
-    ['BAIA B5','2026-10-19',8,36.32],
-    ['BAIA B4','2026-10-19',7,32.55],
-    ['BAIA B2','2026-10-19',7,36.61]
-  ];
-  if(mes==='2026-10'){
-    planilhaOutubro2026.forEach(([origem,data,qtd,arrobas])=>add(origem,qtd,arrobas));
-  }
-  /* Demais meses seguem cálculo automático; em outubro só vendas após 19/10. */
-  const novos=vendidosMes.filter(x=>String(x.saida||'')>corte && (mes!=='2026-10'||String(x.saida||'')>'2026-10-19'));
-  const lotes=new Map();
-  novos.forEach(x=>{const k=norm(x.origem)+'|'+String(x.saida||'');if(!lotes.has(k))lotes.set(k,[]);lotes.get(k).push(x)});
-  for(const ls of lotes.values()){
-    const origem=ls[0]?.origem||'SEM ORIGEM', qtd=ls.length;
-    const arrVals=ls.map(x=>numFin(x.arrobasProduzidas)).filter(v=>Number.isFinite(v));
-    let media=arrVals.length?arrVals.reduce((a,b)=>a+b,0)/arrVals.length:0;
-    media=Math.round((media+Number.EPSILON)*100)/100;
-    add(origem,qtd,media*qtd);
-  }
-
-  /* Financeiro somente com animais válidos; não altera os totais oficiais de quantidade/@. */
-  const fin=new Map();
-  vendidosMes.forEach(x=>{const o=norm(x.origem);if(!fin.has(o))fin.set(o,{custo:0,venda:0,valorArrobaSoma:0,valorArrobaN:0});const f=fin.get(o);f.custo+=numFin(x.custoAtual);f.venda+=numFin(x.valorVenda);const va=numFin(x.valorArroba);if(va>0){f.valorArrobaSoma+=va;f.valorArrobaN++;}});
-  for(const [o,g] of mp){const f=fin.get(o)||{custo:0,venda:0,valorArrobaSoma:0,valorArrobaN:0};g.custoDiarias=f.custo;g.venda=f.venda;const va=f.valorArrobaN?f.valorArrobaSoma/f.valorArrobaN:0;g.apurado=va>0?g.arrobas*va-g.custoDiarias:0;g.custoArroba=g.arrobas?g.custoDiarias/g.arrobas:0;}
-
-  /* Exibir somente origens com produção positiva; não somar vendas sem @ produzidas. */
-  const rows=[...mp.values()].filter(r=>r.arrobas>0).sort((a,b)=>b.arrobas-a.arrobas||b.origem.localeCompare(a.origem,'pt-BR'));
-  const totalAnim=rows.reduce((s,r)=>s+r.qtd,0),totalArr=rows.reduce((s,r)=>s+r.arrobas,0),totalDiarias=rows.reduce((s,r)=>s+r.custoDiarias,0),totalVenda=rows.reduce((s,r)=>s+r.venda,0),totalApurado=rows.reduce((s,r)=>s+r.apurado,0);
-  let h=`<div class="kpis"><div class="kpi"><span>ANIMAIS VENDIDOS NO MÊS</span><strong>${totalAnim}</strong></div><div class="kpi"><span>ARROBAS PRODUZIDAS NO MÊS</span><strong>${totalArr.toFixed(2)} @</strong></div></div>`;
-  h+='<div class="table-wrap"><table style="min-width:650px"><thead><tr><th>Origem</th><th>Animais vendidos</th><th>Arrobas produzidas</th><th>Média @ / boi</th></tr></thead><tbody>';
-  rows.forEach(r=>{h+=`<tr><td><b>${r.origem}</b></td><td>${r.qtd}</td><td>${r.arrobas.toFixed(2)} @</td><td>${r.qtd?(r.arrobas/r.qtd).toFixed(2):'0.00'} @</td></tr>`});
-  h+=`<tr><td><b>TOTAL DO MÊS</b></td><td><b>${totalAnim}</b></td><td><b>${totalArr.toFixed(2)} @</b></td><td><b>${totalAnim?(totalArr/totalAnim).toFixed(2):'0.00'} @</b></td></tr></tbody></table></div>`;
-  el.innerHTML=h;
+  el.innerHTML='<div class="notice">CONFERINDO ABATES E ANIMAIS VINCULADOS...</div>';
+  try{
+    await carregarAbatesArroba();preencherMesArroba();
+    const mes=sel.value;
+    if(!mes){el.innerHTML='<div class="empty">Nenhum abate registrado.</div>';return;}
+    const registros=arrobaAbatesCache.filter(x=>String(x.data_abate||'').slice(0,7)===mes);
+    const fmt=n=>Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const esc=v=>String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    // Valores fornecidos pelo responsável para conciliação; nunca substituem os dados oficiais.
+    const referenciasNovembro={
+      'PASTO B2':{qtd:13,arrobas:37.18,data:'2026-11-04'},
+      'BELEI BAIXO':{qtd:13,arrobas:66.43,data:'2026-11-04'},
+      'CASINHA':{qtd:7,arrobas:29.61,data:'2026-11-09'},
+      'PIQUETEAMENTO BAIXO':{qtd:14,arrobas:79.52,data:'2026-11-09'},
+      'MOMBAÇA':{qtd:1,arrobas:5.64,data:'2026-11-09'}
+    };
+    const linhas=registros.map(a=>{
+      const animais=arrobaAnimaisCache.filter(x=>x.pesagem_id===a.pesagem_id);
+      const locs=[...new Set(animais.map(x=>String(x.localizacao||'').trim()).filter(Boolean))];
+      const origem=String(a.origem||locs[0]||'NÃO IDENTIFICADA').trim();
+      const ref=mes==='2026-11'?referenciasNovembro[origem.toUpperCase()]:null;
+      const rc=Number(a.rendimento_carcaca),carcaca=Number(a.carcaca_arrobas);
+      const validos=animais.filter(x=>Number(x.peso_entrada)>0&&Number(x.peso_saida)>0);
+      const arrobasIndividuais=(rc>0&&carcaca>0)?validos.map(x=>carcaca-Number(x.peso_entrada)*rc/15):[];
+      const arrobasCalculadas=arrobasIndividuais.reduce((v,n)=>v+n,0);
+      const mediaEntrada=validos.length?validos.reduce((v,x)=>v+Number(x.peso_entrada),0)/validos.length:null;
+      const divergencias=[];
+      if(locs.length!==1||origem.toUpperCase()!==String(locs[0]||'').toUpperCase())divergencias.push('LOCALIDADE DIVERGENTE');
+      if(animais.some(x=>x.data_saida&&x.data_saida!==a.data_abate))divergencias.push('DATA DO ABATE DIFERENTE DA SAÍDA');
+      if(validos.length!==animais.length)divergencias.push('PESO DE ENTRADA/SAÍDA AUSENTE EM '+(animais.length-validos.length)+' ANIMAL(IS)');
+      if(!(rc>0&&carcaca>0))divergencias.push('RENDIMENTO/CARCAÇA AUSENTE');
+      if(ref){
+        if(animais.length!==ref.qtd)divergencias.push('QUANTIDADE DIVERGENTE');
+        if(a.data_abate!==ref.data)divergencias.push('DATA DIFERENTE DA REFERÊNCIA');
+        if(validos.length===animais.length&&Math.abs(arrobasCalculadas-ref.arrobas)>0.15)divergencias.push('ARROBAS DIVERGENTES DA REFERÊNCIA');
+      }
+      if(mes==='2026-11'&&origem.toUpperCase()==='BELEI ALTO')divergencias.push('BELEI ALTO CONFIRMADO: FALTAM PESOS DE ENTRADA PARA TOTAL DO LOTE');
+      return {a,animais,validos,origem,ref,arrobasCalculadas,mediaEntrada,divergencias};
+    });
+    const qtd=linhas.reduce((n,x)=>n+x.animais.length,0);
+    const qtdValidos=linhas.reduce((n,x)=>n+x.validos.length,0);
+    const totalCalculado=linhas.reduce((n,x)=>n+x.arrobasCalculadas,0);
+    const pendentes=linhas.filter(x=>x.divergencias.length).length;
+    let h='<div class="notice"><b>ARROBA PRODUZIDA — SOMENTE ABATES:</b> calculada por animal vinculado à pesagem, com carcaça e rendimento registrados no abate. Não inclui vendas comerciais ou leilões. Quando faltam pesos, o total é PARCIAL, nunca extrapolado para os animais sem informação.</div>';
+    h+=`<div class="kpis"><div class="kpi"><span>ANIMAIS ABATIDOS VINCULADOS</span><strong>${qtd}</strong></div><div class="kpi"><span>COM PESOS INFORMADOS</span><strong>${qtdValidos}</strong></div><div class="kpi"><span>ARROBAS CALCULADAS (PARCIAL)</span><strong>${fmt(totalCalculado)} @</strong></div><div class="kpi"><span>LOTES PENDENTES</span><strong>${pendentes}</strong></div></div>`;
+    if(mes==='2026-11')h+='<div class="notice"><b>REFERÊNCIA INFORMADA:</b> cinco lotes = 48 animais / 218,38 @. BELEI ALTO foi confirmado como sexto lote (12 animais), mas não possui pesos completos para apuração. A referência é exibida para conferência, não substitui o banco. CASINHA: peso médio informado 364,71 kg; banco registra média diferente — exige conciliação do peso de entrada.</div>';
+    h+='<div class="table-wrap"><table style="min-width:1120px"><thead><tr><th>Data no banco</th><th>Localidade</th><th>Animais</th><th>Com pesos</th><th>@ calculadas com pesos disponíveis</th><th>@ referência do lote</th></tr></thead><tbody>';
+    for(const x of linhas){
+      const parcial=x.validos.length!==x.animais.length;
+      h+=`<tr><td>${esc(String(x.a.data_abate||'').split('-').reverse().join('/'))}</td><td>${esc(x.origem)}</td><td>${x.animais.length}</td><td>${x.validos.length}</td><td>${x.validos.length?fmt(x.arrobasCalculadas)+' @'+(parcial?' (PARCIAL)':''):'—'}</td><td>${x.ref?fmt(x.ref.arrobas)+' @':'—'}</td></tr>`;
+    }
+    h+=`<tr><td colspan="2"><b>TOTAL DO MÊS — ${qtdValidos===qtd?'CALCULADO':'PARCIAL'}</b></td><td><b>${qtd}</b></td><td><b>${qtdValidos}</b></td><td><b>${fmt(totalCalculado)} @</b></td><td>—</td></tr></tbody></table></div>`;
+    h+=`<div class="notice"><b>STATUS DOS DADOS:</b> ${pendentes} lote(s) ainda têm divergências internas. Esta tela não representa validação final do banco.</div>`;
+    h+='<div class="notice">Os pesos ausentes não são substituídos por médias. A data de abate e o peso de entrada do banco não foram alterados automaticamente. A conferência dos lotes de novembro é necessária antes de fechar o mês.</div>';
+    el.innerHTML=h;
+  }catch(e){console.error('AUDITORIA ARROBA:',e);el.textContent='ERRO AO CONSULTAR ABATES: '+String(e.message||e);}
 }
 
 function ajustarFiltroFinanceiro(){const p=$('finPeriodo')?.value||'MES';if($('finMesWrap'))$('finMesWrap').style.display=p==='MES'?'block':'none';if($('finAnoWrap'))$('finAnoWrap').style.display=p==='ANO'?'block':'none'}
@@ -4027,7 +4063,7 @@ async function tgHomCarregarFicha(){
   const receita=itens.reduce((t,i)=>t+Number(i.batida_kg??i.quantidade_mn??0),0);
   if(!(receita>0))throw Error('RECEITA DA DIETA SEM PESO VÁLIDO.');
   const norm=v=>String(v||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-  const locais=[...document.querySelectorAll('#tr_grade_body tr')].filter(tr=>norm(tr.dataset.sistema)===tgSistema && (tgSistema==='SEMI'||!trNormNome(tr.dataset.local).startsWith('SAO GUILHERME '))).map(tr=>{
+  const locais=[...document.querySelectorAll('#tr_grade_body tr')].filter(tr=>norm(tr.dataset.sistema)===tgSistema && tr.querySelector('[data-tr-dieta]')?.checked!==false).map(tr=>{
    if(tr.dataset.total==null||tr.dataset.total==='')return null;
    const divisao=[...tr.querySelectorAll('td[data-prev]')].map(td=>td.dataset.ajustado===''?0:Number(td.dataset.ajustado??td.dataset.prev??0));
    if(divisao.length!==4||divisao.some(v=>!Number.isFinite(v)))throw Error('PREVISÃO INCOMPLETA PARA '+tr.dataset.local);
@@ -4051,7 +4087,7 @@ async function tgHomCarregarFicha(){
    for(const x of leit.data||[]){
     const nome=conf?x.currais?.codigo:x.localizacao;
     const chave=canon(nome),peso=Number(x.total_previsto);
-    if(!nome||(conf&&chave.startsWith('SAO GUILHERME '))||semDieta.has(chave)||encontrados.has(chave)||!Number.isFinite(peso)||peso<=0)continue;
+    if(!nome||semDieta.has(chave)||encontrados.has(chave)||!Number.isFinite(peso)||peso<=0)continue;
     encontrados.add(chave);
     const exibicao=conf&&/^[AB][1-5]$/.test(chave)?'BAIA '+chave:String(nome).toUpperCase();
     const pct=configuracao.pctCurral(exibicao);
@@ -4281,6 +4317,10 @@ async function tgProdEnviar(x){
  if(!x.itens?.length||x.itens.some(i=>!Number.isFinite(i.realizado)||i.realizado<0))throw Error('PESOS INVÁLIDOS');
  if(x.etapa==='ingredientes'){
   if(x.itens.some(i=>!i.id))throw Error('FICHA SEM ID DO INSUMO; ATUALIZE ONLINE');
+  // Não misturar cargas individuais do tratador com o CONSOLIDADO administrativo.
+  const conflito=await supa.from('tratos_carregamentos').select('carga').eq('data_trato',x.dia).eq('sistema',x.sistema);
+  if(conflito.error)throw conflito.error;
+  if((conflito.data||[]).some(v=>v.carga==='CONSOLIDADO'))throw Error('DIA COM CARGA CONSOLIDADA NO ADMINISTRATIVO. SINCRONIZAÇÃO BLOQUEADA PARA EVITAR DUPLICIDADE; NÃO REPITA O LANÇAMENTO.');
   const r=await supa.from('tratos_carregamentos').select('id').eq('data_trato',x.dia).eq('sistema',x.sistema).eq('carga',String(x.n));if(r.error)throw r.error;
   if(r.data.length>1)throw Error('CARGA DUPLICADA NO BANCO');let id=r.data[0]?.id;
   if(!id){const w=await supa.from('tratos_carregamentos').insert({data_trato:x.dia,sistema:x.sistema,carga:String(x.n),dieta_versao_id:String(x.versao),previsto_kg:x.itens.reduce((t,i)=>t+i.previsto,0),carregado_kg:x.itens.reduce((t,i)=>t+i.realizado,0)}).select('id').single();if(w.error)throw w.error;id=w.data.id;}
@@ -4294,10 +4334,20 @@ async function tgProdEnviar(x){
   const r=await supa.from('tratos_realizados').select('*').eq('data_trato',x.dia).eq('sistema',x.sistema);if(r.error)throw r.error;
   for(const i of x.itens){const a=r.data.find(v=>tgProdNome(v.localizacao)===tgProdNome(i.nome)),campo='trato_'+x.n;
    if(a&&a[campo]!=null){if(Number(a[campo])!==i.realizado)throw Error('TRATO DIVERGENTE: '+i.nome);continue;}
-   const payload={data_trato:x.dia,sistema:x.sistema,localizacao:a?.localizacao||i.nome,trato_1:null};
-   for(let j=1;j<=4;j++)payload['trato_'+j]=a?.['trato_'+j]??null;payload[campo]=i.realizado;
-   const w=await supa.from('tratos_realizados').upsert(payload,{onConflict:'data_trato,localizacao,sistema'});if(w.error)throw w.error;
-   const check=await supa.from('tratos_realizados').select(campo).eq('data_trato',x.dia).eq('sistema',x.sistema).eq('localizacao',payload.localizacao).single();if(check.error||Number(check.data?.[campo])!==i.realizado)throw Error('CONFERÊNCIA FALHOU: '+i.nome);
+   if(a){
+    // Atualizar somente o trato informado, sem reenviar os outros três valores.
+    // A versão lida impede sobrescrever mudanças simultâneas do administrativo.
+    if(!a.atualizado_em)throw Error('REGISTRO SEM VERSÃO: '+i.nome);
+    const w=await supa.from('tratos_realizados').update({[campo]:i.realizado})
+     .eq('id',a.id).eq('atualizado_em',a.atualizado_em).is(campo,null).select('id');
+    if(w.error)throw w.error;
+    if((w.data||[]).length!==1)throw Error('TRATO ALTERADO POR OUTRO USUÁRIO: '+i.nome+'. ATUALIZE ANTES DE CONTINUAR.');
+   }else{
+    const payload={data_trato:x.dia,sistema:x.sistema,localizacao:i.nome,[campo]:i.realizado};
+    const w=await supa.from('tratos_realizados').insert(payload);if(w.error)throw Error('NÃO FOI POSSÍVEL INSERIR '+i.nome+'; PODE HAVER LANÇAMENTO SIMULTÂNEO: '+w.error.message);
+   }
+   const check=await supa.from('tratos_realizados').select(campo).eq('data_trato',x.dia).eq('sistema',x.sistema).eq('localizacao',a?.localizacao||i.nome).single();
+   if(check.error||Math.abs(Number(check.data?.[campo])-i.realizado)>.001)throw Error('CONFERÊNCIA FALHOU: '+i.nome);
   }return;
  }
  throw Error('ETAPA DESCONHECIDA');
@@ -7552,6 +7602,8 @@ window.visaoAbateCarregar=async function(){
  html+='<div class="va-kpis"><div class="va-kpi"><span>ANIMAIS</span><strong>'+animais.length+'</strong></div><div class="va-kpi"><span>PESO MÉDIO GERAL (@)</span><strong>'+fmt(pesoMedio===null?null:pesoMedio/30)+' @</strong></div><div class="va-kpi"><span>GMD MÉDIO GERAL</span><strong>'+fmt(gmdMedio,3)+' kg/dia</strong></div></div>';
  const heads=['LOCALIDADE','QTD','ENTRADA','SAÍDA','PESO SAÍDA @','CARCAÇA','RC %','DIAS','GMD','GDC','DIÁRIA','@ PRODUZIDAS','CST @PRODZ','APURADO CONF','GMD FINAL BAIA','VR COMPRA','CST ACUMULADO','VALOR DE VENDA','CUSTO CONF.','RESULTADO'];
  html+='<div class="va-scroll"><table><thead><tr>'+heads.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>';
+ const mediaColunas=Array.from({length:20},()=>({soma:0,peso:0}));
+ let custoArrobaNumerador=0,custoArrobaDenominador=0;
  for(const g of [...grupos.values()].sort((x,y)=>x.local.localeCompare(y.local,'pt-BR'))){
  const r=g.rows,ab=abMap.get(g.p.id),pe=avg(r,'peso_entrada'),ps=avg(r,'peso_saida'),dias=avg(r,'qtd_dias'),gmd=avg(r.filter(x=>n(x.peso_entrada)>0&&n(x.peso_saida)>0&&n(x.qtd_dias)>0).map(x=>({gmd:(n(x.peso_saida)-n(x.peso_entrada))/n(x.qtd_dias)})),'gmd'),diaria=avg(r,'valor_diaria');
  // Os campos de carcaça são médias do registro de abate da pesagem, nunca um valor estimado.
@@ -7570,9 +7622,17 @@ window.visaoAbateCarregar=async function(){
  const totalConf=r.every(x=>n(x.custo_atual)!==null)?avg(r,'custo_atual'):null;
  const resultado=totalVenda!==null&&totalCompra!==null&&totalAcum!==null&&totalConf!==null?totalVenda-totalCompra-totalAcum-totalConf:null;
  const cells=[esc(g.local),String(r.length),fmt(pe),fmt(ps),fmt(ps===null?null:ps/30),fmt(carcKg===null?null:carcKg/15),(rc===null?'<span class="va-pendente">—</span>':fmt(rc*100)+'%'),fmt(dias,0),fmt(gmd,3),fmt(gdc,3),reais(diaria),fmt(arrobas),reais(custoArroba),reais(apurado),fmt(parcialPorLocal.get(g.local)??null,3),reais(totalCompra),reais(totalAcum),reais(totalVenda),reais(totalConf),reais(resultado)];
+ const valores=[null,r.length,pe,ps,ps===null?null:ps/30,carcKg===null?null:carcKg/15,rc===null?null:rc*100,dias,gmd,gdc,diaria,arrobas,custoArroba,apurado,parcialPorLocal.get(g.local)??null,totalCompra,totalAcum,totalVenda,totalConf,resultado];
+ // Médias por cabeça ponderadas pela quantidade de animais da localidade.
+ valores.forEach((v,i)=>{if(i<2||i===12||v===null||!Number.isFinite(v))return;mediaColunas[i].soma+=v*r.length;mediaColunas[i].peso+=r.length;});
+ if(arrobas!==null&&arrobas>0&&diaria!==null&&dias!==null){custoArrobaNumerador+=diaria*dias*r.length;custoArrobaDenominador+=arrobas*r.length;}
  html+='<tr>'+cells.map(c=>'<td>'+c+'</td>').join('')+'</tr>';
  }
- html+='</tbody></table></div><div class="hint" style="margin-top:10px">— = informação não cadastrada ou cálculo dependente de informação pendente. Valores médios por cabeça em todas as colunas, inclusive compra, acumulado, venda, custo e resultado; QTD representa a quantidade de animais. Os dados são consultados diretamente no banco, sem alteração dos lançamentos.</div>';
+ const media=i=>mediaColunas[i].peso?mediaColunas[i].soma/mediaColunas[i].peso:null;
+ const custoArrobaGeral=custoArrobaDenominador>0?custoArrobaNumerador/custoArrobaDenominador:null;
+ const footer=[ '<b>MÉDIA PONDERADA GERAL</b>', '<b>'+animais.length+'</b>',fmt(media(2)),fmt(media(3)),fmt(media(4)),fmt(media(5)),media(6)===null?'—':fmt(media(6))+'%',fmt(media(7),1),fmt(media(8),3),fmt(media(9),3),reais(media(10)),fmt(media(11)),reais(custoArrobaGeral),reais(media(13)),fmt(media(14),3),reais(media(15)),reais(media(16)),reais(media(17)),reais(media(18)),reais(media(19)) ];
+ html+='<tr class="va-total" style="font-weight:900;background:#eaf0ec">'+footer.map(v=>'<td>'+v+'</td>').join('')+'</tr>';
+ html+='</tbody></table></div><div class="hint style="margin-top:10px">— = informação não cadastrada ou cálculo dependente de informação pendente. Valores médios por cabeça em todas as colunas, inclusive compra, acumulado, venda, custo e resultado; QTD representa a quantidade de animais. Os dados são consultados diretamente no banco, sem alteração dos lançamentos.</div>';
  box.innerHTML=html;
  }catch(e){box.textContent='Não foi possível carregar a visão do abate: '+String(e.message||e);console.error('Visão do abate:',e);}
 };

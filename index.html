@@ -1707,7 +1707,7 @@ body{background:#f4f8f7}
     </div>
   </section>
 
-<section id="tratosCadastro" class="page admin-only"><div class="panel"><div class="section-head"><div><h2>DISTRIBUIÇÃO DIÁRIA DE TRATOS</h2><p>LANÇAMENTO TRATO A TRATO — PADRÃO DA PLANILHA</p></div><span class="tag">ETAPA 20 — CARREGAMENTO E CONFERÊNCIA</span></div><div class="grid" style="margin-bottom:6px"><div class="field"><label>DATA DA DISTRIBUIÇÃO</label><input id="tr_data" type="date" onchange="trSelecionarDataDistribuicao()"></div></div><div class="notice">CURRAIS DO CONFINAMENTO E SEMI: CONFIGURAÇÃO DO MANEJO EXISTENTE. TOTAL DO DIA ANTERIOR: SUPABASE. PREVISÕES POR TRATO: PERCENTUAIS DO MANEJO (20/30/30/20 OU CONFIGURADO); CONFINAMENTO ESPECIAL: DOIS TRATOS CONFORME MANEJO. SEMICONFINAMENTO: UM TRATO, 100% NO TRATO 1. APENAS REAL É EDITÁVEL.</div><button type="button" onclick="trAbrirConfiguracaoTratos()" style="margin:8px;padding:8px 14px;border-radius:7px">⚙ CONFIGURAÇÃO DE TRATOS</button><div id="tr_db_aviso" class="notice">AGUARDANDO CONSULTA AO BANCO.</div><div class="table-wrap"><table class="tratos-compacta" style="width:100%;min-width:0;font-size:10px;table-layout:fixed"><thead><tr><th>COM DIETA</th><th>CURRAL</th><th>DIAS</th><th>TOTAL</th><th>BOIS</th><th>TRATO 1</th><th>REAL</th><th>TRATO 2</th><th>REAL</th><th>TRATO 3</th><th>REAL</th><th>TRATO 4</th><th>REAL</th><th>SALDO PENDENTE</th><th>REALIZADO</th><th>DESVIO</th><th>DESVIO %</th></tr></thead><tbody id="tr_grade_body"></tbody><tfoot id="tr_grade_total"></tfoot></table></div><div class="form-actions"><button class="btn primary" onclick="tratosSalvarDistribuicao()">SALVAR DISTRIBUIÇÃO</button></div><div class="notice">REAL POR TRATO: GRAVADO NO SUPABASE POR DATA E LOCALIDADE. LANÇAMENTOS PARCIAIS SÃO PRESERVADOS. SALDO DO DIA É REDISTRIBUÍDO ENTRE OS TRATOS RESTANTES. DADOS JÁ SALVOS FICAM BLOQUEADOS.</div></div><div class="panel" id="tr_carga_painel"><div class="section-head"><div><h2>CARREGAMENTO — INGREDIENTES E CONFERÊNCIA</h2><p>DESVIOS POR INGREDIENTE, GERAL E DIFERENÇA CARREGADO × DISTRIBUÍDO</p></div></div>
+<section id="tratosCadastro" class="page admin-only"><div class="panel"><div class="section-head"><div><h2>DISTRIBUIÇÃO DIÁRIA DE TRATOS</h2><p>LANÇAMENTO TRATO A TRATO — PADRÃO DA PLANILHA</p></div><span class="tag">ETAPA 20 — CARREGAMENTO E CONFERÊNCIA</span></div><div class="grid" style="margin-bottom:6px"><div class="field"><label>DATA DA DISTRIBUIÇÃO</label><input id="tr_data" type="date" onchange="trSelecionarDataDistribuicao()"></div></div><div class="notice">CURRAIS DO CONFINAMENTO E SEMI: CONFIGURAÇÃO DO MANEJO EXISTENTE. TOTAL DO DIA ANTERIOR: SUPABASE. PREVISÕES POR TRATO: PERCENTUAIS DO MANEJO (20/30/30/20 OU CONFIGURADO); CONFINAMENTO ESPECIAL: DOIS TRATOS CONFORME MANEJO. SEMICONFINAMENTO: UM TRATO, 100% NO TRATO 1. APENAS REAL É EDITÁVEL.</div><button type="button" onclick="trAbrirConfiguracaoTratos()" style="margin:8px;padding:8px 14px;border-radius:7px">⚙ CONFIGURAÇÃO DE TRATOS</button><div id="tr_db_aviso" class="notice">AGUARDANDO CONSULTA AO BANCO.</div><div id="tr_resumo_previsoes" aria-live="polite" style="margin:10px 0 12px"></div><div class="table-wrap"><table class="tratos-compacta" style="width:100%;min-width:0;font-size:10px;table-layout:fixed"><thead><tr><th>COM DIETA</th><th>CURRAL</th><th>DIAS</th><th>TOTAL</th><th>BOIS</th><th>TRATO 1</th><th>REAL</th><th>TRATO 2</th><th>REAL</th><th>TRATO 3</th><th>REAL</th><th>TRATO 4</th><th>REAL</th><th>SALDO PENDENTE</th><th>REALIZADO</th><th>DESVIO</th><th>DESVIO %</th></tr></thead><tbody id="tr_grade_body"></tbody><tfoot id="tr_grade_total"></tfoot></table></div><div class="form-actions"><button class="btn primary" onclick="tratosSalvarDistribuicao()">SALVAR DISTRIBUIÇÃO</button></div><div class="notice">REAL POR TRATO: GRAVADO NO SUPABASE POR DATA E LOCALIDADE. LANÇAMENTOS PARCIAIS SÃO PRESERVADOS. SALDO DO DIA É REDISTRIBUÍDO ENTRE OS TRATOS RESTANTES. DADOS JÁ SALVOS FICAM BLOQUEADOS.</div></div><div class="panel" id="tr_carga_painel"><div class="section-head"><div><h2>CARREGAMENTO — INGREDIENTES E CONFERÊNCIA</h2><p>DESVIOS POR INGREDIENTE, GERAL E DIFERENÇA CARREGADO × DISTRIBUÍDO</p></div></div>
 <div class="grid tr-carga-cabecalho" style="margin-bottom:10px"><div class="field"><label>DATA DO CARREGAMENTO — SELECIONE O DIA A LANÇAR</label><input id="tr_carga_data" type="date" onchange="trCargaRender()"></div><div class="field"><label>SISTEMA</label><select id="tr_carga_sistema" onchange="trCargaRender()"><option value="CONFINAMENTO">CONFINAMENTO</option><option value="SEMI">SEMICONFINAMENTO</option></select></div><input id="tr_carga_num" type="hidden" value="CONSOLIDADO"></div>
 <div class="notice" id="tr_carga_aviso">SELECIONE A DATA E A CARGA. O PREVISTO POR INGREDIENTE USA A DIETA ATIVA COMO REFERÊNCIA; INFORME A QUANTIDADE REAL CARREGADA.</div>
 <div class="notice" id="tr_carga_data_destaque" style="font-size:15px;font-weight:800;border:2px solid #64748b;padding:12px;margin:10px 0">CONFIRMANDO DATA DO CARREGAMENTO...</div><input id="tr_carga_total_previsto" type="hidden" value="0"><input id="tr_carga_bruto" type="hidden" value="0"><input id="tr_carga_sobra" type="hidden" value="0"><span id="tr_carga_sobra_origem" hidden></span><div class="notice" id="tr_carga_conciliacao"></div><div id="tr_carga_itens"></div><div id="tr_carga_resumo"></div>
@@ -5720,6 +5720,28 @@ function trCalc(){
  const vals=['TOTAL','','',trFmt(sumPrev),trFmt(sumBois)];
  for(let i=0;i<4;i++){vals.push('—');vals.push(trFmt(rows.reduce((a,tr)=>a+trN(trRead(tr).v[i]),0)))}
  vals.push(trFmt(sumSaldo),trFmt(sumReal),allComplete?trFmt(sumReal-sumPrev):'PARCIAL',allComplete&&sumPrev?trFmt((sumReal-sumPrev)/sumPrev*100)+'%':'—');
+ // RESUMO DE PREVISÕES: a mesma grade oficial usada pelo administrativo,
+ // fichas e tratador. Não soma carregamentos realizados e não consulta outro dia.
+ const resumo=document.getElementById('tr_resumo_previsoes');
+ if(resumo){
+  const porSistema={CONFINAMENTO:{total:0,tratos:[0,0,0,0]},SEMI:{total:0,tratos:[0,0,0,0]}};
+  rows.forEach(row=>{
+   if(row.querySelector('[data-tr-dieta]')?.checked===false||row.dataset.total==='')return;
+   const sis=trNormNome(row.dataset.sistema),dest=porSistema[sis];if(!dest)return;
+   dest.total+=Number(row.dataset.total)||0;
+   [...row.querySelectorAll('td[data-prev]')].forEach((td,i)=>{dest.tratos[i]+=Number(td.dataset.prev)||0});
+  });
+  const c=porSistema.CONFINAMENTO,m=porSistema.SEMI;
+  const bloco=(nome,grupo,semi)=>'<div style="flex:1 1 280px;min-width:0;padding:10px 12px;border:1px solid #d8e2dc;border-radius:8px;background:#f8fbf9">'
+   +'<div style="font-size:11px;font-weight:700;color:#45665a">'+nome+'</div>'
+   +'<div style="font-size:19px;font-weight:800;margin:4px 0">'+trFmt(grupo.total)+' KG</div>'
+   +'<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px">'
+   +(semi?'<span>TRATO ÚNICO: <b>'+trFmt(grupo.tratos[0])+' KG</b></span>':grupo.tratos.map((v,i)=>'<span style="padding:4px 6px;border-radius:5px;background:#e9f1ec">'+(i+1)+'º TRATO: <b>'+trFmt(v)+' KG</b></span>').join(''))
+   +'</div></div>';
+  resumo.innerHTML='<div style="font-size:12px;font-weight:800;margin-bottom:7px">PREVISÃO DE TRATOS — '+trEsc(trData().split('-').reverse().join('/'))+'</div>'
+   +'<div style="display:flex;flex-wrap:wrap;gap:8px">'+bloco('CONFINAMENTO',c,false)+bloco('SEMICONFINAMENTO',m,true)+'</div>'
+   +'<div style="padding:8px 10px;margin-top:6px;font-weight:800;font-size:13px;border-left:3px solid #28634b;background:#eef5f0">TOTAL GERAL PREVISTO: '+trFmt(c.total+m.total)+' KG</div>';
+ }
  // Totais por sistema para conciliar diretamente com os carregamentos.
  const subtotais={CONFINAMENTO:0,SEMI:0};
  rows.forEach(row=>{if(row.querySelector('[data-tr-dieta]')?.checked===false)return;const sis=trNormNome(row.dataset.sistema);if(Object.prototype.hasOwnProperty.call(subtotais,sis)&&row.dataset.total!=='')subtotais[sis]+=Number(row.dataset.total)||0;});
@@ -6515,7 +6537,13 @@ function trCargaCalcular(){
   if(pctCel){pctCel.style.fontWeight='800';pctCel.style.color=pctValor===null?'':Math.abs(pctValor)>3?'#ad2921':'#247a42';pctCel.style.background=pctValor===null?'':Math.abs(pctValor)>3?'#ffe8e5':'#e5f5e8'}
 
  });
- const todas=x.todasCargas||[];const outras=todas.filter(c=>c.carga!==x.carga);const somaDia=outras.reduce((a,b)=>a+Number(b.carregado_kg||0),0)+(completos?r:(x.registroSalvo?Number((x.todasCargas||[]).find(c=>c.carga===x.carga)?.carregado_kg||0):0));const previstoDia=outras.reduce((a,b)=>a+Number(b.previsto_kg||0),0)+p;const cargaDiaCompleta=completos&&outras.every(c=>c.carregado_kg!==null&&c.carregado_kg!==undefined);const dfUnico=trCalcularDFUnico(somaDia,x.distribuido,x.sobraDF||0,x.descontoDF||0,x.sobraFinalDF||0); /* Mesmo balanço físico do histórico: carga + sobra recebida - distribuído - sobra final. */ const diferenca=cargaDiaCompleta?dfUnico.diferenca:null;
+ // Consolidado exibe a soma dos ingredientes de todas as cargas; nao somar as cargas outra vez.
+ const todas=x.todasCargas||[];
+ const consultaConsolidada=x.carga==='CONSOLIDADO';
+ const outras=consultaConsolidada?[]:todas.filter(c=>c.carga!==x.carga&&c.carga!=='CONSOLIDADO');
+ const somaDia=consultaConsolidada?r:outras.reduce((a,b)=>a+Number(b.carregado_kg||0),0)+(completos?r:(x.registroSalvo?Number(todas.find(c=>c.carga===x.carga)?.carregado_kg||0):0));
+ const previstoDia=consultaConsolidada?p:outras.reduce((a,b)=>a+Number(b.previsto_kg||0),0)+p;
+ const cargaDiaCompleta=completos&&outras.every(c=>c.carregado_kg!==null&&c.carregado_kg!==undefined);const dfUnico=trCalcularDFUnico(somaDia,x.distribuido,x.sobraDF||0,x.descontoDF||0,x.sobraFinalDF||0); /* Mesmo balanço físico do histórico: carga + sobra recebida - distribuído - sobra final. */ const diferenca=cargaDiaCompleta?dfUnico.diferenca:null;
  const desvioPct=completos&&p?(r-p)/p*100:null;
  const distPct=cargaDiaCompleta?dfUnico.percentual:null;
  const estiloPct=v=>v===null?'':('font-weight:800;color:'+(Math.abs(v)>3?'#ad2921':'#247a42')+';background:'+(Math.abs(v)>3?'#ffe8e5':'#e5f5e8')+';');

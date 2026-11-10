@@ -5594,6 +5594,16 @@ async function tratosRender(){
  // Lançamentos históricos são preservados no banco, mas só aparecem no planejamento
  // quando há uma localidade vinculada a uma dieta/previsão válida.
 
+ // Zeros de tratos anteriores: somente após haver lançamento comprovado de trato posterior.
+ // Zero de previsão é exibido quando há distribuição já registrada naquele trato.
+ const progressoDistribuicao={};
+ for(const x of atuais){
+  const sis=trNormNome(x.sistema);
+  const st=progressoDistribuicao[sis]||{tem:[false,false,false,false],posterior:[false,false,false,false]};
+  progressoDistribuicao[sis]=st;
+  for(let i=0;i<4;i++)if(x.v?.[i]!==''&&x.v?.[i]!=null)st.tem[i]=true;
+ }
+ for(const st of Object.values(progressoDistribuicao))for(let i=0;i<4;i++)st.posterior[i]=st.tem.slice(i+1).some(Boolean);
  const ordemConf=TG_ORDEM_DISTRIBUICAO.map(trChaveLocal),ordemSemi=trSemiOficial.map(trChaveLocal);
  registros.sort((a,b)=>{
   if(a.sistema!==b.sistema)return a.sistema==='CONFINAMENTO'?-1:1;
@@ -5634,7 +5644,19 @@ async function tratosRender(){
   const ultimoAnterior=salvos.find(x=>x.data<data&&chaveCadastro(x.local)===chaveCadastro(local));
   const total=baseDiaAnterior===null?'—':trFmt(baseDiaAnterior),bois=db.bois==null?'—':trFmt(db.bois),dias=db.dias==null?'—':trFmt(db.dias);
   let h='<tr style="'+separador+'" data-pct="'+trEsc(pct.join(','))+'" data-sistema="'+trEsc(r.sistema||db.sistema)+'" title="'+trEsc(ultimoAnterior?'ÚLTIMO REALIZADO: '+ultimoAnterior.data+' — '+ultimoAnterior.v.map((v,i)=>v!==''?'TRATO '+(i+1)+': '+v+' KG':'').filter(Boolean).join(' | '):'SEM REALIZADO ANTERIOR')+'" data-local="'+trEsc(local)+'" data-total="'+trEsc(baseDiaAnterior??'')+'"><td style="text-align:center"><input type="checkbox" data-tr-dieta checked onchange="trGradeSelecionar(this)" aria-label="COM DIETA"></td><td title="'+trEsc(db.sistema)+'"><b>'+trEsc(local)+'</b>'+'</td><td>'+dias+'</td><td data-c="total">'+total+' <button type="button" class="tr-edit-prev" onclick="trGradeEditar(this)" title="EDITAR PREVISÃO" aria-label="EDITAR PREVISÃO">✎</button></td><td>'+bois+'</td>';
-  for(let i=0;i<4;i++)h+='<td data-prev="'+trEsc(p?.[i]??'')+'">'+(p===null?'—':trFmt(p[i]))+'</td>'+(indicesAtivos.includes(i)?trInput('v',i,r.v?.[i]!==undefined&&r.v?.[i]!==''?r.v[i]:'').replace('<input ','<input '+(sistemaFechado?'disabled title="SISTEMA FECHADO NO SUPABASE" ':r.v?.[i]!==undefined&&r.v?.[i]!==''?'disabled title="TRATO JÁ SALVO" ':'') ):'<td style="text-align:center;color:#889">—</td>');
+  for(let i=0;i<4;i++){
+   const previsto=p?.[i];
+   const salvo=r.v?.[i]!==undefined&&r.v?.[i]!==''&&r.v?.[i]!==null;
+   const andamento=progressoDistribuicao[trNormNome(db.sistema)];
+   const zeroAutomatico=!salvo&&indicesAtivos.includes(i)&&!sistemaFechado&&andamento?.tem[i]&&
+     (andamento.posterior[i]||(previsto!==null&&previsto!==undefined&&Number(previsto)===0));
+   const valor=salvo?r.v[i]:(zeroAutomatico?'0':'');
+   const bloqueio=sistemaFechado?'disabled title="SISTEMA FECHADO NO SUPABASE" ':
+      salvo?'disabled title="TRATO JÁ SALVO" ':
+      zeroAutomatico?'disabled data-zero-auto="1" title="ZERO AUTOMÁTICO — BLOQUEADO; SALVAR DISTRIBUIÇÃO PARA GRAVAR NO BANCO" ':'';
+   h+='<td data-prev="'+trEsc(previsto??'')+'">'+(p===null?'—':trFmt(p[i]))+'</td>'+
+     (indicesAtivos.includes(i)?trInput('v',i,valor).replace('<input ','<input '+bloqueio):'<td style="text-align:center;color:#889">—</td>');
+  }
   return h+'<td data-c="ajuste">—</td><td data-c="realizado">—</td><td data-c="desvio">—</td><td data-c="pct">—</td></tr>';
  }).join('');
  if(aviso)aviso.textContent=erro||('PREVISÃO ÚNICA: AJUSTES DO ADMINISTRADOR SÃO PUBLICADOS NO SUPABASE E COMPARTILHADOS ENTRE OS PERFIS; NÃO ALTERAM A LEITURA OFICIAL. PREVISÃO: ÚLTIMA LEITURA DE COCHO DISPONÍVEL ATÉ O DIA ANTERIOR (CONFIRA A DATA AO PASSAR O MOUSE NO CURRAL). DISTRIBUIÇÃO: 20/30/30/20 OU PERCENTUAIS CONFIGURADOS; BAIAS A1 A B5: QUATRO TRATOS. DEMAIS CONFINAMENTO: DOIS TRATOS (1º E 4º). SEMI: UM TRATO. SEM LEITURA OU PREVISÃO COMPROVADA, MOSTRA —. SEMI USA SUA PRÓPRIA LEITURA DO DIA ANTERIOR. A PREVISÃO E OS DESCONTOS SÃO DEFINIDOS EXCLUSIVAMENTE NA LEITURA DE COCHO. '+'');
@@ -5732,13 +5754,28 @@ function trCalc(){
    [...row.querySelectorAll('td[data-prev]')].forEach((td,i)=>{dest.tratos[i]+=Number(td.dataset.prev)||0});
   });
   const c=porSistema.CONFINAMENTO,m=porSistema.SEMI;
-  const bloco=(nome,grupo,semi)=>'<div style="flex:1 1 280px;min-width:0;padding:10px 12px;border:1px solid #d8e2dc;border-radius:8px;background:#f8fbf9">'
+  // Somente valores efetivamente salvos no banco podem concluir um trato.
+  // Zeros automáticos ainda não salvos e rascunhos digitados não contam.
+  const situacao={CONFINAMENTO:[],SEMI:[]};
+  for(const sis of ['CONFINAMENTO','SEMI']){
+   const participantes=rows.filter(row=>trNormNome(row.dataset.sistema)===sis&&row.querySelector('[data-tr-dieta]')?.checked!==false&&row.dataset.total!=='');
+   for(let i=0;i<(sis==='SEMI'?1:4);i++){
+    const aplicaveis=participantes.map(row=>row.querySelector('input[data-f="v"][data-n="'+i+'"]')).filter(Boolean);
+    const salvos=aplicaveis.filter(inp=>inp.title==='TRATO JÁ SALVO'||inp.title==='SISTEMA FECHADO NO SUPABASE');
+    situacao[sis][i]={finalizado:aplicaveis.length>0&&salvos.length===aplicaveis.length,
+      realizado:salvos.reduce((a,inp)=>a+(Number(String(inp.value).replace(',','.'))||0),0)};
+   }
+  }
+  const indicador=(i,prev,sis)=>{
+   const st=situacao[sis][i],ok=st?.finalizado;
+   return '<span style="padding:5px 8px;border-radius:5px;background:'+(ok?'#dff3e5':'#fbe3e3')+';color:'+(ok?'#176b36':'#9b2424')+';font-weight:800" title="'+(ok?'DISTRIBUIÇÃO CONCLUÍDA — VALOR SALVO':'DISTRIBUIÇÃO PENDENTE — PREVISÃO')+'">'+(sis==='SEMI'?'TRATO ÚNICO':(i+1)+'º TRATO')+': <b>'+trFmt(ok?st.realizado:prev)+' KG</b></span>';
+  };
+  const bloco=(nome,grupo,semi)=>'<div style="flex:1 1 280px;min-width:0;padding:10px 12px;border:1px solid #d8e2dc;border-radius:8px;background:#f8fbf9"'
    +'<div style="font-size:11px;font-weight:700;color:#45665a">'+nome+'</div>'
-   +'<div style="font-size:19px;font-weight:800;margin:4px 0">'+trFmt(grupo.total)+' KG</div>'
+   +'<div style="font-size:19px;font-weight:800;margin:4px 0">'+trFmt(grupo.total)+' KG <small style="font-size:10px;color:#68727d">PREVISTO</small></div>'
    +'<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px">'
-   +(semi?'<span>TRATO ÚNICO: <b>'+trFmt(grupo.tratos[0])+' KG</b></span>':grupo.tratos.map((v,i)=>'<span style="padding:4px 6px;border-radius:5px;background:#e9f1ec">'+(i+1)+'º TRATO: <b>'+trFmt(v)+' KG</b></span>').join(''))
-   +'</div></div>';
-  resumo.innerHTML='<div style="font-size:12px;font-weight:800;margin-bottom:7px">PREVISÃO DE TRATOS — '+trEsc(trData().split('-').reverse().join('/'))+'</div>'
+   +(semi?indicador(0,grupo.tratos[0],'SEMI'):grupo.tratos.map((v,i)=>indicador(i,v,'CONFINAMENTO')).join(''))
+   +'</div><div style="font-size:11px;margin-top:7px;color:#45665a;font-weight:700">REALIZADO SALVO: '+trFmt(situacao[semi?'SEMI':'CONFINAMENTO'].reduce((a,x)=>a+(x?.realizado||0),0))+' KG</div></div>';  resumo.innerHTML='<div style="font-size:12px;font-weight:800;margin-bottom:7px">PREVISÃO DE TRATOS — '+trEsc(trData().split('-').reverse().join('/'))+'</div>'
    +'<div style="display:flex;flex-wrap:wrap;gap:8px">'+bloco('CONFINAMENTO',c,false)+bloco('SEMICONFINAMENTO',m,true)+'</div>'
    +'<div style="padding:8px 10px;margin-top:6px;font-weight:800;font-size:13px;border-left:3px solid #28634b;background:#eef5f0">TOTAL GERAL PREVISTO: '+trFmt(c.total+m.total)+' KG</div>';
  }
@@ -5952,7 +5989,7 @@ async function trGradePersistir(row,patch){
  await tratosRender();if(typeof trCargaRender==='function')await trCargaRender();
 }
 function trGradeRestaurar(){const all=trGradeEstado();document.querySelectorAll('#tr_grade_body tr').forEach(row=>{const st=all[trNormNome(row.dataset.local)];if(!st)return;const cb=row.querySelector('[data-tr-dieta]');if(cb&&typeof st.comDieta==='boolean')cb.checked=st.comDieta;trGradeAplicarEstado(row)})}
-function trGradeAplicarEstado(row){const ativo=row.querySelector('[data-tr-dieta]')?.checked!==false;row.style.opacity=ativo?'1':'.55';row.querySelectorAll('input[data-f="v"]').forEach(i=>{if(i.title==='TRATO JÁ SALVO'||i.title==='SISTEMA FECHADO NO SUPABASE')return;i.disabled=!ativo});}
+function trGradeAplicarEstado(row){const ativo=row.querySelector('[data-tr-dieta]')?.checked!==false;row.style.opacity=ativo?'1':'.55';row.querySelectorAll('input[data-f="v"]').forEach(i=>{if(i.dataset.zeroAuto==='1'||i.title==='TRATO JÁ SALVO'||i.title==='SISTEMA FECHADO NO SUPABASE')return;i.disabled=!ativo});}
 async function trGradeSelecionar(cb){const row=cb.closest('tr');if(!row)return;cb.disabled=true;try{await trGradePersistir(row,{comDieta:cb.checked});trToast('SELEÇÃO GRAVADA PARA TODOS OS USUÁRIOS')}catch(e){cb.checked=!cb.checked;trToast('NÃO SALVO: '+e.message,true)}finally{cb.disabled=false}}
 async function trGradeEditar(btn){const row=btn.closest('tr');if(!row)return;const raw=prompt('PREVISÃO TOTAL (KG) — '+row.dataset.local+'\nSERÁ SALVA PARA TODOS OS USUÁRIOS.',row.dataset.total||'');if(raw===null)return;const valor=Number(String(raw).replace(',','.'));if(!Number.isFinite(valor)||valor<0){trToast('PREVISÃO INVÁLIDA',true);return}btn.disabled=true;try{await trGradePersistir(row,{total:valor});trToast('PREVISÃO SALVA PARA TODOS OS USUÁRIOS')}catch(e){trToast('NÃO SALVO: '+e.message,true)}finally{btn.disabled=false}}
 
@@ -5972,6 +6009,10 @@ async function tratosSalvarDistribuicao(){
   if(q.error){trToast('NÃO FOI POSSÍVEL VERIFICAR O ÚLTIMO CARREGAMENTO: '+q.error.message,true);return}
   cargasFim[sis]=(q.data||[]).length>0;
  }
+ // Só liberar zero automático para trato que tenha ao menos uma distribuição
+ // efetivamente informada no administrativo; previsão zero não encerra trato futuro.
+ const tratosComDistribuicao=new Set();
+ rows.forEach(r=>r.v.forEach((v,i)=>{if(v!==''&&v!==null&&v!==undefined)tratosComDistribuicao.add(r.sistema+'|'+i)}));
  rows.forEach((r,j)=>{
   const tr=trs[j],meta=Number(tr.dataset.total);
   if(!Number.isFinite(meta)||meta<0)return;
@@ -5980,14 +6021,17 @@ async function tratosSalvarDistribuicao(){
   const atingiu=realizado>=meta;
   ativos.forEach(input=>{
    const i=Number(input.dataset.n);
-   if(input.disabled||input.value.trim()!=='')return;
+   if(input.disabled||input.readOnly||input.value.trim()!=='')return;
    const previstoOriginal=Number(tr.querySelectorAll('td[data-prev]')[i]?.dataset.prev||0);
-   const zeroPrimeiro= i===0 && previstoOriginal===0;
-   if(atingiu||cargasFim[r.sistema]||zeroPrimeiro){input.value='0';r.v[i]='0';}
+   // Curral com previsão efetivamente zero (desconto integral):
+   // registrar 0 somente se o respectivo trato já começou a ser distribuído.
+   // Nunca transformar campo vazio de trato futuro em zero por este motivo.
+   const zeroDesconto=previstoOriginal===0&&tratosComDistribuicao.has(r.sistema+'|'+i);
+   if(atingiu||cargasFim[r.sistema]||zeroDesconto){input.value='0';r.v[i]='0';}
   });
  });
  // Enviar somente tratos novos em campos editáveis, sem reenviar valores já salvos.
- const preenchidos=rows.map((r,j)=>({...r,v:r.v.map((v,i)=>{const input=trs[j].querySelector('input[data-f="v"][data-n="'+i+'"]');return input&&!input.disabled?v:''})})).filter(r=>r.v.some(v=>v!==''));
+ const preenchidos=rows.map((r,j)=>({...r,v:r.v.map((v,i)=>{const input=trs[j].querySelector('input[data-f="v"][data-n="'+i+'"]');return input&&(!input.disabled||input.dataset.zeroAuto==='1')?v:''})})).filter(r=>r.v.some(v=>v!==''));
  if(!preenchidos.length){trToast('NENHUMA ALTERAÇÃO PARA SALVAR');return}
  if(preenchidos.some(r=>r.v.some(x=>x!==''&&(!Number.isFinite(Number(x))||Number(x)<0)))){trToast('QUANTIDADE INVÁLIDA. NADA FOI SALVO.',true);return}
  // Zero digitado é um lançamento concluído: somente string vazia vira NULL.

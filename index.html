@@ -5507,6 +5507,49 @@ async function tratosRender(){
   if(r.error)throw r.error;
   salvos=(r.data||[]).map(x=>({data:x.data_trato,local:x.localizacao,sistema:x.sistema,v:[x.trato_1,x.trato_2,x.trato_3,x.trato_4].map(v=>v==null?'':String(v))}));
  }catch(e){erro=(erro?erro+' | ':'')+'ERRO AO LER REALIZADOS DO SUPABASE: '+String(e.message||e)}
+ // NOTA 2: o primeiro trato integralmente descontado é um lançamento REAL de 0 kg.
+ // Sincronizar antes de desenhar a grade para bloquear o campo no administrativo
+ // e publicar o mesmo valor para o celular. Nunca sobrescrever valores existentes.
+ if(data===trHojeISO() && !erro){
+  try{
+   const ajustes=await supa.from('tratos_ajustes_df')
+    .select('localizacao,sistema,tipo,desconto_selecionado,trato_numero')
+    .eq('data_referencia',data).eq('tipo','DESCONTO_NOTA_2').eq('desconto_selecionado',true);
+   if(ajustes.error)throw ajustes.error;
+   const canon=n=>String(n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim().replace(/\s+/g,' ').replace(/^([AB][1-5])$/,'BAIA $1');
+   const pendentes=[];
+   for(const a of ajustes.data||[]){
+    if(a.sistema!=='CONFINAMENTO'||!a.localizacao||(a.trato_numero!=null&&Number(a.trato_numero)!==1))continue;
+    const anterior=salvos.find(r=>r.data===data&&r.sistema===a.sistema&&canon(r.local)===canon(a.localizacao));
+    if(anterior&&anterior.v[0]!=='')continue;
+    const local=anterior?.local||a.localizacao;
+    if(pendentes.some(x=>canon(x.localizacao)===canon(local)))continue;
+    pendentes.push({data_trato:data,sistema:a.sistema,localizacao:local,
+     trato_1:0,trato_2:anterior?.v[1]!==''&&anterior?.v[1]!=null?Number(anterior.v[1]):null,
+     trato_3:anterior?.v[2]!==''&&anterior?.v[2]!=null?Number(anterior.v[2]):null,
+     trato_4:anterior?.v[3]!==''&&anterior?.v[3]!=null?Number(anterior.v[3]):null});
+   }
+   if(pendentes.length){
+    // Revalidar no banco antes de gravar, para não sobrescrever lançamento concorrente.
+    const conferidos=await supa.from('tratos_realizados').select('localizacao,sistema,trato_1,trato_2,trato_3,trato_4').eq('data_trato',data);
+    if(conferidos.error)throw conferidos.error;
+    for(const p of pendentes){
+     const atual=(conferidos.data||[]).find(x=>x.sistema===p.sistema&&canon(x.localizacao)===canon(p.localizacao));
+     if(atual&&atual.trato_1!=null)continue;
+     if(atual){
+      const gravado=await supa.from('tratos_realizados').update({trato_1:0}).eq('data_trato',data).eq('sistema',atual.sistema).eq('localizacao',atual.localizacao).is('trato_1',null).select('localizacao,trato_1');
+      if(gravado.error)throw gravado.error;
+     }else{
+      const gravado=await supa.from('tratos_realizados').insert(p);
+      if(gravado.error)throw gravado.error;
+     }
+    }
+    const recarga=await supa.from('tratos_realizados').select('data_trato,localizacao,sistema,trato_1,trato_2,trato_3,trato_4').eq('data_trato',data);
+    if(recarga.error)throw recarga.error;
+    salvos=salvos.filter(r=>r.data!==data).concat((recarga.data||[]).map(x=>({data:x.data_trato,local:x.localizacao,sistema:x.sistema,v:[x.trato_1,x.trato_2,x.trato_3,x.trato_4].map(v=>v==null?'':String(v))})));
+   }
+  }catch(e){erro='FALHA AO SINCRONIZAR ZERO DA NOTA 2: '+String(e.message||e);}
+ }
  // Classificação operacional validada para o módulo de TRATOS (não modifica cadastros no banco).
  const trSemiOficial=['SAO GUILHERME ACIMA','SAO GUILHERME BAIXO','BELEI BAIXO','BELEI ALTO','CASINHA','DIRCE','ABAIXO CASINHA','AROEIRA ALTO','AROEIRA MANGUEIRA','ACUDE'];
  const trConfOficial=['BAIA A1','BAIA A2','BAIA A3','BAIA A4','BAIA A5','BAIA B1','BAIA B2','BAIA B3','BAIA B4','BAIA B5','CASINHA CARLINHOS','VINHACA','SEDE PIQUETE','SEDE','BARRACAO','PASTO A1','PASTO A2','PASTO B1','PASTO B2','MOMBACA','PIQUETEAMENTO ASFALTO','PIQUETEAMENTO BAIXO'];
@@ -7938,6 +7981,69 @@ window.visaoAbateImprimir=function(){
  w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+titulo+'</title><style>@page{size:A3 landscape;margin:7mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#172027;margin:0}h1{font-size:17px;margin:0 0 10px}.hint{font-size:10px;color:#667}.va-kpis{display:flex;gap:12px;margin:8px 0 14px}.va-kpi{border:1px solid #ccd;padding:8px;flex:1}.va-kpi span{display:block;font-size:9px}.va-kpi strong{font-size:16px}.va-scroll{overflow:visible}table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:7px}th,td{border:1px solid #cbd4d0;padding:5px 2px;text-align:center;overflow-wrap:anywhere}th{background:#e8eeea}th:first-child,td:first-child{text-align:left;width:12%}.va-pendente{color:#8a6b23}</style></head><body><h1>'+titulo+'</h1>'+area.innerHTML+'</body></html>');
  w.document.close();w.focus();setTimeout(()=>w.print(),350);
 };
+})();
+</script>
+<script id="nota2-selecao-persistente-20261111">
+/* Nota 2: seleção persistente, por dia e curral, independente do dia anterior.
+   Não modifica distribuições ou carregamentos realizados. */
+(function(){
+ let token=0, busy=false;
+ const norm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/^BAIA\s+/,'').trim();
+ async function montar(){
+  const grade=document.getElementById('tr_grade_body');
+  if(!grade||busy||!grade.querySelector('tr[data-local]')||typeof supa==='undefined'||typeof trData!=='function')return;
+  const dia=trData(),rows=[...grade.querySelectorAll('tr[data-local]')].filter(r=>norm(r.dataset.sistema)==='CONFINAMENTO');
+  if(!rows.length||rows.every(r=>r.dataset.nota2Dia===dia))return;
+  busy=true;const seq=++token;
+  try{
+   const [leit,cur,aj]=await Promise.all([
+    supa.from('leituras_cocho').select('curral_id,total_previsto,nota').eq('data_leitura',dia).eq('nota',2),
+    supa.from('currais').select('id,codigo'),
+    supa.from('tratos_ajustes_df').select('id,localizacao,desconto_selecionado').eq('data_referencia',dia).eq('sistema','CONFINAMENTO').eq('tipo','DESCONTO_NOTA_2')
+   ]);
+   for(const r of [leit,cur,aj])if(r.error)throw r.error;
+   if(seq!==token||trData()!==dia)return;
+   const nomes=new Map((cur.data||[]).map(c=>[String(c.id),norm(c.codigo)]));
+   const notas=new Map((leit.data||[]).map(l=>[nomes.get(String(l.curral_id)),l]));
+   const ajustes=new Map((aj.data||[]).map(a=>[norm(a.localizacao),a]));
+   for(const row of rows){
+    const local=norm(row.dataset.local),nota=notas.get(local);
+    row.dataset.nota2Dia=dia;
+    if(!nota)continue;
+    const cel=row.children[1];if(!cel||cel.querySelector('.nota2-selecao-persistente'))continue;
+    const label=document.createElement('label');label.className='nota2-selecao-persistente';
+    label.style.cssText='display:inline-flex;gap:4px;align-items:center;margin-left:8px;font-size:10px;color:#9a4b0c;white-space:nowrap;cursor:pointer';
+    const check=document.createElement('input');check.type='checkbox';check.checked=ajustes.get(local)?.desconto_selecionado===true;
+    check.setAttribute('aria-label','SELECIONADO PARA DESCONTO NOTA 2');
+    label.append(check,document.createTextNode('NOTA 2 · DESCONTAR'));
+    check.addEventListener('change',async()=>{
+     const selecionado=check.checked;check.disabled=true;
+     try{
+      const existente=ajustes.get(local);
+      let res;
+      if(existente){res=await supa.from('tratos_ajustes_df').update({desconto_selecionado:selecionado,atualizado_em:new Date().toISOString()}).eq('id',existente.id).select('id,desconto_selecionado').single();}
+      else{
+       if(!selecionado){check.disabled=false;return;}
+       const kg=Number(nota.total_previsto);
+       if(!Number.isFinite(kg)||kg<0)throw Error('PREVISÃO INVÁLIDA PARA '+local);
+       res=await supa.from('tratos_ajustes_df').insert({data_informada:dia,data_referencia:dia,sistema:'CONFINAMENTO',tipo:'DESCONTO_NOTA_2',localizacao:row.dataset.local,quantidade_kg:kg,trato_numero:1,desconto_selecionado:true,observacao:'SELEÇÃO EXPLÍCITA NA GRADE — NOTA 2'}).select('id,desconto_selecionado').single();
+      }
+      if(res.error)throw res.error;
+      const verificacao=await supa.from('tratos_ajustes_df').select('id,desconto_selecionado').eq('id',res.data.id).single();
+      if(verificacao.error||verificacao.data?.desconto_selecionado!==selecionado)throw Error('SELEÇÃO NÃO CONFIRMADA NO BANCO');
+      ajustes.set(local,verificacao.data);
+     }catch(e){check.checked=!selecionado;alert('NOTA 2 NÃO GRAVADA: '+(e.message||e));}
+     finally{check.disabled=false;}
+    });
+    cel.appendChild(label);
+   }
+  }catch(e){console.error('Seleção Nota 2:',e);}
+  finally{busy=false;}
+ }
+ const grade=document.getElementById('tr_grade_body');
+ if(grade){new MutationObserver(()=>{if(!busy)montar();}).observe(grade,{childList:true,subtree:false});}
+ document.getElementById('tr_data')?.addEventListener('change',()=>{token++;document.querySelectorAll('#tr_grade_body tr').forEach(r=>delete r.dataset.nota2Dia);montar();});
+ montar();
 })();
 </script>
 </body></html>

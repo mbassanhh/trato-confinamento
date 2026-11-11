@@ -306,6 +306,11 @@ body.acesso-tratador #tratadorInicio{padding-top:30px}
 #visaoAbate .va-scroll td{font-variant-numeric:tabular-nums!important}
 #visaoAbate .va-total td{font-size:10px!important;white-space:nowrap!important}
 
+.tr-mat-wrapper{width:100%;overflow:visible!important}.tr-mat{width:100%!important;min-width:0!important;table-layout:fixed;border-spacing:0!important}
+.tr-mat th,.tr-mat td{font-size:clamp(9px,.83vw,12px)!important;padding:7px 4px!important;overflow-wrap:anywhere;text-align:center;white-space:normal}
+.tr-mat .tr-mat-nome{text-align:left;font-weight:700}.tr-mat input[data-t="real"]{width:100%!important;min-width:0!important;box-sizing:border-box;padding:5px 3px!important;font-size:inherit!important}
+.tr-mat input[type="hidden"]{display:none!important}.tr-mat tfoot th{background:#e8efeb;font-weight:800;border-top:2px solid #3b6954}
+@media(max-width:750px){.tr-mat th,.tr-mat td{font-size:9px!important;padding:5px 2px!important}.tr-mat input[data-t="real"]{padding:3px 1px!important}}
 </style>
 <style id="visao-abate-estilos">
 #visaoAbate .va-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0 18px}
@@ -1708,7 +1713,7 @@ body{background:#f4f8f7}
   </section>
 
 <section id="tratosCadastro" class="page admin-only"><div class="panel"><div class="section-head"><div><h2>DISTRIBUIÇÃO DIÁRIA DE TRATOS</h2><p>LANÇAMENTO TRATO A TRATO — PADRÃO DA PLANILHA</p></div><span class="tag">ETAPA 20 — CARREGAMENTO E CONFERÊNCIA</span></div><div class="grid" style="margin-bottom:6px"><div class="field"><label>DATA DA DISTRIBUIÇÃO</label><input id="tr_data" type="date" onchange="trSelecionarDataDistribuicao()"></div></div><div class="notice">CURRAIS DO CONFINAMENTO E SEMI: CONFIGURAÇÃO DO MANEJO EXISTENTE. TOTAL DO DIA ANTERIOR: SUPABASE. PREVISÕES POR TRATO: PERCENTUAIS DO MANEJO (20/30/30/20 OU CONFIGURADO); CONFINAMENTO ESPECIAL: DOIS TRATOS CONFORME MANEJO. SEMICONFINAMENTO: UM TRATO, 100% NO TRATO 1. APENAS REAL É EDITÁVEL.</div><button type="button" onclick="trAbrirConfiguracaoTratos()" style="margin:8px;padding:8px 14px;border-radius:7px">⚙ CONFIGURAÇÃO DE TRATOS</button><div id="tr_db_aviso" class="notice">AGUARDANDO CONSULTA AO BANCO.</div><div id="tr_resumo_previsoes" aria-live="polite" style="margin:10px 0 12px"></div><div class="table-wrap"><table class="tratos-compacta" style="width:100%;min-width:0;font-size:10px;table-layout:fixed"><thead><tr><th>COM DIETA</th><th>CURRAL</th><th>DIAS</th><th>TOTAL</th><th>BOIS</th><th>TRATO 1</th><th>REAL</th><th>TRATO 2</th><th>REAL</th><th>TRATO 3</th><th>REAL</th><th>TRATO 4</th><th>REAL</th><th>SALDO PENDENTE</th><th>REALIZADO</th><th>DESVIO</th><th>DESVIO %</th></tr></thead><tbody id="tr_grade_body"></tbody><tfoot id="tr_grade_total"></tfoot></table></div><div class="form-actions"><button class="btn primary" onclick="tratosSalvarDistribuicao()">SALVAR DISTRIBUIÇÃO</button></div><div class="notice">REAL POR TRATO: GRAVADO NO SUPABASE POR DATA E LOCALIDADE. LANÇAMENTOS PARCIAIS SÃO PRESERVADOS. SALDO DO DIA É REDISTRIBUÍDO ENTRE OS TRATOS RESTANTES. DADOS JÁ SALVOS FICAM BLOQUEADOS.</div></div><div class="panel" id="tr_carga_painel"><div class="section-head"><div><h2>CARREGAMENTO — INGREDIENTES E CONFERÊNCIA</h2><p>DESVIOS POR INGREDIENTE, GERAL E DIFERENÇA CARREGADO × DISTRIBUÍDO</p></div></div>
-<div class="grid tr-carga-cabecalho" style="margin-bottom:10px"><div class="field"><label>DATA DO CARREGAMENTO — SELECIONE O DIA A LANÇAR</label><input id="tr_carga_data" type="date" onchange="trCargaRender()"></div><div class="field"><label>SISTEMA</label><select id="tr_carga_sistema" onchange="trCargaRender()"><option value="CONFINAMENTO">CONFINAMENTO</option><option value="SEMI">SEMICONFINAMENTO</option></select></div><input id="tr_carga_num" type="hidden" value="CONSOLIDADO"></div>
+<div class="grid tr-carga-cabecalho" style="margin-bottom:10px"><div class="field"><label>DATA DO CARREGAMENTO — SELECIONE O DIA A LANÇAR</label><input id="tr_carga_data" type="date" onchange="trCargaRender()"></div><div class="field"><label>SISTEMA</label><select id="tr_carga_sistema" onchange="trCargaRender()"><option value="CONFINAMENTO">CONFINAMENTO</option><option value="SEMI">SEMICONFINAMENTO</option></select></div><div class="field"><label>CARREGAMENTO / TRATO</label><select id="tr_carga_num" onchange="trCargaRender()"><option value="1">1º CARREGAMENTO / TRATO 1</option><option value="2">2º CARREGAMENTO / TRATO 2</option><option value="3">3º CARREGAMENTO / TRATO 3</option><option value="4">4º CARREGAMENTO / TRATO 4</option></select></div></div>
 <div class="notice" id="tr_carga_aviso">SELECIONE A DATA E A CARGA. O PREVISTO POR INGREDIENTE USA A DIETA ATIVA COMO REFERÊNCIA; INFORME A QUANTIDADE REAL CARREGADA.</div>
 <div class="notice" id="tr_carga_data_destaque" style="font-size:15px;font-weight:800;border:2px solid #64748b;padding:12px;margin:10px 0">CONFIRMANDO DATA DO CARREGAMENTO...</div><input id="tr_carga_total_previsto" type="hidden" value="0"><input id="tr_carga_bruto" type="hidden" value="0"><input id="tr_carga_sobra" type="hidden" value="0"><span id="tr_carga_sobra_origem" hidden></span><div class="notice" id="tr_carga_conciliacao"></div><div id="tr_carga_itens"></div><div id="tr_carga_resumo"></div>
 <div class="form-actions"><button class="btn" type="button" onclick="trImprimirPrevisaoConferida()">IMPRIMIR PREVISÃO DOS CARREGAMENTOS</button><button class="btn primary" type="button" id="tr_carga_salvar_btn" onclick="trCargaSalvar()">SALVAR CARREGAMENTO NO SUPABASE</button></div>
@@ -4137,7 +4142,7 @@ async function tgHomCarregarFicha(){
       // A grade do administrativo pode já conter o desconto depois do Trato 1.
       // Só aceitar esta condição quando o banco confirmar o Trato 1 efetivamente realizado.
       const [c1,r1]=await Promise.all([
-       supa.from('tratos_carregamentos').select('id').eq('data_trato',dia).eq('sistema',tgSistema).eq('carga','1').limit(1),
+       supa.from('tratos_carregamentos').select('id').eq('data_trato',dia).eq('sistema',tgSistema).in('carga',['1','CONSOLIDADO']).limit(1),
        supa.from('tratos_realizados').select('id').eq('data_trato',dia).eq('sistema',tgSistema).not('trato_1','is',null).limit(1)
       ]);
       if(c1.error||r1.error||!(c1.data||[]).length||!(r1.data||[]).length)
@@ -4176,7 +4181,7 @@ async function tgHomCarregarFicha(){
      // Reutilizar apenas a ficha congelada no dispositivo se o banco confirmar
      // que já houve carregamento e distribuição do primeiro trato.
      const [c,r]=await Promise.all([
-      supa.from('tratos_carregamentos').select('id').eq('data_trato',dia).eq('sistema',tgSistema).eq('carga','1').limit(1),
+      supa.from('tratos_carregamentos').select('id').eq('data_trato',dia).eq('sistema',tgSistema).in('carga',['1','CONSOLIDADO']).limit(1),
       supa.from('tratos_realizados').select('id').eq('data_trato',dia).eq('sistema',tgSistema).not('trato_1','is',null).limit(1)
      ]);
      if(!c.error&&!r.error&&(c.data||[]).length&&(r.data||[]).length){
@@ -4338,6 +4343,24 @@ async function tgHomRecuperarCarregamentosBanco(){
    local.versaoDieta=tgHomFicha.versaoDieta;
    local.recuperadoDoBanco=true;
    tgHomSalvar(local,n);
+  }
+  // O primeiro carregamento pode ter sido registrado no administrativo.
+  // Reconhecer a distribuição já gravada sem exigir novo lançamento no celular.
+  if(sistema==='CONFINAMENTO'&&(q.data||[]).some(c=>String(c.carga)==='1')){
+   const primeiro=tgHomDadosNumero(1);
+   const plano=primeiro.planoCongelado||tgHomFicha.planos?.[1];
+   if(plano?.currais?.length){
+    const campo='trato_1';
+    const encontrados=plano.currais.map(([nome,kg])=>{
+     const registros=(realizados.data||[]).filter(r=>tgProdNome(r.localizacao)===tgProdNome(nome)&&r[campo]!==null);
+     return registros.length===1?Number(registros[0][campo]):(Math.abs(Number(kg)||0)<0.00001?0:null);
+    });
+    if(encontrados.every(v=>v!==null)){
+     for(let j=0;j<encontrados.length;j++)primeiro.registros['C'+j]=encontrados[j];
+     primeiro.fase='concluido';primeiro.planoCongelado=plano;
+     tgHomSalvar(primeiro,1);
+    }
+   }
   }
  }catch(e){
   tgHomRecuperacaoErro='NÃO FOI POSSÍVEL CONFERIR OS CARREGAMENTOS NO SUPABASE: '+String(e.message||e)+'. NÃO REPITA OS INGREDIENTES.';
@@ -6360,7 +6383,7 @@ async function trCargaRender(){
  const sequencia=++trCargaRenderSeq;
  const cfg=trCochoConfig();
  const area=document.getElementById('tr_carga_itens'),res=document.getElementById('tr_carga_resumo'),av=document.getElementById('tr_carga_aviso');if(!area)return;
- const campoData=document.getElementById('tr_carga_data');if(!campoData.value)campoData.value=trData();const data=campoData.value,sistema=document.getElementById('tr_carga_sistema').value,carga=document.getElementById('tr_carga_num').value;
+ const campoData=document.getElementById('tr_carga_data');if(!campoData.value)campoData.value=trData();const data=campoData.value,sistema=document.getElementById('tr_carga_sistema').value,carga=document.getElementById('tr_carga_num').value;if(sistema==='SEMI'){document.getElementById('tr_carga_num').value='1';}
  area.textContent='CONSULTANDO DIETA E CARREGAMENTO...';res.textContent='';trCargaUltima=null;
  try{
   if(typeof supa==='undefined')throw Error('SUPABASE INDISPONÍVEL');
@@ -6384,6 +6407,17 @@ async function trCargaRender(){
    supa.from('tratos_carregamentos').select('carga,previsto_kg,carregado_kg').eq('data_trato',data).eq('sistema',sistema)
   ]);
   if(cargas.error)throw cargas.error;if(distribuicoes.error)throw distribuicoes.error;if(todasCargas.error)throw todasCargas.error;
+  // Matriz dos ingredientes já carregados em cada um dos quatro carregamentos.
+  const idsCargaQ=await supa.from('tratos_carregamentos').select('id,carga').eq('data_trato',data).eq('sistema',sistema).in('carga',['1','2','3','4']);
+  if(idsCargaQ.error)throw idsCargaQ.error;
+  const idsCarga=(idsCargaQ.data||[]).map(z=>z.id);
+  const matrizCarregados={};
+  if(idsCarga.length){
+   const itensCargaQ=await supa.from('tratos_carregamento_ingredientes').select('carregamento_id,insumo_id,carregado_kg').in('carregamento_id',idsCarga);
+   if(itensCargaQ.error)throw itensCargaQ.error;
+   const numeroPorId=new Map((idsCargaQ.data||[]).map(z=>[String(z.id),String(z.carga)]));
+   for(const it of itensCargaQ.data||[])matrizCarregados[numeroPorId.get(String(it.carregamento_id))+'|'+String(it.insumo_id)]=Number(it.carregado_kg||0);
+  }
   const registro=cargas.data?.[0];let salvos=[];
   const consultaConsolidada=carga==='CONSOLIDADO'&&!registro&&(todasCargas.data||[]).some(x=>/^[1-4]$/.test(String(x.carga)));
   let somaConsolidada=new Map();
@@ -6543,7 +6577,14 @@ async function trCargaRender(){
   const sobraHistorica=historicoCongelado&&sistema==='CONFINAMENTO'?
     ajustesConfirmados.filter(a=>a.tipo==='SOBRA_VAGAO').reduce((n,a)=>n+Number(a.quantidade_kg||0),0):0;
   const historicoBruto=historicoCongelado?Number(registro.previsto_kg):0;
-  const historicoLiquido=historicoBruto; // O previsto_kg consolidado salvo ja e liquido; nunca subtrair sobra/Nota 2 novamente
+  // Cargas antigas identificadas como individuais podem ter a previsão do DIA inteiro
+  // congelada no banco. Exibir a previsão do trato correspondente sem editar o histórico.
+  const historicoLegadoDiaInteiro=historicoCongelado&&carga==='1'&&sistema==='CONFINAMENTO'
+    &&previstoCargaIndividual!==null
+    &&historicoBruto>previstoCargaIndividual+0.02;
+  const historicoLiquido=historicoLegadoDiaInteiro
+    ?Math.max(0,previstoCargaIndividual-nota2Confirmada-sobraConfirmada)
+    :historicoBruto;
   if(historicoCongelado&&historicoLiquido<0)throw Error('AJUSTES HISTÓRICOS MAIORES QUE O PREVISTO SALVO.');
   const totalPlanejado=historicoCongelado?historicoLiquido:brutoDaCarga-nota2Confirmada-sobraPlanejada;
   const campoSobra=document.getElementById('tr_carga_sobra');
@@ -6556,8 +6597,11 @@ async function trCargaRender(){
   // líquido da Nota 2. Não regravar a previsão original nem alterar o realizado.
   const brutoIngredientes=[...mapa.values()].reduce((n,i)=>n+Number(i.previsto_kg||0),0);
   // Carregamento salvo já contém sua previsão histórica: não aplicar Nota 2 outra vez.
-  const descontoVisual=0; // Previsoes por ingrediente historicas ja conciliadas no banco
-  const fatorVisual=brutoIngredientes>0?(brutoIngredientes-descontoVisual)/brutoIngredientes:1;
+  const descontoVisual=0;
+  // A proporção histórica dos ingredientes é preservada; somente a previsão
+  // visual de uma carga legada é redistribuída pelo total específico do trato.
+  const fatorVisual=historicoLegadoDiaInteiro&&brutoIngredientes>0
+    ?historicoLiquido/brutoIngredientes:1;
   const linhas=itens.map(i=>{const old=mapa.get(String(i.insumo_id));const parte=Number(i.batida_kg||i.quantidade_mn||0);return {id:String(i.insumo_id),nome:String(im.get(String(i.insumo_id))?.nome||i.insumo_id),proporcao:parte/somaReceita,prev:historicoCongelado&&old?Number(old.previsto_kg)*fatorVisual:liquidoAtual*parte/somaReceita,real:old?Number(old.carregado_kg):(consultaConsolidada&&somaConsolidada.has(String(i.insumo_id))?somaConsolidada.get(String(i.insumo_id)):null)}});
   document.getElementById('tr_carga_total_previsto').value=Number(totalPlanejado.toFixed(3));
   document.getElementById('tr_carga_bruto').value=historicoCongelado?totalPlanejado:brutoDaCarga-nota2Confirmada;
@@ -6572,9 +6616,35 @@ async function trCargaRender(){
   if(sequencia!==trCargaRenderSeq||data!==document.getElementById('tr_carga_data').value||sistema!==document.getElementById('tr_carga_sistema').value||carga!==document.getElementById('tr_carga_num').value)return;
   const descontoDF=sistema==='CONFINAMENTO'?(historicoCongelado?ajustesConfirmados.filter(a=>a.tipo==='DESCONTO_NOTA_2'&&a.desconto_selecionado===true).reduce((n,a)=>n+Number(a.quantidade_kg||0),0):nota2Confirmada):0;
   const sobraDF=sistema==='CONFINAMENTO'?ajustesConfirmados.filter(a=>a.tipo==='SOBRA_VAGAO').reduce((n,a)=>n+Number(a.quantidade_kg||0),0):0;
-  trCargaUltima={historicoCongelado,descontoDF,sobraDF,sobraFinalDF,nota2Confirmada,data,sistema,carga,versao:String(versao.id),linhas,distribuido,completas,base,todasCargas:todasCargas.data||[],registroSalvo:registroCompleto||consultaConsolidada,registroPendente,registroId:registro?.id||null,temPrevisao:hojeValidos.length>0,dataAnterior};
+  const previsoesQuatro=[0,0,0,0];
+  for(const tr of [...document.querySelectorAll('#tr_grade_body tr')]){
+   if(trNormNome(tr.dataset.sistema)!==trNormNome(sistema)||tr.dataset.total===''||tr.querySelector('[data-tr-dieta]')?.checked===false)continue;
+   const cs=tr.querySelectorAll('td[data-prev]');
+   for(let k=0;k<4;k++)if(cs[k]&&cs[k].dataset.prev!=='')previsoesQuatro[k]+=Number(cs[k].dataset.prev)||0;
+  }
+  if(sistema==='CONFINAMENTO')previsoesQuatro[0]=Math.max(0,previsoesQuatro[0]-ajustesConfirmados.filter(a=>a.tipo==='DESCONTO_NOTA_2'&&a.desconto_selecionado===true).reduce((n,a)=>n+Number(a.quantidade_kg||0),0)-sobraConfirmada);
+  trCargaUltima={historicoCongelado,previsaoLegadaCorrigida:historicoLegadoDiaInteiro,descontoDF,sobraDF,sobraFinalDF,nota2Confirmada,data,sistema,carga,versao:String(versao.id),linhas,distribuido,completas,base,previsoesQuatro,matrizCarregados,todasCargas:todasCargas.data||[],registroSalvo:registroCompleto||consultaConsolidada,registroPendente,registroId:registro?.id||null,temPrevisao:hojeValidos.length>0,dataAnterior};
   if(destaqueData)destaqueData.innerHTML='DATA SELECIONADA: <strong>'+data.split('-').reverse().join('/')+'</strong> • SISTEMA: <strong>'+trEsc(sistema)+'</strong><div style="font-size:13px;margin-top:8px">REFERÊNCIA INTERNA DO SISTEMA: <strong>'+(hojeQ.error?'INDISPONÍVEL':trFmt(previstoHoje)+' KG')+'</strong> ('+hojeValidos.length+' LOCAIS COM ANIMAIS)</div><div style="font-size:12px;margin-top:6px">INFORME SOMENTE AS QUANTIDADES EFETIVAMENTE CARREGADAS.</div>';
-  area.innerHTML='<div class="table-wrap"><table class="tr-carga-tabela"><thead><tr><th>INGREDIENTE</th><th>PREVISTO KG</th><th>CARREGADO KG (DIGITAR SOMAS)</th><th>TOTAL CARREGADO KG</th><th>DESVIO KG</th><th>DESVIO %</th></tr></thead><tbody>'+linhas.map((x,i)=>'<tr data-ingred="'+i+'"><td>'+trEsc(x.nome)+'</td><td><input type="number" readonly data-t="prev" value="'+Number(x.prev.toFixed(3))+'" style="width:120px"></td><td><input type="text" inputmode="decimal" data-t="real" placeholder="1015+500" value="'+(x.real===null?'':x.real)+'" oninput="trCargaCalcular()" style="width:120px"></td><td data-t="soma" style="font-weight:800">—</td><td data-t="dif">—</td><td data-t="pct">—</td></tr>').join('')+'</tbody></table></div>';
+  // Uma única grade: insumos, total previsto, total realizado (distribuição),
+  // carregamentos 1 a 4, total carregado, desvios e cores. Sem rolagem horizontal.
+  const prevDia=previsoesQuatro.reduce((a,b)=>a+b,0);
+  const proporcaoDia=linhas.reduce((a,z)=>a+z.proporcao,0)||1;
+  const corpo=linhas.map((z,i)=>{
+   const pct=z.proporcao/proporcaoDia;
+   const colunas=[1,2,3,4].map(n=>{
+    const gravado=matrizCarregados[String(n)+'|'+z.id];
+    if(String(n)===String(carga)){
+     return '<td class="tr-mat-carga"><input data-t="real" type="text" inputmode="decimal" '+(registroCompleto?'disabled ':'')+'value="'+(z.real===null?'':z.real)+'" placeholder="0" oninput="trCargaCalcular()" aria-label="Carregamento '+n+' de '+trEsc(z.nome)+'"></td>';
+    }
+    return '<td class="tr-mat-carga">'+(gravado===undefined?'—':trFmt(gravado))+'</td>';
+   }).join('');
+   return '<tr data-ingred="'+i+'"><td class="tr-mat-nome">'+trEsc(z.nome)+'</td>'+
+    '<td data-t="prev-total">'+trFmt(prevDia*pct)+'</td>'+
+    '<td data-t="dist-total"><input type="hidden" data-t="prev" value="'+Number(z.prev.toFixed(3))+'">—</td>'+
+    colunas+'<td data-t="soma">—</td><td data-t="dif">—</td><td data-t="pct">—</td></tr>';
+  }).join('');
+  area.innerHTML='<div class="tr-mat-wrapper"><table class="tr-carga-tabela tr-mat"><colgroup><col style="width:22%"><col style="width:10%"><col style="width:10%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:9%"><col style="width:9%"><col style="width:8%"></colgroup><thead><tr><th>INSUMOS</th><th>TOTAL PREVISTO</th><th>TOTAL REALIZADO</th><th>CARGA 1</th><th>CARGA 2</th><th>CARGA 3</th><th>CARGA 4</th><th>TOTAL CARREGADO</th><th>DESVIO KG</th><th>DESVIO %</th></tr></thead><tbody>'+corpo+'</tbody><tfoot><tr><th>TOTAL</th><th id="tr-mat-prev">—</th><th id="tr-mat-dist">—</th><th id="tr-mat-c1">—</th><th id="tr-mat-c2">—</th><th id="tr-mat-c3">—</th><th id="tr-mat-c4">—</th><th id="tr-mat-carg">—</th><th id="tr-mat-dif">—</th><th id="tr-mat-pct">—</th></tr></tfoot></table></div><div style="font-size:11px;margin:5px 0;color:#53655c">CARGA '+trEsc(carga)+' SELECIONADA. VALORES SALVOS BLOQUEADOS. TOTAL REALIZADO = DISTRIBUIÇÃO EFETIVA DO DIA (CONSOLIDADA).</div>';
+
   av.textContent='LANÇAMENTO REAL DE CARREGAMENTO • SISTEMA: '+sistema+' • DIETA VERSÃO '+versao.versao+(registroCompleto?' • CARGA JÁ SALVA':registroPendente?' • REGISTRO PENDENTE DE CONFIRMAÇÃO':' • AINDA NÃO SALVO');
   campoSobra.disabled=!!registro;
   if(registroCompleto||consultaConsolidada){document.getElementById('tr_carga_data').disabled=false;document.getElementById('tr_carga_total_previsto').disabled=true;area.querySelectorAll('input[data-t="real"]').forEach(e=>e.disabled=true)}else document.getElementById('tr_carga_total_previsto').disabled=true;
@@ -6603,7 +6673,7 @@ function trCargaAplicarSobra(){
 }
 function trCargaRecalcularPrevistos(){
  const x=trCargaUltima;if(!x)return;
- if(x.registroSalvo){trToast('CONSOLIDADO JÁ SALVO; PREVISTO BLOQUEADO.',true);document.getElementById('tr_carga_total_previsto').value=x.linhas.reduce((s,i)=>s+i.prev,0).toFixed(3);return}
+ if(x.registroSalvo){trToast('CARREGAMENTO JÁ SALVO; PREVISTO BLOQUEADO.',true);document.getElementById('tr_carga_total_previsto').value=x.linhas.reduce((s,i)=>s+i.prev,0).toFixed(3);return}
  const el=document.getElementById('tr_carga_total_previsto'),total=Number(el.value);
  if(el.value===''||!Number.isFinite(total)||total<0)return;
  const rows=[...document.querySelectorAll('#tr_carga_itens tr[data-ingred]')];let acumulado=0;
@@ -6617,11 +6687,24 @@ function trCargaCalcular(){
   if(prev===''||real==='')completos=false;
   const a=Number(prev),b=trCargaSomar(real);if(!Number.isFinite(a)||a<0||!Number.isFinite(b)||b<0)completos=false;
   if(prev!=='')p+=a;if(real!==''&&Number.isFinite(b))r+=b;
-  const celSoma=tr.querySelector('[data-t="soma"]');if(celSoma)celSoma.textContent=real===''?'—':Number.isFinite(b)?trFmt(b)+' KG':'SOMA INVÁLIDA';
-  tr.querySelector('[data-t="dif"]').textContent=real===''?'—':Number.isFinite(b)?trFmt(b-a):'SOMA INVÁLIDA';
-  tr.querySelector('[data-t="pct"]').textContent=real===''||a===0||!Number.isFinite(b)?'—':trFmt((b-a)/a*100)+'%';
-  const pctCel=tr.querySelector('[data-t="pct"]');const pctValor=real!==''&&prev!==''&&a>0&&Number.isFinite(b)?(b-a)/a*100:null;
-  if(pctCel){pctCel.style.fontWeight='800';pctCel.style.color=pctValor===null?'':Math.abs(pctValor)>3?'#ad2921':'#247a42';pctCel.style.background=pctValor===null?'':Math.abs(pctValor)>3?'#ffe8e5':'#e5f5e8'}
+  const prevDia=Number(tr.querySelector('[data-t="prev-total"]').textContent.replace(/\./g,'').replace(',','.'))||0;
+  let totalIng=0;
+  for(let n=1;n<=4;n++){
+   const salvo=x.matrizCarregados[String(n)+'|'+x.linhas[i].id];
+   if(String(n)===String(x.carga)){
+    if(real!==''&&Number.isFinite(b))totalIng+=b;
+    else if(salvo!==undefined)totalIng+=salvo;
+   }else if(salvo!==undefined)totalIng+=salvo;
+  }
+  tr.querySelector('[data-t="soma"]').textContent=trFmt(totalIng);
+  const todasFeitas=[1,2,3,4].every(n=>x.todasCargas.some(c=>String(c.carga)===String(n)));
+  const dif=totalIng-prevDia;
+  const pctValor=todasFeitas&&prevDia>0?dif/prevDia*100:null;
+  tr.querySelector('[data-t="dif"]').textContent=todasFeitas?trFmt(dif):'—';
+  const pctCel=tr.querySelector('[data-t="pct"]');
+  pctCel.textContent=pctValor===null?'—':trFmt(pctValor)+'%';
+  pctCel.style.fontWeight='800';pctCel.style.color=pctValor===null?'':Math.abs(pctValor)>3?'#ad2921':'#247a42';
+  pctCel.style.background=pctValor===null?'':Math.abs(pctValor)>3?'#ffe8e5':'#e5f5e8';
 
  });
  // Consolidado exibe a soma dos ingredientes de todas as cargas; nao somar as cargas outra vez.
@@ -6637,14 +6720,34 @@ function trCargaCalcular(){
  const cel=(titulo,valor,estilo='')=>'<div style="border:1px solid #d9e1e5;border-radius:6px;padding:6px 7px;min-width:0;'+estilo+'"><div style="font-size:9px;line-height:1.15;font-weight:700;color:#4c5965;margin-bottom:3px">'+titulo+'</div><div style="font-size:13px;line-height:1.2;font-weight:800;white-space:normal">'+valor+'</div></div>';
  const fmtPct=v=>v===null?'—':trFmt(v)+'%';
  const cargasSalvas=(x.todasCargas||[]).filter(c=>c.carga!=='CONSOLIDADO'&&c.carregado_kg!==null&&c.carregado_kg!==undefined).sort((a,b)=>Number(a.carga)-Number(b.carga));
- const resumoCargas=cargasSalvas.length?'<div style="display:flex;flex-wrap:wrap;gap:7px;margin:8px 0">'+cargasSalvas.map(c=>'<div style="border:1px solid #cbd5d1;border-radius:6px;padding:8px 11px;font-weight:700;font-size:13px">CARREGAMENTO '+trEsc(c.carga)+' — REALIZADO: '+trFmt(Number(c.carregado_kg))+' KG</div>').join('')+'</div>':'';
+ const previstoPorTrato=x.previsoesQuatro||[0,0,0,0];
+ const totalPrevistoTratos=previstoPorTrato.reduce((a,b)=>a+b,0);
+ const cargasPorNumero=new Map(todas.filter(c=>/^[1-4]$/.test(String(c.carga))).map(c=>[String(c.carga),c]));
+ const totalCarregadoTratos=[1,2,3,4].reduce((a,n)=>a+Number(cargasPorNumero.get(String(n))?.carregado_kg||0),0);
+ const todosQuatro=[1,2,3,4].every(n=>cargasPorNumero.has(String(n)));
+ const atualInput=(n)=>[...document.querySelectorAll('#tr_carga_itens tr[data-ingred]')].reduce((acc,tr)=>{
+  const i=Number(tr.dataset.ingred),id=x.linhas[i].id;
+  const v=String(n)===String(x.carga)?tr.querySelector('[data-t="real"]')?.value:null;
+  return acc+(v!==null&&v!==''&&Number.isFinite(trCargaSomar(v))?trCargaSomar(v):Number(x.matrizCarregados[String(n)+'|'+id]||0));
+ },0);
+ for(let n=1;n<=4;n++){const el=document.getElementById('tr-mat-c'+n);if(el)el.textContent=trFmt(atualInput(n));}
+ const totalMatriz=[1,2,3,4].reduce((a,n)=>a+atualInput(n),0);
+ const totalPrevMatriz=previstoPorTrato.reduce((a,b)=>a+b,0);
+ const atualiza=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v};
+ atualiza('tr-mat-prev',trFmt(totalPrevMatriz));
+ atualiza('tr-mat-dist',trFmt(x.distribuido)+' KG');
+ atualiza('tr-mat-carg',trFmt(totalMatriz));
+ atualiza('tr-mat-dif',todosQuatro?trFmt(totalMatriz-totalPrevMatriz):'—');
+ atualiza('tr-mat-pct',todosQuatro&&totalPrevMatriz?trFmt((totalMatriz-totalPrevMatriz)/totalPrevMatriz*100)+'%':'—');
+ const resumoCargas='';
+
  document.getElementById('tr_carga_resumo').innerHTML=resumoCargas+'<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:7px 0;width:100%">'
  +cel('PREVISTO APÓS DESCONTOS',trFmt(p)+' KG')
  +cel('CARREGADO REALIZADO',trFmt(somaDia)+' KG'+(completos?'':' (PARCIAL)'))
  +cel('DESVIO CARREGAMENTO',completos?trFmt(r-p)+' KG':'—',estiloPct(desvioPct))
  +cel('DESVIO CARREGAMENTO %',fmtPct(desvioPct),estiloPct(desvioPct))
  +cel('DESVIO CARREGADO × DISTRIBUÍDO %',fmtPct(distPct),estiloPct(distPct))
- +'</div><div class="notice">'+(x.historicoCongelado?'HISTÓRICO: PREVISÃO LÍQUIDA SALVA NO BANCO, SEM REAPLICAR DESCONTOS; REGISTROS ORIGINAIS PRESERVADOS. ':'')+'AJUSTES DF: SOBRA RECEBIDA '+trFmt(x.sobraDF||0)+' KG; SOBRA TRANSFERIDA '+trFmt(x.sobraFinalDF||0)+' KG; NOTA 2 '+trFmt(x.descontoDF||0)+' KG. GERAL DO DIA (CARGAS SALVAS): '+trFmt(previstoDia)+' KG PREVISTOS / '+trFmt(somaDia)+' KG CARREGADOS. OS VALORES SALVOS PERMANECEM NO HISTÓRICO POR DATA, SISTEMA E VERSÃO DA DIETA.</div>';
+ +'</div><div class="notice">'+(x.historicoCongelado?(x.previsaoLegadaCorrigida?'PREVISÃO DO 1º TRATO RECONCILIADA PARA EXIBIÇÃO; PREVISÃO LEGADA DO DIA MANTIDA NO BANCO. ':'HISTÓRICO SALVO PRESERVADO. '):'')+'AJUSTES DF: SOBRA RECEBIDA '+trFmt(x.sobraDF||0)+' KG; SOBRA TRANSFERIDA '+trFmt(x.sobraFinalDF||0)+' KG; NOTA 2 '+trFmt(x.descontoDF||0)+' KG. GERAL DO DIA (CARGAS SALVAS): '+trFmt(previstoDia)+' KG PREVISTOS / '+trFmt(somaDia)+' KG CARREGADOS. OS VALORES SALVOS PERMANECEM NO HISTÓRICO POR DATA, SISTEMA E VERSÃO DA DIETA.</div>';
 }
 async function trCargaSalvar(){
  if(window.__trCargaSalvando){trToast('SALVAMENTO EM ANDAMENTO');return}
@@ -6690,7 +6793,7 @@ async function trCargaSalvar(){
   const w=await supa.from('tratos_carregamento_ingredientes').insert(linhas.map(v=>({...v,insumo_id:String(v.insumo_id),carregamento_id:q.data.id})));if(w.error)throw w.error;
   const conf=await supa.from('tratos_carregamento_ingredientes').select('insumo_id,previsto_kg,carregado_kg').eq('carregamento_id',q.data.id);if(conf.error)throw conf.error;
   if((conf.data||[]).length!==linhas.length)throw Error('QUANTIDADE DE INGREDIENTES NÃO CONFERE APÓS SALVAR');
-  trToast('CONSOLIDADO SALVO E CONFERIDO NO SUPABASE');x.registroSalvo=true;const btn=document.getElementById('tr_carga_salvar_btn');if(btn){btn.disabled=true;btn.textContent='CARGA JÁ SALVA'}await trCargaRender();
+  trToast('CARREGAMENTO '+x.carga+' SALVO E CONFERIDO NO SUPABASE');x.registroSalvo=true;const btn=document.getElementById('tr_carga_salvar_btn');if(btn){btn.disabled=true;btn.textContent='CARGA JÁ SALVA'}await trCargaRender();
  }catch(e){trToast('FALHA NO SALVAMENTO: '+String(e.message||e),true)}
  finally{window.__trCargaSalvando=false}
 }

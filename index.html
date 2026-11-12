@@ -1688,7 +1688,7 @@ body{background:#f4f8f7}
     </div>
     <div class="panel">
       <div class="section-head"><div><h2>Dietas ativas</h2><p>Composição atual e indicadores nutricionais/econômicos.</p></div><span class="tag">FORMULAÇÃO</span></div>
-      <div id="nutriDietasAtivas"><div class="empty">Carregando...</div></div>
+      <div id="nutriDietasAtivas"><div class="empty">Carregando...</div></div><div id="nutriEditorDieta" style="display:none"></div>
     </div>
     <div class="panel">
       <div class="section-head"><div><h2>Novo teste de matéria seca</h2><p>Fórmula da planilha MATERIA SECA: (10 MIN. − POTE) ÷ 100.</p></div><span class="tag">MS</span></div>
@@ -3613,9 +3613,51 @@ function renderDietasMS(){
  const custoTotal=its=>its.reduce((sum,x)=>sum+custoItem(x),0);
  $('nutriKpis').innerHTML=`<div class="kpi"><span>INSUMOS ATIVOS</span><strong>${c.insumos.length}</strong></div><div class="kpi"><span>DIETAS ATIVAS</span><strong>${c.dietas.length}</strong></div>`;
  $('nutriInsumos').innerHTML=`<div class="table-responsive"><table class="insumo-lista"><thead><tr><th>CÓDIGO</th><th>INSUMO</th><th>MS</th><th>PB</th><th>NDT</th><th>PREÇO CADASTRO/TON</th><th>CUSTO MÉDIO/TON</th><th>AÇÃO</th></tr></thead><tbody>${insumosExibicao.map(i=>`<tr><td>${i.codigo}</td><td><b>${estoqueEscape(i.nome)}</b></td><td>${npct(i.ms)}</td><td>${npct(i.pb)}</td><td>${npct(i.ndt)}</td><td>R$ ${nmo(i.valor_ton)}</td><td>R$ ${nmo(cm.get(String(i.id))??0)}</td><td><button class="btn" type="button" onclick="editarInsumoNutri('${i.id}')">Editar</button> ${/^SILAGEM DE CANA - SILO [1-9]$/.test(i.nome)?`<button class="btn primary" type="button" onclick="selecionarSiloComoInsumo(${Number(i.nome.slice(-1))})">UTILIZAR ESTE SILO</button>`:''} <button class="btn" type="button" onclick="desativarInsumoNutri('${i.id}')">Desativar</button></td></tr>`).join('')}</tbody></table></div>`;
- $('nutriDietasAtivas').innerHTML=c.dietas.map(d=>{const v=c.versoes.find(x=>String(x.dieta_id)===String(d.id));if(!v)return'';const its=c.itens.filter(x=>String(x.versao_id)===String(v.id));return `<div class="nutri-dieta"><div class="section-head"><div><h3 style="margin:0">${d.tipo}</h3><p>Versão ${v.versao} • Batida ${nmo(d.batida_kg)} kg</p></div><span class="tag">ATIVA</span></div><div class="nutri-resumo"><div><span>MS DIETA</span><strong>${npct(v.ms_dieta)}</strong></div><div><span>PB</span><strong>${npct(v.pb)}</strong></div><div><span>NDT</span><strong>${npct(v.ndt)}</strong></div><div><span>CUSTO MN — MÉDIO ATUAL</span><strong>R$ ${nmo(custoTotal(its)/Math.max(1,its.reduce((a,x)=>a+Number(x.batida_kg||0),0)))}/kg</strong></div><div><span>CUSTO MS — MÉDIO ATUAL</span><strong>R$ ${nmo(custoTotal(its)/Math.max(1,its.reduce((a,x)=>a+Number(x.batida_kg||0)*Number(x.ms||0),0)))}/kg</strong></div></div><p style="margin:8px 0;font-size:12px"><b>CUSTO DA BATIDA PELO CUSTO MÉDIO ATUAL: R$ ${nmo(custoTotal(its))}</b> • Simulação atual; não altera versões históricas.</p><div class="table-responsive"><table><thead><tr><th>INGREDIENTE</th><th>MS</th><th>PB</th><th>NDT</th><th>% DIETA</th><th>BATIDA KG</th><th>CUSTO MÉDIO R$/TON</th><th>CUSTO BATIDA</th></tr></thead><tbody>${its.map(i=>{const base=im.get(String(i.insumo_id)),valor=Number(cm.get(String(i.insumo_id))??base?.valor_ton??i.valor_ton??0),kg=Number(i.batida_kg||0);return `<tr><td>${base?.nome||''}</td><td>${npct(i.ms)}</td><td>${npct(i.pb)}</td><td>${npct(i.ndt)}</td><td>${npct(i.inclusao)}</td><td>${nmo(kg)}</td><td>R$ ${nmo(valor)}</td><td><b>R$ ${nmo(kg*valor/1000)}</b></td></tr>`}).join('')}</tbody><tfoot><tr><th>TOTAL</th><th></th><th></th><th></th><th>${npct(its.reduce((s,x)=>s+Number(x.inclusao),0))}</th><th>${nmo(its.reduce((s,x)=>s+Number(x.batida_kg),0))}</th><th></th><th>R$ ${nmo(custoTotal(its))}</th></tr></tfoot></table></div></div>`}).join('');
+ $('nutriDietasAtivas').innerHTML=c.dietas.map(d=>{const v=c.versoes.find(x=>String(x.dieta_id)===String(d.id));if(!v)return'';const its=c.itens.filter(x=>String(x.versao_id)===String(v.id));return `<div class="nutri-dieta"><div class="section-head"><div><h3 style="margin:0">${d.tipo}</h3><p>Versão ${v.versao} • Batida ${nmo(d.batida_kg)} kg</p></div><div><span class="tag">ATIVA</span> <button class="btn primary" type="button" onclick="abrirNovaVersaoDieta(${d.id})">NOVA VERSÃO DA DIETA</button></div></div><div class="nutri-resumo"><div><span>MS DIETA</span><strong>${npct(v.ms_dieta)}</strong></div><div><span>PB</span><strong>${npct(v.pb)}</strong></div><div><span>NDT</span><strong>${npct(v.ndt)}</strong></div><div><span>CUSTO MN — MÉDIO ATUAL</span><strong>R$ ${nmo(custoTotal(its)/Math.max(1,its.reduce((a,x)=>a+Number(x.batida_kg||0),0)))}/kg</strong></div><div><span>CUSTO MS — MÉDIO ATUAL</span><strong>R$ ${nmo(custoTotal(its)/Math.max(1,its.reduce((a,x)=>a+Number(x.batida_kg||0)*Number(x.ms||0),0)))}/kg</strong></div></div><p style="margin:8px 0;font-size:12px"><b>CUSTO DA BATIDA PELO CUSTO MÉDIO ATUAL: R$ ${nmo(custoTotal(its))}</b> • Simulação atual; não altera versões históricas.</p><div class="table-responsive"><table><thead><tr><th>INGREDIENTE</th><th>MS</th><th>PB</th><th>NDT</th><th>% DIETA</th><th>BATIDA KG</th><th>CUSTO MÉDIO R$/TON</th><th>CUSTO BATIDA</th></tr></thead><tbody>${its.map(i=>{const base=im.get(String(i.insumo_id)),valor=Number(cm.get(String(i.insumo_id))??base?.valor_ton??i.valor_ton??0),kg=Number(i.batida_kg||0);return `<tr><td>${base?.nome||''}</td><td>${npct(i.ms)}</td><td>${npct(i.pb)}</td><td>${npct(i.ndt)}</td><td>${npct(i.inclusao)}</td><td>${nmo(kg)}</td><td>R$ ${nmo(valor)}</td><td><b>R$ ${nmo(kg*valor/1000)}</b></td></tr>`}).join('')}</tbody><tfoot><tr><th>TOTAL</th><th></th><th></th><th></th><th>${npct(its.reduce((s,x)=>s+Number(x.inclusao),0))}</th><th>${nmo(its.reduce((s,x)=>s+Number(x.batida_kg),0))}</th><th></th><th>R$ ${nmo(custoTotal(its))}</th></tr></tfoot></table></div></div>`}).join('');
  $('nms_insumo').innerHTML='<option value="">Selecione</option>'+c.insumos.map(i=>`<option value="${i.id}">${i.nome} • MS ${npct(i.ms)}</option>`).join('');if(!$('nms_data').value)$('nms_data').value=new Date().toISOString().slice(0,10);
  renderPendentesMS();
+}
+let novaDietaEdicao=null;
+function abrirNovaVersaoDieta(dietaId){
+ const c=nutriCache,d=c.dietas.find(x=>Number(x.id)===Number(dietaId)),v=c.versoes.find(x=>Number(x.dieta_id)===Number(dietaId));
+ if(!d||!v)return alert('DIETA ATIVA NÃO ENCONTRADA');
+ novaDietaEdicao={dietaId:Number(dietaId),versao:v.versao,rows:c.itens.filter(x=>Number(x.versao_id)===Number(v.id)).map(x=>({insumo_id:Number(x.insumo_id),kg:Number(x.quantidade_mn||x.batida_kg||0)}))};
+ renderNovaVersaoDieta();document.getElementById('nutriEditorDieta').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function fecharNovaVersaoDieta(){novaDietaEdicao=null;const e=$('nutriEditorDieta');e.style.display='none';e.innerHTML=''}
+function mudarIngredienteNovaDieta(i,id){novaDietaEdicao.rows[i].insumo_id=Number(id);renderNovaVersaoDieta()}
+function mudarKgNovaDieta(i,val){novaDietaEdicao.rows[i].kg=Number(String(val).replace(',','.'));atualizarResumoNovaDieta()}
+function adicionarIngredienteNovaDieta(){novaDietaEdicao.rows.push({insumo_id:0,kg:0});renderNovaVersaoDieta()}
+function removerIngredienteNovaDieta(i){novaDietaEdicao.rows.splice(i,1);renderNovaVersaoDieta()}
+function resumoNovaDieta(){
+ const im=new Map(nutriCache.insumos.map(x=>[Number(x.id),x]));const rows=novaDietaEdicao.rows;
+ const ids=rows.map(x=>x.insumo_id);if(!rows.length||ids.some(id=>!im.has(id))||new Set(ids).size!==ids.length||rows.some(x=>!Number.isFinite(x.kg)||x.kg<=0))return null;
+ const total=rows.reduce((a,x)=>a+x.kg,0),mskg=rows.reduce((a,x)=>a+x.kg*Number(im.get(x.insumo_id).ms),0);
+ if(mskg<=0)return null;
+ const pb=rows.reduce((a,x)=>{const i=im.get(x.insumo_id);return a+x.kg*Number(i.ms)*Number(i.pb)},0)/mskg;
+ const ndt=rows.reduce((a,x)=>{const i=im.get(x.insumo_id);return a+x.kg*Number(i.ms)*Number(i.ndt)},0)/mskg;
+ const cm=new Map(nutriCache.medios.map(x=>[Number(x.insumo_id),Number(x.custo_medio_ton)]));
+ const custo=rows.reduce((a,x)=>{const i=im.get(x.insumo_id);return a+x.kg*Number(cm.get(x.insumo_id)??i.valor_ton??0)/1000},0);
+ return {total,ms:mskg/total,pb,ndt,custo,cmn:custo/total,cms:custo/mskg};
+}
+function atualizarResumoNovaDieta(){const e=$('novaDietaResumo');if(!e)return;const r=resumoNovaDieta();e.innerHTML=r?`<b>TOTAL: ${nmo(r.total)} KG | MS: ${npct(r.ms)} | PB: ${npct(r.pb)} | NDT: ${npct(r.ndt)} | CUSTO MÉDIO MN: R$ ${nmo(r.cmn)}/KG | MS: R$ ${nmo(r.cms)}/KG</b>`:'<b style="color:#a52b1c">INFORME QUANTIDADES POSITIVAS, SEM INGREDIENTES DUPLICADOS.</b>'}
+function renderNovaVersaoDieta(){
+ const ed=novaDietaEdicao;if(!ed)return;const d=nutriCache.dietas.find(x=>Number(x.id)===ed.dietaId);const e=$('nutriEditorDieta');e.style.display='block';
+ const opts=nutriCache.insumos.map(i=>`<option value="${i.id}">${estoqueEscape(i.nome)} • MS ${npct(i.ms)} • PB ${npct(i.pb)} • NDT ${npct(i.ndt)}</option>`).join('');
+ e.innerHTML=`<div class="nutri-dieta" style="border:2px solid #35725a;padding:16px;margin:15px 0"><div class="section-head"><div><h3>NOVA VERSÃO — ${estoqueEscape(d.tipo)}</h3><p>Copiada da versão ${ed.versao}. A versão anterior permanecerá no histórico. Batida padrão ${nmo(d.batida_kg)} kg.</p></div><button class="btn" type="button" onclick="fecharNovaVersaoDieta()">FECHAR</button></div><div class="table-responsive"><table><thead><tr><th>INGREDIENTE</th><th>QUANTIDADE MN (KG) NA FORMULAÇÃO</th><th>AÇÃO</th></tr></thead><tbody>${ed.rows.map((r,i)=>`<tr><td><select style="width:100%;min-width:240px" onchange="mudarIngredienteNovaDieta(${i},this.value)"><option value="0">SELECIONE</option>${opts}</select></td><td><input type="number" min="0.001" step="0.001" style="width:150px" value="${r.kg}" oninput="mudarKgNovaDieta(${i},this.value)"></td><td><button class="btn" type="button" onclick="removerIngredienteNovaDieta(${i})">REMOVER</button></td></tr>`).join('')}</tbody></table></div><button class="btn" type="button" onclick="adicionarIngredienteNovaDieta()">+ INGREDIENTE</button><div id="novaDietaResumo" class="notice" style="margin:12px 0"></div><div class="field"><label>MOTIVO DA NOVA VERSÃO</label><input id="novaDietaMotivo" value="NOVA FORMULAÇÃO MANUAL" maxlength="200"></div><p>Os valores serão normalizados à batida padrão do sistema. A ativação é imediata após confirmação; carregamentos anteriores não serão alterados.</p><button id="novaDietaSalvar" class="btn primary" type="button" onclick="salvarNovaVersaoDieta()">CONFIRMAR E ATIVAR NOVA VERSÃO</button></div>`;
+ e.querySelectorAll('tbody select').forEach((el,i)=>el.value=String(ed.rows[i].insumo_id));atualizarResumoNovaDieta();
+}
+async function salvarNovaVersaoDieta(){
+ const ed=novaDietaEdicao,r=resumoNovaDieta();if(!ed||!r)return alert('CORRIJA OS INGREDIENTES E AS QUANTIDADES.');
+ const d=nutriCache.dietas.find(x=>Number(x.id)===ed.dietaId);
+ if(!confirm(`ATIVAR NOVA VERSÃO DE ${d.tipo}?\nTOTAL DA FORMULAÇÃO: ${nmo(r.total)} KG\nMS: ${npct(r.ms)} • PB: ${npct(r.pb)} • NDT: ${npct(r.ndt)}\nA DIETA ANTERIOR FICARÁ NO HISTÓRICO.`))return;
+ const btn=$('novaDietaSalvar');btn.disabled=true;
+ try{
+  const resp=await supa.rpc('nutri_criar_versao_manual',{p_dieta_id:ed.dietaId,p_itens:ed.rows,p_motivo:$('novaDietaMotivo').value.trim()||'NOVA FORMULAÇÃO MANUAL'});
+  if(resp.error)throw resp.error;
+  const id=Number(resp.data);const check=await supa.from('nutri_dieta_versoes').select('id,status').eq('id',id).single();if(check.error||check.data?.status!=='ATIVA')throw new Error('NOVA VERSÃO NÃO CONFIRMADA PELO BANCO');
+  fecharNovaVersaoDieta();await carregarDietasMS();toast('NOVA VERSÃO ATIVADA E HISTÓRICO PRESERVADO.');
+ }catch(err){alert('NÃO FOI POSSÍVEL ATIVAR: '+String(err.message||err))}finally{if(btn.isConnected)btn.disabled=false}
 }
 function fecharEditorInsumo(){const e=$('nutriEditorInsumo');e.style.display='none';e.innerHTML=''}
 function abrirEditorInsumo(i,novo=false){const e=$('nutriEditorInsumo');e.style.display='block';e.innerHTML=`<div class="insumo-editor"><div class="section-head"><div><h3 style="margin:0">${novo?'NOVO INSUMO':'EDITAR INSUMO'}</h3><p>${novo?'Cadastre a base inicial do novo ingrediente.':'Altere PB, NDT e valor. A MS existente é atualizada pelo Teste de MS.'}</p></div><button class="btn" type="button" onclick="fecharEditorInsumo()">Fechar</button></div><div class="grid">${novo?`<div class="field"><label>Código único</label><input id="ni_codigo" type="number" min="1" step="1" placeholder="Ex.: 24"></div>`:`<div class="field"><label>Código</label><input value="${i.codigo}" readonly></div>`}<div class="field"><label>Insumo</label><input id="ni_nome" value="${String(i?.nome||'').replaceAll('&','&amp;').replaceAll('"','&quot;')}" ${novo?'':'readonly'} oninput="this.value=this.value.toUpperCase()"></div><div class="field"><label>MS inicial (%)</label><input id="ni_ms" type="number" step="0.01" min="0" max="100" value="${(Number(i?.ms||0)*100).toFixed(2)}" ${novo?'':'readonly'}></div><div class="field"><label>PB (%)</label><input id="ni_pb" type="number" step="0.01" min="0" value="${(Number(i?.pb||0)*100).toFixed(2)}"></div><div class="field"><label>NDT (%)</label><input id="ni_ndt" type="number" step="0.01" min="0" value="${(Number(i?.ndt||0)*100).toFixed(2)}"></div><div class="field"><label>R$/TON</label><input id="ni_valor" type="number" step="0.01" min="0" value="${Number(i?.valor_ton||0).toFixed(2)}"></div></div><div class="form-actions"><button class="btn" type="button" onclick="fecharEditorInsumo()">Cancelar</button><button class="btn primary" type="button" onclick="${novo?'salvarNovoInsumoNutri()':`salvarInsumoNutri('${i.id}')`}">Salvar</button></div></div>`;e.scrollIntoView({behavior:'smooth',block:'nearest'})}
@@ -6697,7 +6739,8 @@ function trCargaCalcular(){
    }else if(salvo!==undefined)totalIng+=salvo;
   }
   tr.querySelector('[data-t="soma"]').textContent=trFmt(totalIng);
-  const todasFeitas=[1,2,3,4].every(n=>x.todasCargas.some(c=>String(c.carga)===String(n)));
+  const semi=x.sistema==='SEMI'||x.sistema==='SEMICONFINAMENTO';
+  const todasFeitas=semi?(real!==''&&Number.isFinite(b)):([1,2,3,4].every(n=>x.todasCargas.some(c=>String(c.carga)===String(n))));
   const dif=totalIng-prevDia;
   const pctValor=todasFeitas&&prevDia>0?dif/prevDia*100:null;
   tr.querySelector('[data-t="dif"]').textContent=todasFeitas?trFmt(dif):'—';
@@ -6724,7 +6767,7 @@ function trCargaCalcular(){
  const totalPrevistoTratos=previstoPorTrato.reduce((a,b)=>a+b,0);
  const cargasPorNumero=new Map(todas.filter(c=>/^[1-4]$/.test(String(c.carga))).map(c=>[String(c.carga),c]));
  const totalCarregadoTratos=[1,2,3,4].reduce((a,n)=>a+Number(cargasPorNumero.get(String(n))?.carregado_kg||0),0);
- const todosQuatro=[1,2,3,4].every(n=>cargasPorNumero.has(String(n)));
+ const todosQuatro=(x.sistema==='SEMI'||x.sistema==='SEMICONFINAMENTO')?completos:[1,2,3,4].every(n=>cargasPorNumero.has(String(n)));
  const atualInput=(n)=>[...document.querySelectorAll('#tr_carga_itens tr[data-ingred]')].reduce((acc,tr)=>{
   const i=Number(tr.dataset.ingred),id=x.linhas[i].id;
   const v=String(n)===String(x.carga)?tr.querySelector('[data-t="real"]')?.value:null;

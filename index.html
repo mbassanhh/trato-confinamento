@@ -1603,6 +1603,7 @@ body{background:#f4f8f7}
 <button onclick="showPage('lote',this)">PESAGEM DE ENTRADA</button>
 <button onclick="showPage('animais',this)">ANIMAIS</button> <button onclick="showPage('peso_estimado',this);carregarVisaoPesoEstimado()">PESO ESTIMADO</button>
 <button onclick="showPage('pesagens',this)">PESAGEM DE SAÍDA</button>
+<button onclick="showPage('pesagemIntermediaria',this);piCarregar()">PESAGEM INTERMEDIÁRIA</button>
 <button onclick="showPage('saidas',this);carregarSaidasAtivas()">SAÍDAS E MOVIMENTAÇÕES</button>
 <button class="admin-only" onclick="showPage('leiloes',this);carregarLeiloes()">LEILÃO / LOTES</button>
 <button onclick="showPage('mortes',this);renderMortes()">MORTE</button>
@@ -1968,7 +1969,18 @@ body{background:#f4f8f7}
 
 <div id="peso_estimado" class="page"><div class="panel"><div class="section-head"><div><h2>PESO ESTIMADO POR CURRAL</h2><p>VISÃO INFORMATIVA • ANIMAIS ATIVOS • GANHO DE PESO CONFORME PARÂMETROS ZOOTÉCNICOS DO SISTEMA</p></div><button class="btn" onclick="carregarVisaoPesoEstimado()">ATUALIZAR</button></div><div id="peso_estimado_resumo"></div><div id="peso_estimado_tabela" style="width:100%;max-width:100%;overflow-x:hidden;margin-top:14px">CARREGANDO...</div><p style="font-size:11px;color:#667085;margin-top:10px">PESO ESTIMADO NÃO É PESAGEM REAL. %PV MS CALCULADO COM A ÚLTIMA MS DISTRIBUÍDA REGISTRADA E O PESO VIVO ESTIMADO. O %PV MS UTILIZA O ÚLTIMO VALOR SALVO NO HISTÓRICO. NÃO ALTERA O BANCO.</p></div></div>
 <section id="animais" class="page"><div class="panel"><div class="section-head"><div><h2>Animais por Localidade</h2><p>Selecione uma localidade para ver rapidamente os animais ativos.</p></div><span class="tag">ESTOQUE ATUAL</span></div><div class="consulta-animal"><div class="field"><label>LOCALIDADE</label><select id="filtroLocalidadeAnimais" onchange="renderAnimaisLocalidade()"><option value="">TODAS AS LOCALIDADES</option></select></div></div><div id="animaisLocalidadeResumo" style="margin-top:12px"></div><div id="animaisLocalidadeTable" style="margin-top:12px"></div></div><div class="panel"><div class="section-head"><div><h2>Consulta individual</h2><p>Informe o BRINCO/SB para visualizar o histórico completo do animal.</p></div><span class="tag">FICHA DO ANIMAL</span></div><div class="consulta-animal"><div class="field"><label>BRINCO / SB</label><input id="consultaBrinco" placeholder="Digite o número do animal"></div><button class="btn primary" type="button" onclick="consultarAnimal()">Buscar animal</button><button class="btn" type="button" onclick="limparConsultaAnimal()">Limpar</button></div><div id="fichaAnimal" style="margin-top:18px"></div></div><div class="panel"><h2>Animais Negociados</h2><p>Todos os animais negociados salvos no sistema.</p><div id="animaisTable"></div></div></section>
-  <section id="pesagens" class="page">
+  <section id="pesagemIntermediaria" class="page">
+<div class="section-head"><div><h2>PESAGEM INTERMEDIÁRIA</h2><p>Relatórios históricos por baia/localidade e data da pesagem.</p></div></div>
+<div class="card" style="padding:20px;max-width:1200px">
+<label for="piSelecao" style="display:block;font-weight:800;margin-bottom:8px">SELECIONE A PESAGEM — BAIA / DATA</label>
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+<select id="piSelecao" onchange="piRender()" style="flex:1;min-width:240px;padding:12px;border:1px solid #cddbd2;border-radius:8px"><option value="">CARREGANDO PESAGENS...</option></select>
+<button class="btn" onclick="piImprimir()">IMPRIMIR RELATÓRIO</button>
+</div>
+<p id="piStatus" style="font-size:12px;color:#66756d;margin:12px 0"></p>
+<div id="piRelatorio" style="width:100%;overflow-x:auto"></div>
+</div></section>
+<section id="pesagens" class="page">
   <div class="panel">
     <div class="section-head"><div><h2>Pesagem de Saída</h2><p>Digite o brinco/SB. O sistema localiza o animal ATIVO e traz os dados cadastrados para conferência.</p></div><span class="tag">SAÍDA</span></div>
     <div class="ps-local-card">
@@ -2328,7 +2340,7 @@ async function imprimirCapaEntrada(id){
   const l=await supa.from('entradas_lotes').select('*').eq('id',id).single();if(l.error)throw l.error;
   const a=await supa.from('animais').select('brinco,peso_entrada,peso_chegada').eq('entrada_lote_id',id);if(a.error)throw a.error;
   const x=l.data,ls=a.data||[],m=entradaMetricas(x,ls);
-  const w=window.open('','_blank');w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Capa da Entrada</title><style>@page{size:A4 portrait;margin:12mm}body{font-family:Arial;color:#111}h1{text-align:center;border-bottom:2px solid #111;padding-bottom:10px}.sub{text-align:center;font-weight:800;margin-bottom:20px}.k{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.c{border:1px solid #999;padding:10px;text-align:center}.c span{display:block;font-size:9px;font-weight:800}.c b{font-size:17px}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #999;padding:7px;font-size:11px}th{text-align:left;background:#eee}.rod{margin-top:35px;display:flex;justify-content:space-between;font-size:9px;font-style:italic;font-weight:bold}</style></head><body><h1>CAPA DA ENTRADA</h1><div class="sub">FAZENDA NOVA ESPERANÇA<br>${String(x.localizacao||'').toUpperCase()}</div><div class="k"><div class="c"><span>ANIMAIS</span><b>${m.q}</b></div><div class="c"><span>PESO MÉDIO</span><b>${m.pm===null?'—':m.pm.toFixed(1)+' kg'}</b></div><div class="c"><span>PESO MÉDIO @</span><b>${m.pm===null?'—':(m.pm/30).toFixed(2)+' @'}</b></div><div class="c"><span>MENOR PESO</span><b>${m.menor===null?'—':m.menor.toFixed(1)+' kg'}</b></div><div class="c"><span>MAIOR PESO</span><b>${m.maior===null?'—':m.maior.toFixed(1)+' kg'}</b></div><div class="c"><span>CUSTO MÉDIO / ANIMAL</span><b>${money(m.custo)}</b></div></div><table><tr><th>DATA COMPRA</th><td>${dataBR(x.data_compra)}</td><th>DATA CHEGADA</th><td>${dataBR(x.data_chegada)}</td></tr><tr><th>DATA ENTRADA</th><td>${dataBR(x.data_entrada)}</td><th>ORIGEM</th><td>${x.origem_compra||'—'}</td></tr><tr><th>SEXO</th><td>${x.sexo||'—'}</td><th>VALOR COMPRA</th><td>${money(Number(x.valor_compra)||0)}</td></tr><tr><th>FRETE</th><td>${money(Number(x.frete)||0)}</td><th>COMISSÃO</th><td>${money(Number(x.comissao)||0)}</td></tr><tr><th>CATEGORIA</th><td>${x.categoria||'—'}</td><th>IDADE</th><td>${x.idade||'—'}</td></tr><tr><th>MARCA</th><td>${x.marca||'—'}</td><th>DESTINO</th><td>${x.localizacao||'—'}</td></tr></table><div class="rod"><span>FAZENDA NOVA ESPERANÇA</span><span>DESENVOLVIDO POR MARCO BASSAN | SET/2026</span></div><script>window.onload=()=>window.print()<\/script>
+  const w=window.open('','_blank');w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Capa da Entrada</title><style>@page{size:A4 portrait;margin:12mm}body{font-family:Arial;color:#111}h1{text-align:center;border-bottom:2px solid #111;padding-bottom:10px}.sub{text-align:center;font-weight:800;margin-bottom:20px}.k{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.c{border:1px solid #999;padding:10px;text-align:center}.c span{display:block;font-size:9px;font-weight:800}.c b{font-size:17px}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #999;padding:7px;font-size:11px}th{text-align:left;background:#eee}.rod{margin-top:35px;display:flex;justify-content:space-between;font-size:9px;font-style:italic;font-weight:bold}</style></head><body><h1>CAPA DA ENTRADA</h1><div class="sub">FAZENDA NOVA ESPERANÇA<br>${String(x.localizacao||'').toUpperCase()}</div><div class="k"><div class="c"><span>ANIMAIS</span><b>${m.q}</b></div><div class="c"><span>PESO MÉDIO</span><b>${m.pm===null?'—':m.pm.toFixed(1)+' kg'}</b></div><div class="c"><span>PESO MÉDIO @</span><b>${m.pm===null?'—':(m.pm/30).toFixed(2)+' @'}</b></div><div class="c"><span>MENOR PESO</span><b>${m.menor===null?'—':m.menor.toFixed(1)+' kg'}</b></div><div class="c"><span>MAIOR PESO</span><b>${m.maior===null?'—':m.maior.toFixed(1)+' kg'}</b></div><div class="c"><span>CUSTO MÉDIO / ANIMAL</span><b>${money(m.custo)}</b></div></div><table><tr><th>DATA COMPRA</th><td>${dataBR(x.data_compra)}</td><th>DATA CHEGADA</th><td>${dataBR(x.data_chegada)}</td></tr><tr><th>DATA ENTRADA ORIGINAL</th><td>${dataBR(x.data_entrada)}</td><th>ORIGEM</th><td>${x.origem_compra||'—'}</td></tr><tr><th>SEXO</th><td>${x.sexo||'—'}</td><th>VALOR COMPRA</th><td>${money(Number(x.valor_compra)||0)}</td></tr><tr><th>FRETE</th><td>${money(Number(x.frete)||0)}</td><th>COMISSÃO</th><td>${money(Number(x.comissao)||0)}</td></tr><tr><th>CATEGORIA</th><td>${x.categoria||'—'}</td><th>IDADE</th><td>${x.idade||'—'}</td></tr><tr><th>MARCA</th><td>${x.marca||'—'}</td><th>DESTINO</th><td>${x.localizacao||'—'}</td></tr></table><div class="rod"><span>FAZENDA NOVA ESPERANÇA</span><span>DESENVOLVIDO POR MARCO BASSAN | SET/2026</span></div><script>window.onload=()=>window.print()<\/script>
 
 </body></html>`);w.document.close();
  }catch(e){toast('ERRO AO IMPRIMIR CAPA DA ENTRADA: '+String(e.message||e))}
@@ -8480,4 +8492,129 @@ async function horMobileSalvar(){
  finally{horMGravando=false;btn.disabled=false;}
 }
 </script>
-</body></html>
+<style id="pi-relatorio-visibilidade">
+#pesagemIntermediaria .pi-documento{width:100%;max-width:100%;box-sizing:border-box}
+#pesagemIntermediaria .pi-tabela{width:100%!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important}
+#pesagemIntermediaria .pi-tabela th,#pesagemIntermediaria .pi-tabela td{min-width:0!important;max-width:none!important;width:auto!important;white-space:normal!important;overflow-wrap:anywhere!important;padding:5px 3px!important;line-height:1.3!important;font-size:11px!important}
+#pesagemIntermediaria .pi-tabela th:nth-child(1){width:8%!important}
+#pesagemIntermediaria .pi-tabela th:nth-child(2){width:12%!important}
+#pesagemIntermediaria .pi-tabela th:nth-child(3){width:13%!important}
+#pesagemIntermediaria .pi-tabela th:nth-child(4){width:14%!important}
+#pesagemIntermediaria .pi-tabela th:nth-child(5){width:13%!important}
+#pesagemIntermediaria .pi-tabela th:nth-child(6){width:18%!important}
+#pesagemIntermediaria .pi-tabela th:nth-child(7){width:8%!important}
+#pesagemIntermediaria .pi-tabela th:nth-child(8){width:14%!important}
+#pesagemIntermediaria .pi-resumo{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:14px 0}
+#pesagemIntermediaria .pi-resumo>div{background:#eaf2ec;border:1px solid #c5d8cb;border-radius:9px;padding:10px;min-width:0}
+#pesagemIntermediaria .pi-resumo small{display:block;font-size:10px;font-weight:800;color:#456050}
+#pesagemIntermediaria .pi-resumo strong{display:block;font-size:17px;margin-top:6px;color:#193b29}
+@media(max-width:750px){#pesagemIntermediaria .pi-tabela{min-width:720px!important}#pesagemIntermediaria .pi-resumo{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#pesagemIntermediaria #piImpressao .pi-tabela{display:table!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important}
+#pesagemIntermediaria #piImpressao .pi-tabela th,#pesagemIntermediaria #piImpressao .pi-tabela td{width:auto!important;min-width:0!important;max-width:none!important;font-size:10px!important;white-space:normal!important;word-break:normal!important;overflow-wrap:break-word!important;padding:6px 2px!important;box-sizing:border-box!important}
+#pesagemIntermediaria #piImpressao .pi-tabela th:nth-child(2),#pesagemIntermediaria #piImpressao .pi-tabela th:nth-child(3){background:#d4ead8!important}
+#pesagemIntermediaria #piImpressao .pi-tabela .pi-media{background:#cce5d2!important;font-weight:900!important}
+#pesagemIntermediaria #piRelatorio{overflow-x:visible!important}
+</style><script id="relatorio-pesagens-intermediarias-1211">
+let piRegistros=[],piGrupos=new Map();
+function piEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function piNumero(v){return v==null||v===''?null:Number(v)}
+function piMedia(v){const a=v.filter(x=>Number.isFinite(x));return a.length?a.reduce((s,x)=>s+x,0)/a.length:null}
+function piFmt(v,d=2){return v==null||!Number.isFinite(v)?'—':v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function piDias(a,b){if(!a||!b)return null;const x=Date.parse(a+'T12:00:00Z'),y=Date.parse(b+'T12:00:00Z');const n=Math.round((y-x)/86400000);return Number.isFinite(n)&&n>0?n:null}
+async function piCarregar(){
+ const sel=document.getElementById('piSelecao'),status=document.getElementById('piStatus');
+ if(!sel)return;
+ sel.innerHTML='<option value="">CONSULTANDO SUPABASE...</option>';
+ try{
+  let registros=[],from=0,erro=null;
+  while(true){
+   const r=await supa.from('animais').select('id,brinco,localizacao,data_entrada,peso_entrada,data_chegada,peso_chegada,observacao,status').ilike('observacao','%pesagem intermedi%').order('id').range(from,from+999);
+   if(r.error){erro=r.error;break}
+   registros.push(...(r.data||[]));
+   if(!r.data||r.data.length<1000)break;
+   from+=1000;
+   if(from>=10000)break;
+  }
+  if(erro)throw erro;
+  // Compatibilidade: registros legados em animais e pesagens históricas na tabela própria.
+  const legados=registros.filter(x=>x.data_chegada&&piNumero(x.peso_chegada)!=null&&/pesagem intermedi/i.test(x.observacao||''));
+  const novas=[];
+  let desloc=0;
+  while(true){
+   const r=await supa.from('pesagens_intermediarias').select('animal_id,brinco,localizacao,data_pesagem,peso_kg,observacao').order('data_pesagem',{ascending:false}).range(desloc,desloc+999);
+   if(r.error)throw r.error;
+   novas.push(...(r.data||[]));
+   if(!r.data||r.data.length<1000)break;
+   desloc+=1000;if(desloc>=10000)break;
+  }
+  const ids=[...new Set(novas.map(x=>x.animal_id).filter(Boolean))];
+  const cadastros=new Map();
+  for(let i=0;i<ids.length;i+=150){
+   const r=await supa.from('animais').select('id,brinco,data_entrada,peso_entrada').in('id',ids.slice(i,i+150));
+   if(r.error)throw r.error;
+   for(const a of r.data||[])cadastros.set(a.id,a);
+  }
+  // Data original do histórico para GMD acumulado; não modifica a entrada do ciclo nem as diárias.
+  const brincosHistoricos=[...new Set(novas.map(p=>p.brinco).filter(Boolean))];
+  const movimentosPorBrinco=new Map();
+  for(let i=0;i<brincosHistoricos.length;i+=100){
+   const r=await supa.from('movimentacoes_animais')
+    .select('brinco,data_entrada_origem,peso_entrada_origem,data_movimentacao')
+    .in('brinco',brincosHistoricos.slice(i,i+100)).order('data_movimentacao',{ascending:true});
+   if(r.error)throw r.error;
+   for(const m of r.data||[]){
+    if(!movimentosPorBrinco.has(m.brinco))movimentosPorBrinco.set(m.brinco,[]);
+    movimentosPorBrinco.get(m.brinco).push(m);
+   }
+  }
+  const historicas=novas.map(p=>{
+   const a=cadastros.get(p.animal_id)||{};
+   const pesoOriginal=piNumero(a.peso_entrada);
+   const candidatos=(movimentosPorBrinco.get(p.brinco)||[]).filter(m=>
+    m.data_entrada_origem && m.data_entrada_origem<=p.data_pesagem &&
+    m.data_movimentacao<=p.data_pesagem &&
+    (pesoOriginal==null || piNumero(m.peso_entrada_origem)==null || Math.abs(piNumero(m.peso_entrada_origem)-pesoOriginal)<0.01));
+   candidatos.sort((x,y)=>x.data_entrada_origem.localeCompare(y.data_entrada_origem));
+   const dataOriginal=candidatos.length&&(!a.data_entrada||candidatos[0].data_entrada_origem<a.data_entrada)
+    ?candidatos[0].data_entrada_origem:(a.data_entrada||null);
+   return {id:p.animal_id||('PESAGEM:'+p.brinco),brinco:p.brinco,localizacao:p.localizacao,data_entrada:dataOriginal,peso_entrada:a.peso_entrada??null,data_chegada:p.data_pesagem,peso_chegada:p.peso_kg,observacao:p.observacao||'',status:'ATIVO'};
+  });
+  // Não duplicar uma pesagem caso exista tanto no registro legado quanto na tabela histórica.
+  const vistos=new Set(historicas.map(x=>x.brinco+'|'+x.localizacao+'|'+x.data_chegada));
+  piRegistros=[...historicas,...legados.filter(x=>!vistos.has(x.brinco+'|'+x.localizacao+'|'+x.data_chegada))];
+  piGrupos=new Map();
+  for(const x of piRegistros){
+   const chave=(x.localizacao||'SEM LOCALIDADE')+'|'+x.data_chegada;
+   if(!piGrupos.has(chave))piGrupos.set(chave,[]);
+   piGrupos.get(chave).push(x);
+  }
+  const chaves=[...piGrupos.keys()].sort((a,b)=>b.split('|')[1].localeCompare(a.split('|')[1])||a.localeCompare(b));
+  sel.innerHTML='<option value="">SELECIONE BAIA E DATA DA PESAGEM</option>'+chaves.map((k,i)=>'<option value="'+piEsc(k)+'">'+piEsc(k.split('|')[0])+' — '+dataBR(k.split('|')[1])+' ('+piGrupos.get(k).length+' ANIMAIS)</option>').join('');
+  status.textContent=piRegistros.length+' REGISTROS LOCALIZADOS. Somente pesagens intermediárias identificadas no banco. Dados de entrada ausentes não são estimados.';
+  if(chaves.length){sel.value=chaves[0];piRender()}else document.getElementById('piRelatorio').textContent='NENHUMA PESAGEM INTERMEDIÁRIA DISPONÍVEL.';
+ }catch(e){status.textContent='FALHA NA CONSULTA: '+(e.message||e);sel.innerHTML='<option value="">ERRO NA CONSULTA</option>'}
+}
+function piRender(){
+ const chave=document.getElementById('piSelecao').value,el=document.getElementById('piRelatorio');
+ const grupo=piGrupos.get(chave)||[];
+ if(!grupo.length){el.innerHTML='SELECIONE UMA PESAGEM.';return}
+ const rows=grupo.map(a=>{
+  const peso0=piNumero(a.peso_entrada),peso1=piNumero(a.peso_chegada),dias=piDias(a.data_entrada,a.data_chegada);
+  const gmd=peso0!=null&&peso1!=null&&dias!=null?(peso1-peso0)/dias:null;
+  return {a,peso0,peso1,dias,gmd};
+ }).sort((a,b)=>String(a.a.brinco).localeCompare(String(b.a.brinco),'pt-BR',{numeric:true}));
+ const cols=[rows.map(x=>x.peso0),rows.map(x=>x.peso1),rows.map(x=>x.dias),rows.map(x=>x.gmd)];
+ const medias=cols.map(piMedia);
+ const titulo=chave.split('|');
+ const linha=rows.map(x=>'<tr><td>'+piEsc(x.a.brinco)+'</td><td style="font-weight:800;background:#f0f7ef">'+piFmt(x.dias,0)+'</td><td style="font-weight:800;background:#f0f7ef">'+piFmt(x.gmd,3)+'</td><td>'+piEsc(x.a.localizacao||'—')+'</td><td>'+dataBR(x.a.data_entrada)+'</td><td>'+piFmt(x.peso0,1)+'</td><td>'+dataBR(x.a.data_chegada)+'</td><td>'+piFmt(x.peso1,1)+'</td></tr>').join('');
+ const resumo='<div class="pi-resumo"><div><small>ANIMAIS PESADOS</small><strong>'+rows.length+'</strong></div><div><small>PESO MÉDIO ENTRADA</small><strong>'+piFmt(medias[0],1)+' kg</strong></div><div><small>PESO MÉDIO INTERMEDIÁRIO</small><strong>'+piFmt(medias[1],1)+' kg</strong></div><div><small>MÉDIA DE DIAS</small><strong>'+piFmt(medias[2],1)+'</strong></div><div><small>GMD MÉDIO</small><strong>'+piFmt(medias[3],3)+' kg/dia</strong></div></div>';
+ el.innerHTML='<div id="piImpressao" class="pi-documento"><h3>FAZENDA NOVA ESPERANÇA — PESAGEM INTERMEDIÁRIA</h3><p><b>BAIA:</b> '+piEsc(titulo[0])+' &nbsp; <b>DATA:</b> '+dataBR(titulo[1])+' &nbsp; <b>ANIMAIS:</b> '+rows.length+'</p>'+resumo+'<table class="pi-tabela"><colgroup><col style="width:9%"><col style="width:7%"><col style="width:9%"><col style="width:14%"><col style="width:14%"><col style="width:14%"><col style="width:14%"><col style="width:19%"></colgroup><thead><tr><th>BRINCO</th><th>DIAS</th><th>GMD<br>(KG/DIA)</th><th>BAIA</th><th>DATA ENTRADA</th><th>PESO ENTRADA (KG)</th><th>DATA PESAGEM</th><th>PESO INTERMEDIÁRIO (KG)</th></tr></thead><tbody>'+linha+'<tr class="pi-media"><td>MÉDIA</td><td>'+piFmt(medias[2],1)+'</td><td>'+piFmt(medias[3],3)+'</td><td>—</td><td>—</td><td>'+piFmt(medias[0],1)+'</td><td>—</td><td>'+piFmt(medias[1],1)+'</td></tr></tbody></table><p style="font-size:11px">DIAS ACUMULADOS: DATA PESAGEM − PRIMEIRA ENTRADA DO HISTÓRICO (QUANDO DISPONÍVEL). GMD: (PESO INTERMEDIÁRIO − PESO ENTRADA) ÷ DIAS. MÉDIAS CONSIDERAM APENAS DADOS VÁLIDOS. INFORMAÇÕES AUSENTES: —.</p></div>';
+ el.querySelectorAll('th,td').forEach(t=>{t.style.border='1px solid #cbd6cf';t.style.padding='5px 3px';t.style.textAlign='center';t.style.minWidth='0';t.style.whiteSpace='normal';t.style.overflowWrap='anywhere'});
+}
+function piImprimir(){
+ const html=document.getElementById('piImpressao');if(!html){alert('SELECIONE UMA PESAGEM.');return}
+ const w=window.open('','_blank');if(!w){alert('PERMITA POP-UPS PARA IMPRIMIR.');return}
+ w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>PESAGEM INTERMEDIÁRIA</title><style>@page{size:A4 landscape;margin:9mm}body{font:11px Arial}table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:10px}td,th{border:1px solid #aaa;padding:4px 2px;text-align:center;overflow-wrap:anywhere;white-space:normal}.pi-resumo{display:flex;gap:7px;margin:10px 0}.pi-resumo>div{flex:1;border:1px solid #aaa;padding:7px}.pi-resumo small{display:block;font-size:9px}.pi-resumo strong{display:block;font-size:13px}tr{break-inside:avoid}thead{display:table-header-group}</style></head><body>'+html.innerHTML+'</body></html>');
+ w.document.close();w.focus();setTimeout(()=>w.print(),300);
+}
+</script></body></html>

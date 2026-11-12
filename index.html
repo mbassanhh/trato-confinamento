@@ -1164,7 +1164,28 @@ function consumoImprimirDezDias(kind){
   return '<tr><td>'+esc(r.localidade)+'</td><td>'+validos.length+'</td><td><b>'+fmt(media)+'</b></td>'+vals.map(v=>'<td>'+fmt(v)+'</td>').join('')+'</tr>';
  }).join('');
  const inicio=datas.at(-1).split('-').reverse().join('/'),fim=datas[0].split('-').reverse().join('/');
- const pagina='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+esc(vista.title)+'</title><style>@page{size:A4 landscape;margin:9mm}body{font:10px Arial,sans-serif;color:#20262d}h1{font-size:16px;margin:0 0 5px}h2{font-size:13px;margin:0 0 8px}.sub{margin-bottom:12px;color:#59636b}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{border:1px solid #cbd3d8;padding:5px 3px;text-align:center;overflow-wrap:anywhere}th{background:#e9eef0}th:first-child,td:first-child{text-align:left;width:17%}tr{break-inside:avoid}footer{margin-top:9px;font-size:9px;color:#59636b}</style><style id="marca-unificada-1111">.side .brand img,.top .marca-fazenda-topo{width:46px!important;height:46px!important;max-width:46px!important;max-height:46px!important;object-fit:contain!important;object-position:center!important;filter:none!important;opacity:1!important;transform:none!important;background:transparent!important;box-shadow:none!important;border:0!important}</style></head><body><h1>FAZENDA NOVA ESPERANÇA</h1><h2>'+esc(vista.title)+'</h2><div class="sub">PERÍODO: '+inicio+' A '+fim+' — 10 DIAS ENCERRADOS</div><table><thead><tr><th>LOCALIDADE</th><th>DIAS</th><th>MÉDIA</th>'+datas.map(d=>'<th>'+d.slice(8,10)+'/'+d.slice(5,7)+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table><footer>DIAS = TOTAL DO HISTÓRICO DO LOTE NA VISÃO DE %PV. MÉDIA = MÉDIA DOS DIAS VÁLIDOS DO PERÍODO IMPRESSO. ZERO REGISTRADO ENTRA NO CÁLCULO; AUSÊNCIA DE REGISTRO = —. SEM ALTERAÇÃO DO HISTÓRICO.</footer></body></html>';
+ const pagina='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+esc(vista.title)+'</title><style>@page{size:A4 landscape;margin:9mm}body{font:10px Arial,sans-serif;color:#20262d}h1{font-size:16px;margin:0 0 5px}h2{font-size:13px;margin:0 0 8px}.sub{margin-bottom:12px;color:#59636b}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{border:1px solid #cbd3d8;padding:5px 3px;text-align:center;overflow-wrap:anywhere}th{background:#e9eef0}th:first-child,td:first-child{text-align:left;width:17%}tr{break-inside:avoid}footer{margin-top:9px;font-size:9px;color:#59636b}</style><style id="marca-unificada-1111">.side .brand img,.top .marca-fazenda-topo{width:46px!important;height:46px!important;max-width:46px!important;max-height:46px!important;object-fit:contain!important;object-position:center!important;filter:none!important;opacity:1!important;transform:none!important;background:transparent!important;box-shadow:none!important;border:0!important}</style><style id="horimetro-visual-v2">
+/* Logo do menu do tratador: sem a caixa branca, mantendo a arte original. */
+#tratadorInicio .th-logo-marca{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;border-radius:0!important;overflow:visible!important}
+#tratadorInicio .th-logo-marca img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply}
+/* Horímetros no mesmo desenho do Abastecimento Rápido, em azul-petróleo. */
+#horMobile{padding:14px!important;background:linear-gradient(160deg,#edf5f7,#f8fafb)!important}
+#horMobile>.hor-panel{max-width:760px;margin:0 auto;background:#fff;border:1px solid #c8dfe4;border-radius:18px;padding:20px;box-shadow:0 12px 32px #164c5a16}
+#horMobile .hor-head{background:linear-gradient(115deg,#124e67,#167b89 55%,#36a2a6);padding:22px;border-radius:16px;margin-bottom:16px;box-shadow:0 7px 20px #145b7330}
+#horMobile .hor-head h2{color:#fff!important;font-size:clamp(22px,4vw,31px);letter-spacing:.04em;margin:0 0 8px}
+#horMobile .hor-head p{color:#e5fbff!important;font-weight:700;letter-spacing:.04em;margin:0}
+#horMobile .field label{color:#155468!important;font-weight:800;letter-spacing:.045em;font-size:12px}
+#horMobile .field input,#horMobile .field select{background:#fff!important;color:#173e4e!important;border:1.5px solid #81bbc5!important;border-radius:11px!important;min-height:48px;font-size:16px!important;padding:10px 12px!important;box-sizing:border-box;width:100%}
+#horMobile #horMData{background:#e8f4f7!important;cursor:default}
+#horMobile .field input:focus,#horMobile .field select:focus{outline:3px solid #b3e4e9!important;border-color:#13798a!important}
+#horMobile .hor-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px!important;margin:18px 0!important}
+#horMobile .form-actions{display:flex;gap:10px;flex-wrap:wrap}
+#horMobile .form-actions>.btn{border-radius:12px!important;font-weight:800!important;padding:13px 18px!important}
+#horMobile .hor-voltar{background:#e9f5f7!important;color:#135a6b!important;border:1.5px solid #83b9c4!important}
+#horMobile #horMSalvar{background:linear-gradient(100deg,#12556f,#16869a,#36a4a6)!important;color:#fff!important;border:0!important;box-shadow:0 6px 16px #167d9440;font-size:16px!important;min-height:52px;flex:1}
+#horMobile #horMStatus{background:#eaf5f7!important;color:#155367!important;border-left:5px solid #258b9d!important;border-radius:8px;padding:13px!important;font-weight:650}
+@media(max-width:600px){#horMobile{padding:10px!important}#horMobile>.hor-panel{padding:14px;border-radius:16px}#horMobile .hor-head{padding:17px}#horMobile .hor-grid{grid-template-columns:1fr!important}#horMobile #horMSalvar{width:100%}}
+</style></head><body><h1>FAZENDA NOVA ESPERANÇA</h1><h2>'+esc(vista.title)+'</h2><div class="sub">PERÍODO: '+inicio+' A '+fim+' — 10 DIAS ENCERRADOS</div><table><thead><tr><th>LOCALIDADE</th><th>DIAS</th><th>MÉDIA</th>'+datas.map(d=>'<th>'+d.slice(8,10)+'/'+d.slice(5,7)+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table><footer>DIAS = TOTAL DO HISTÓRICO DO LOTE NA VISÃO DE %PV. MÉDIA = MÉDIA DOS DIAS VÁLIDOS DO PERÍODO IMPRESSO. ZERO REGISTRADO ENTRA NO CÁLCULO; AUSÊNCIA DE REGISTRO = —. SEM ALTERAÇÃO DO HISTÓRICO.</footer></body></html>';
  const w=window.open('','_blank');if(!w){alert('LIBERE A JANELA DE IMPRESSÃO NO NAVEGADOR.');return;}
  w.document.open();w.document.write(pagina);w.document.close();w.focus();setTimeout(()=>w.print(),350);
 }
@@ -1542,6 +1563,26 @@ body{background:#f4f8f7}
 #visaoAbate .va-scroll .va-total td{font-size:7.5px!important;letter-spacing:-.35px!important;padding:8px 1px!important}
 #visaoAbate .va-scroll .va-total td:first-child{font-size:8px!important;white-space:normal!important}
 </style>
+
+<style id="horimetro-visual-abastecimento-1211">
+/* Layout idêntico ao Abastecimento Rápido; paleta azul/índigo. */
+#horMobile{background:linear-gradient(145deg,#eaf1ff 0%,#dbe6fc 50%,#c1d4f5 100%)!important;min-height:100vh!important;padding:clamp(12px,3vw,30px)!important;border-radius:18px!important;color:#25365d!important}
+#horMobile>.hor-panel{max-width:950px!important;margin:0 auto!important;background:#f8faff!important;border:2px solid #7294d8!important;border-radius:22px!important;box-shadow:0 16px 40px #344c922b!important;padding:clamp(18px,3vw,40px)!important}
+#horMobile .hor-head{background:linear-gradient(115deg,#253e87,#4163b3 53%,#5b91d6)!important;padding:22px 28px!important;border-radius:16px!important;margin-bottom:18px!important;box-shadow:0 7px 20px #344c9236!important}
+#horMobile .hor-head h2{color:#fff!important;font-size:clamp(23px,4vw,36px)!important;letter-spacing:.04em!important;margin:0 0 8px!important}
+#horMobile .hor-head p{color:#edf3ff!important;font-weight:700!important;letter-spacing:.035em!important;margin:0!important}
+#horMobile .form-actions:has(.hor-voltar){justify-content:flex-end!important;margin:0 0 18px!important}
+#horMobile .hor-voltar{background:#f2f5ff!important;color:#2c4c91!important;border:1.5px solid #8ea9e2!important;border-radius:14px!important;font-weight:800!important}
+#horMobile .hor-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:18px!important;margin:18px 0 20px!important}
+#horMobile .field label{color:#29467d!important;font-size:13px!important;font-weight:800!important;letter-spacing:.045em!important}
+#horMobile .field input,#horMobile .field select{background:#fff!important;color:#26395c!important;border:1.5px solid #9ab4e5!important;border-radius:12px!important;min-height:52px!important;font-size:16px!important;padding:10px 14px!important;width:100%!important;box-sizing:border-box!important}
+#horMobile #horMData{background:#e7efff!important}
+#horMobile .field input:focus,#horMobile .field select:focus{outline:3px solid #bad0ff!important;border-color:#4168b9!important}
+#horMobile .form-actions:has(#horMSalvar){display:block!important;margin:0!important}
+#horMobile #horMSalvar{display:block!important;width:100%!important;min-height:62px!important;background:linear-gradient(100deg,#253e87,#4163b3,#5b91d6)!important;color:#fff!important;border:0!important;border-radius:14px!important;font-size:19px!important;font-weight:800!important;box-shadow:0 6px 16px #344c9240!important}
+#horMobile #horMStatus{background:#edf3ff!important;color:#29467d!important;border-left:6px solid #5077c5!important;border-radius:10px!important;padding:15px 17px!important;font-weight:700!important;margin-top:0!important}
+@media(max-width:650px){#horMobile{padding:10px!important}#horMobile>.hor-panel{padding:16px!important;border-radius:18px!important}#horMobile .hor-head{padding:18px!important}#horMobile .hor-grid{grid-template-columns:1fr!important;gap:12px!important}#horMobile .hor-head h2{font-size:26px!important}}
+</style>
 </head>
 <body>
 <div id="supaLogin" style="position:fixed;inset:0;background:#f3f6f8;z-index:99999;display:flex;align-items:center;justify-content:center;padding:18px">
@@ -1630,6 +1671,20 @@ body{background:#f4f8f7}
       <button type="button" onclick="abrirPaginaCochoTratador()"><span class="th-icon">▤</span><span>LEITURA DE COCHO<small>REGISTRAR A LEITURA DO DIA</small></span><span class="th-arrow">›</span></button>
       <button type="button" onclick="tgAbrir()"><span class="th-icon">▥</span><span>TRATOS<small>CARREGAMENTO E DISTRIBUIÇÃO</small></span><span class="th-arrow">›</span></button>
       <button type="button" onclick="dieselMobileAbrir(this)"><span class="th-icon">▧</span><span>ABASTECIMENTOS<small>REGISTRAR COMBUSTÍVEL</small></span><span class="th-arrow">›</span></button>
+      <button type="button" onclick="horMobileAbrir()"><span class="th-icon">◷</span><span>HORÍMETROS<small>REGISTRAR LEITURA DA MÁQUINA</small></span><span class="th-arrow">›</span></button>
+    </div>
+  </section>
+  <section id="horMobile" class="page">
+    <div class="panel hor-panel">
+      <div class="section-head hor-head"><div><h2>◷ HORÍMETROS</h2><p>FAZENDA NOVA ESPERANÇA • REGISTRO DIÁRIO DE MÁQUINAS</p></div></div>
+      <div class="form-actions"><button class="btn hor-voltar" type="button" onclick="horMobileVoltar()">← VOLTAR ÀS OPÇÕES</button></div>
+      <div class="grid hor-grid">
+        <div class="field"><label for="horMData">DATA ATUAL</label><input id="horMData" type="date" readonly tabindex="-1" title="DATA AUTOMÁTICA — NÃO EDITÁVEL"></div>
+        <div class="field"><label for="horMMaquina">MÁQUINA / VEÍCULO</label><select id="horMMaquina"><option value="">CARREGANDO MÁQUINAS...</option></select></div>
+        <div class="field hor-leitura"><label for="horMLeitura">HORÍMETRO / KM ATUAL</label><input id="horMLeitura" type="number" min="0" step="0.01" inputmode="decimal" placeholder="INFORME A LEITURA"></div>
+      </div>
+      <div class="form-actions"><button id="horMSalvar" type="button" class="btn primary" onclick="horMobileSalvar()">SALVAR HORÍMETRO</button></div>
+      <p class="notice" id="horMStatus" role="status" aria-live="polite">SELECIONE A MÁQUINA E INFORME A LEITURA.</p>
     </div>
   </section>
   <section id="trGuiado" class="page"><div id="trGuiadoMobile">
@@ -8373,5 +8428,56 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
 }
 trImprimirPrevisaoConferida=trImprimirEspelhoAdministrativo;
 
+</script>
+
+<script id="horimetro-mobile-1211">
+function horMobileVoltar(){document.getElementById('horMobile')?.classList.remove('active');if(perfilLogado==='TRATADOR')tratadorVoltarInicio();else{document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById('diesel')?.classList.add('active');}}
+let horMGravando=false;
+async function horMobileAbrir(){
+ document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+ const tela=document.getElementById('horMobile');tela.classList.add('active');
+ const data=new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
+ document.getElementById('horMData').value=data;
+ document.getElementById('horMLeitura').value='';
+ const st=document.getElementById('horMStatus');st.textContent='CARREGANDO MÁQUINAS...';
+ try{
+  const p=await obterPerfilAtual();
+  if(!['TRATADOR','ADMIN','DONO'].includes(String(p.perfil||'').toUpperCase()))throw Error('ACESSO NÃO AUTORIZADO.');
+  const r=await supa.from('diesel_maquinas').select('id,nome').eq('ativo',true).order('nome');
+  if(r.error)throw r.error;
+  document.getElementById('horMMaquina').innerHTML='<option value="">SELECIONE A MÁQUINA</option>'+(r.data||[]).map(x=>'<option value="'+Number(x.id)+'">'+dieselEsc(x.nome)+'</option>').join('');
+  st.textContent='SELECIONE A MÁQUINA E INFORME O HORÍMETRO.';
+ }catch(e){st.textContent='ERRO: '+(e.message||e);}
+ window.scrollTo(0,0);
+}
+async function horMobileSalvar(){
+ if(horMGravando)return;
+ const btn=document.getElementById('horMSalvar'),st=document.getElementById('horMStatus');
+ horMGravando=true;btn.disabled=true;
+ try{
+  const p=await obterPerfilAtual();
+  if(!['TRATADOR','ADMIN','DONO'].includes(String(p.perfil||'').toUpperCase()))throw Error('SEM PERMISSÃO.');
+  const maquina=Number(document.getElementById('horMMaquina').value);
+  const texto=document.getElementById('horMLeitura').value.trim();
+  const leitura=Number(texto),data=new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
+  if(!maquina||!texto||!Number.isFinite(leitura)||leitura<0)throw Error('SELECIONE A MÁQUINA E INFORME UMA LEITURA VÁLIDA.');
+  const [rh,rm]=await Promise.all([
+   supa.from('diesel_horimetros').select('leitura,data_leitura').eq('maquina_id',maquina).order('data_leitura',{ascending:false}).limit(1),
+   supa.from('diesel_movimentos').select('horimetro_km,data_movimento').eq('maquina_id',maquina).not('horimetro_km','is',null).order('data_movimento',{ascending:false}).limit(1)
+  ]);
+  if(rh.error)throw rh.error;if(rm.error)throw rm.error;
+  const anteriores=[...(rh.data||[]).map(x=>({v:Number(x.leitura),d:x.data_leitura})),...(rm.data||[]).map(x=>({v:Number(x.horimetro_km),d:x.data_movimento}))].filter(x=>Number.isFinite(x.v)&&x.d<=data).sort((a,b)=>b.d.localeCompare(a.d));
+  if(anteriores.length&&leitura<anteriores[0].v)throw Error('LEITURA MENOR QUE A ÚLTIMA ('+anteriores[0].v+'). CONFIRA O HORÍMETRO.');
+  const auth=await supa.auth.getUser();
+  const payload={maquina_id:maquina,data_leitura:data,leitura,criado_por:auth.data?.user?.id||null};
+  const grav=await supa.from('diesel_horimetros').insert(payload).select('id,criado_em').single();
+  if(grav.error)throw grav.error;
+  const horario=grav.data?.criado_em?new Date(grav.data.criado_em).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}):new Date().toLocaleString('pt-BR');
+  st.style.color='#17663b';st.textContent='SALVO COM SUCESSO NO SUPABASE • '+horario+' • REGISTRO '+grav.data.id;
+  document.getElementById('horMLeitura').value='';
+  if(typeof dieselCarregar==='function')dieselCarregar().catch(()=>{});
+ }catch(e){st.style.color='#b42318';st.textContent='NÃO FOI SALVO: '+(e.message||e);}
+ finally{horMGravando=false;btn.disabled=false;}
+}
 </script>
 </body></html>

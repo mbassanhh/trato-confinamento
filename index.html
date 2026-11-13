@@ -1185,6 +1185,39 @@ function consumoImprimirDezDias(kind){
 #horMobile #horMSalvar{background:linear-gradient(100deg,#12556f,#16869a,#36a4a6)!important;color:#fff!important;border:0!important;box-shadow:0 6px 16px #167d9440;font-size:16px!important;min-height:52px;flex:1}
 #horMobile #horMStatus{background:#eaf5f7!important;color:#155367!important;border-left:5px solid #258b9d!important;border-radius:8px;padding:13px!important;font-weight:650}
 @media(max-width:600px){#horMobile{padding:10px!important}#horMobile>.hor-panel{padding:14px;border-radius:16px}#horMobile .hor-head{padding:17px}#horMobile .hor-grid{grid-template-columns:1fr!important}#horMobile #horMSalvar{width:100%}}
+</style><style id="ajuste-leilao-aparte-sem-rolagem">
+#rel_leilao_atual_resultado .aparte-sem-scroll{width:100%;max-width:100%;overflow:visible!important}
+#rel_leilao_atual_resultado{min-width:0!important;max-width:100%!important;width:100%!important;overflow-x:clip!important;box-sizing:border-box!important}
+#rel_leilao_atual_resultado .aparte-tabela{width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse;font-size:9px!important}
+#rel_leilao_atual_resultado .aparte-tabela th,#rel_leilao_atual_resultado .aparte-tabela td{min-width:0!important;max-width:none!important}
+#rel_leilao_atual_resultado .resumo-medias-aparte{display:flex;flex-wrap:wrap;gap:10px 24px;margin:8px 0;font-size:13px}
+@media(max-width:1050px){#rel_leilao_atual_resultado .aparte-tabela{font-size:8px!important}#rel_leilao_atual_resultado .aparte-tabela th,#rel_leilao_atual_resultado .aparte-tabela td{padding:4px 1px!important}}
+#rel_leilao_atual_resultado .aparte-tabela th,#rel_leilao_atual_resultado .aparte-tabela td{padding:5px 2px!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;text-align:center;line-height:1.25}
+#rel_leilao_atual_resultado .aparte-tabela th:nth-child(1){width:3%}
+#rel_leilao_atual_resultado .aparte-tabela th:nth-child(2){width:6%}
+#rel_leilao_atual_resultado .aparte-tabela th:nth-child(3){width:12%}
+#rel_leilao_atual_resultado .aparte-tabela th:nth-child(4){width:6%}
+#rel_leilao_atual_resultado .aparte-tabela th:nth-child(5){width:8%}
+#rel_leilao_atual_resultado .aparte-tabela th:nth-child(6){width:7%}
+#rel_leilao_atual_resultado .aparte-tabela th:nth-child(7){width:7%}
+#rel_leilao_atual_resultado .aparte-tabela th:nth-child(8){width:4%}
+#rel_leilao_atual_resultado .aparte-tabela th:nth-child(9){width:6%}
+#rel_leilao_atual_resultado .aparte-tabela th:nth-child(10){width:9%}
+#rel_leilao_atual_resultado .aparte-tabela th:nth-child(11){width:11%}
+#rel_leilao_atual_resultado .aparte-tabela th:nth-child(12){width:10%}
+#rel_leilao_atual_resultado .aparte-tabela th:nth-child(13){width:11%}
+</style><style id="aparte-grid-sem-rolagem-final">
+/* O grid elimina larguras minimas globais de table/th/td sem afetar outras telas. */
+#rel_leilao_atual_resultado .aparte-sem-scroll{display:block!important;max-width:100%!important;width:100%!important;min-width:0!important;overflow-x:hidden!important;box-sizing:border-box!important}
+#rel_leilao_atual_resultado .aparte-tabela{display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;font-size:10px!important}
+#rel_leilao_atual_resultado .aparte-tabela thead,#rel_leilao_atual_resultado .aparte-tabela tbody{display:block!important;width:100%!important;min-width:0!important}
+#rel_leilao_atual_resultado .aparte-tabela tr{display:grid!important;grid-template-columns:3% 6% 14% 6% 8% 7% 7% 4% 6% 9% 10% 10% 10%!important;width:100%!important;min-width:0!important;max-width:100%!important;align-items:stretch}
+#rel_leilao_atual_resultado .aparte-tabela th,#rel_leilao_atual_resultado .aparte-tabela td{display:block!important;position:static!important;left:auto!important;right:auto!important;width:auto!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;padding:7px 2px!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important;overflow:hidden!important;text-overflow:clip!important;font-size:10px!important;line-height:1.25!important;text-align:center!important;border-bottom:1px solid #e5e9e9}
+#rel_leilao_atual_resultado .aparte-tabela th{font-size:9px!important;background:#edf1f3!important;font-weight:700!important}
+#rel_leilao_atual_resultado .aparte-tabela tbody tr:nth-child(even){background:#f7f9f9}
+#rel_leilao_atual_resultado .resumo-medias-aparte{gap:6px 24px!important;align-items:center}
+@media(max-width:1100px){#rel_leilao_atual_resultado .aparte-tabela th,#rel_leilao_atual_resultado .aparte-tabela td{font-size:8px!important;padding:5px 1px!important}}
+@media print{#rel_leilao_atual_resultado .aparte-tabela tr{break-inside:avoid}#rel_leilao_atual_resultado .aparte-tabela th,#rel_leilao_atual_resultado .aparte-tabela td{font-size:8px!important}}
 </style></head><body><h1>FAZENDA NOVA ESPERANÇA</h1><h2>'+esc(vista.title)+'</h2><div class="sub">PERÍODO: '+inicio+' A '+fim+' — 10 DIAS ENCERRADOS</div><table><thead><tr><th>LOCALIDADE</th><th>DIAS</th><th>MÉDIA</th>'+datas.map(d=>'<th>'+d.slice(8,10)+'/'+d.slice(5,7)+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table><footer>DIAS = TOTAL DO HISTÓRICO DO LOTE NA VISÃO DE %PV. MÉDIA = MÉDIA DOS DIAS VÁLIDOS DO PERÍODO IMPRESSO. ZERO REGISTRADO ENTRA NO CÁLCULO; AUSÊNCIA DE REGISTRO = —. SEM ALTERAÇÃO DO HISTÓRICO.</footer></body></html>';
  const w=window.open('','_blank');if(!w){alert('LIBERE A JANELA DE IMPRESSÃO NO NAVEGADOR.');return;}
  w.document.open();w.document.write(pagina);w.document.close();w.focus();setTimeout(()=>w.print(),350);
@@ -2175,7 +2208,7 @@ body{background:#f4f8f7}
     </section>
 
     <section id="graficos" class="page"><div id="graficosConteudo" class="chart-grid"></div></section>
-  <section id="relatorios" class="page"><div class="panel"><div class="section-head"><div><h2>RELATÓRIO DE ANIMAIS PARA O LEILÃO</h2><p>Selecione a localidade e a data da venda para consultar qualquer lote vendido. Consulta e impressão não alteram dados.</p></div><div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="rel_leilao_lote" aria-label="SELECIONE O LOTE VENDIDO" style="min-width:250px;max-width:360px;padding:10px;border:1px solid #b6c5bf;border-radius:8px" onchange="relLeilaoAtualConsultar()"><option value="">CARREGAR LOTES VENDIDOS...</option></select><button class="btn" type="button" onclick="relLeilaoCarregarLotes()">BUSCAR LOTES</button><button class="btn primary" type="button" onclick="relLeilaoAtualConsultar()">ATUALIZAR RELATÓRIO</button><button class="btn" type="button" onclick="relLeilaoAtualImprimir()">IMPRIMIR / SALVAR PDF</button></div></div><div id="rel_leilao_atual_resultado" class="notice">Clique em BUSCAR LOTES ou ATUALIZAR RELATÓRIO para consultar o estoque atual no Supabase.</div></div></section>
+  <section id="relatorios" class="page"><div class="panel"><div class="section-head"><div><h2>RELATÓRIO DE ANIMAIS PARA O LEILÃO</h2><p>Selecione a localidade e a data da venda para consultar qualquer lote vendido. Consulta e impressão não alteram dados.</p></div><div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="rel_leilao_lote" aria-label="SELECIONE O LOTE DO LEILÃO" style="min-width:250px;max-width:360px;padding:10px;border:1px solid #b6c5bf;border-radius:8px" onchange="relLeilaoAtualConsultar()"><option value="">CARREGAR LOTES DO LEILÃO...</option></select><button class="btn" type="button" onclick="relLeilaoCarregarLotes()">BUSCAR LOTES</button><button class="btn primary" type="button" onclick="relLeilaoAtualConsultar()">ATUALIZAR RELATÓRIO</button><button class="btn" type="button" onclick="relLeilaoAtualImprimir()">IMPRIMIR / SALVAR PDF</button></div></div><div id="rel_leilao_atual_resultado" class="notice">Clique em BUSCAR LOTES ou ATUALIZAR RELATÓRIO para consultar o estoque atual no Supabase.</div></div></section>
 <div id="assinaturaGlobal" style="margin:28px 8px 8px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:12px;font-weight:800;font-style:italic;color:#17242d">
 <span>FAZENDA NOVA ESPERANÇA</span>
 <span>DESENVOLVIDO POR MARCO BASSAN | SET/2026</span>
@@ -8149,34 +8182,68 @@ function relCustos41Imprimir(){
 // RELATÓRIO LEILÃO ATUAL — SOMENTE LEITURA. Não interfere nos demais módulos.
 
 async function relLeilaoCarregarLotes(){
- const select=document.getElementById('rel_leilao_lote');
- if(!select||!supa)return;
- const anterior=select.value;
- select.innerHTML='<option value="">CONSULTANDO LOTES VENDIDOS...</option>';
+ const select=document.getElementById('rel_leilao_lote');if(!select||!supa)return;
+ const anterior=select.value;select.innerHTML='<option value="">CONSULTANDO LOTES...</option>';
  try{
-  const lotes=new Map();
-  for(let i=0;i<100000;i+=1000){
-   const r=await supa.from('animais').select('localizacao,data_saida,valor_venda').eq('status','VENDA').not('data_saida','is',null).order('data_saida',{ascending:false}).range(i,i+999);
-   if(r.error)throw r.error;
-   for(const a of r.data||[]){
-    const chave=JSON.stringify([a.localizacao||'',a.data_saida]);
-    const item=lotes.get(chave)||{local:a.localizacao||'',data:a.data_saida,qtd:0,receita:0};
-    item.qtd++;item.receita+=Number(a.valor_venda||0);lotes.set(chave,item);
-   }
-   if((r.data||[]).length<1000)break;
-  }
-  const grupos=[...lotes.entries()].sort((a,b)=>b[1].data.localeCompare(a[1].data)||a[1].local.localeCompare(b[1].local,'pt-BR'));
-  select.innerHTML='';
-  if(!grupos.length){select.add(new Option('NENHUMA VENDA REGISTRADA',''));return;}
-  for(const [key,v] of grupos)select.add(new Option(v.local+' · '+v.data.split('-').reverse().join('/')+' · '+v.qtd+' ANIMAIS',key));
-  const padrao=JSON.stringify(['LEILÃO','2026-11-07']);
-  select.value=grupos.some(([k])=>k===anterior)?anterior:grupos.some(([k])=>k===padrao)?padrao:grupos[0][0];
-  await relLeilaoAtualConsultar();
- }catch(e){select.innerHTML='<option value="">ERRO AO BUSCAR LOTES</option>';const el=document.getElementById('rel_leilao_atual_resultado');if(el)el.textContent=String(e.message||e);}
+  const [ap,vendas]=await Promise.all([
+   supa.from('leilao_apartes').select('data_aparte,peso_kg,status').order('data_aparte',{ascending:false}).limit(1000),
+   supa.from('animais').select('data_saida,valor_venda').eq('status','VENDA').eq('localizacao','LEILÃO').not('data_saida','is',null).order('data_saida',{ascending:false}).limit(1000)
+  ]);
+  if(ap.error)throw ap.error;if(vendas.error)throw vendas.error;
+  const grupos=new Map();
+  for(const x of ap.data||[]){const k='APARTE|'+x.data_aparte;const v=grupos.get(k)||{data:x.data_aparte,qtd:0,tipo:'APARTE'};v.qtd++;grupos.set(k,v);}
+  for(const x of vendas.data||[]){const k='VENDA|'+x.data_saida;const v=grupos.get(k)||{data:x.data_saida,qtd:0,tipo:'VENDA'};v.qtd++;grupos.set(k,v);}
+  const lista=[...grupos.entries()].sort((a,b)=>b[1].data.localeCompare(a[1].data)||a[1].tipo.localeCompare(b[1].tipo));
+  select.innerHTML='';if(!lista.length){select.add(new Option('NENHUM LOTE REGISTRADO',''));return;}
+  for(const [key,v] of lista)select.add(new Option('LOTE '+v.data.split('-').reverse().join('/')+' · '+v.qtd+' ANIMAIS · '+(v.tipo==='APARTE'?'APARTADO (SEM VENDA)':'VENDIDO'),key));
+  select.value=lista.some(([k])=>k===anterior)?anterior:lista[0][0];await relLeilaoAtualConsultar();
+ }catch(e){select.innerHTML='<option value="">ERRO AO BUSCAR LOTES</option>';document.getElementById('rel_leilao_atual_resultado').textContent=String(e.message||e);}
+}
+async function relLeilaoConsultarAparte(data){
+ if(!document.getElementById('aparte-css-runtime-fix')){
+  const st=document.createElement('style');st.id='aparte-css-runtime-fix';st.textContent="\n#rel_leilao_atual_resultado{width:100%!important;min-width:0!important;max-width:100%!important;overflow:hidden!important;box-sizing:border-box!important}\n#rel_leilao_atual_resultado .aparte-sem-scroll{width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important;box-sizing:border-box!important}\n#rel_leilao_atual_resultado .aparte-tabela{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;table-layout:fixed!important;border-collapse:collapse!important;font-size:10px!important}\n#rel_leilao_atual_resultado .aparte-tabela thead,#rel_leilao_atual_resultado .aparte-tabela tbody{display:block!important;width:100%!important;min-width:0!important}\n#rel_leilao_atual_resultado .aparte-tabela tr{display:grid!important;grid-template-columns:3% 6% 14% 6% 8% 7% 7% 4% 6% 9% 10% 10% 10%!important;width:100%!important;min-width:0!important;max-width:100%!important;align-items:stretch}\n#rel_leilao_atual_resultado .aparte-tabela th,#rel_leilao_atual_resultado .aparte-tabela td{display:block!important;position:static!important;left:auto!important;right:auto!important;width:auto!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;padding:7px 2px!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important;overflow:hidden!important;text-overflow:clip!important;font-size:10px!important;line-height:1.25!important;text-align:center!important;border-bottom:1px solid #e5e9e9}\n#rel_leilao_atual_resultado .aparte-tabela th{font-size:9px!important;background:#edf1f3!important;font-weight:700!important}\n#rel_leilao_atual_resultado .aparte-tabela tbody tr:nth-child(even){background:#f7f9f9}\n#rel_leilao_atual_resultado .resumo-medias-aparte{display:flex!important;flex-wrap:wrap!important;gap:6px 24px!important;align-items:center}\n@media(max-width:1100px){#rel_leilao_atual_resultado .aparte-tabela th,#rel_leilao_atual_resultado .aparte-tabela td{font-size:8px!important;padding:5px 1px!important}}\n";document.head.appendChild(st);
+ }
+
+ const el=document.getElementById('rel_leilao_atual_resultado');el.textContent='CONSULTANDO LOTE APARTADO...';
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const num=v=>v===null||v===undefined||v===''?null:Number(v);
+ const fmt=(v,n=2)=>num(v)===null?'—':Number(v).toLocaleString('pt-BR',{minimumFractionDigits:n,maximumFractionDigits:n});
+ const money=v=>num(v)===null?'—':Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+ const br=v=>v?String(v).slice(0,10).split('-').reverse().join('/'):'—';
+ try{
+  const q=await supa.from('leilao_apartes').select('animal_id,brinco,peso_kg,localizacao_cadastro').eq('data_aparte',data).order('brinco');if(q.error)throw q.error;
+  const lote=q.data||[];if(!lote.length){el.textContent='LOTE SEM ANIMAIS.';return;}
+  const ids=lote.map(x=>x.animal_id);
+  const r=await supa.from('animais').select('id,brinco,localizacao,status,data_entrada,peso_entrada,preco_compra,custo_acumulado,custo_atual,valor_diaria,origem_compra,frete,comissao').in('id',ids);if(r.error)throw r.error;
+  const map=new Map((r.data||[]).map(x=>[x.id,x]));
+  let nSemCompra=0,nSemGmd=0,totalPeso=0,totalCustoValido=0,qtdCustoValido=0,somaGmd=0,qtdGmd=0;
+  const linhas=lote.map((x,i)=>{
+   const a=map.get(x.animal_id)||{};const peso=num(x.peso_kg)||0;totalPeso+=peso;
+   const dias=a.data_entrada?Math.max(0,Math.round((Date.parse(data+'T12:00:00Z')-Date.parse(a.data_entrada+'T12:00:00Z'))/86400000)):null;
+   const gmd=dias>0&&num(a.peso_entrada)>0?(peso-Number(a.peso_entrada))/dias:null;
+   if(gmd===null)nSemGmd++;else {somaGmd+=gmd;qtdGmd++;}if(!(num(a.preco_compra)>0))nSemCompra++;
+   const custo=(num(a.preco_compra)>0&&num(a.custo_acumulado)!==null&&num(a.custo_atual)!==null)?Number(a.preco_compra)+Number(a.custo_acumulado)+Number(a.custo_atual)+Number(a.frete||0)+Number(a.comissao||0):null;
+   if(custo!==null){totalCustoValido+=custo;qtdCustoValido++;}return '<tr><td>'+(i+1)+'</td><td><b>'+esc(x.brinco)+'</b></td><td>'+esc(a.localizacao||x.localizacao_cadastro||'—')+'</td><td>'+esc(a.status||'—')+'</td><td>'+br(a.data_entrada)+'</td><td>'+fmt(a.peso_entrada,0)+'</td><td><b>'+fmt(peso,0)+'</b></td><td>'+(dias===null?'—':dias)+'</td><td>'+fmt(gmd,3)+'</td><td>'+money(num(a.preco_compra)>0?a.preco_compra:null)+'</td><td>'+money(a.custo_acumulado)+'</td><td>'+money(a.custo_atual)+'</td><td>'+money(custo)+'</td></tr>';
+  }).join('');
+  const cards=[
+   ['ANIMAIS APARTADOS NO LOTE',String(lote.length)],
+   ['GMD MÉDIO (KG/DIA)',qtdGmd?fmt(somaGmd/qtdGmd,3):'—'],
+   ['ANIMAIS COM GMD VÁLIDO',qtdGmd+' / '+lote.length],
+   ['CUSTO MÉDIO FINAL*',qtdCustoValido?money(totalCustoValido/qtdCustoValido):'—'],
+   ['PESO TOTAL DO APARTE',fmt(totalPeso,0)+' KG'],
+   ['PESO MÉDIO DO APARTE',fmt(totalPeso/lote.length,2)+' KG'],
+   ['SEM PREÇO DE COMPRA — FORA DO LUCRO',String(nSemCompra)],
+   ['ANIMAIS COM CUSTO COMPLETO',qtdCustoValido+' / '+lote.length]
+  ];
+  const painel='<div class="notice"><b>FAZENDA NOVA ESPERANÇA — APARTE PARA LEILÃO — '+br(data)+' · '+lote.length+' ANIMAIS · NÃO VENDIDO</b></div>'+
+    '<div class="kpis" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:14px 0">'+cards.map(c=>'<div class="kpi" style="min-width:0"><span>'+c[0]+'</span><strong>'+c[1]+'</strong></div>').join('')+'</div>'+
+    '<div class="notice">APARTADO — SEM VENDA E SEM BAIXA DE ESTOQUE. GMD CALCULÁVEL: '+qtdGmd+' / '+lote.length+'. CUSTO MÉDIO CONSIDERA SOMENTE ANIMAIS COM PREÇO DE COMPRA E COMPONENTES DISPONÍVEIS.</div>';
+  el.innerHTML=painel+'<div class="aparte-sem-scroll"><table class="aparte-tabela"><thead><tr>'+['Nº','BRINCO','LOCALIDADE','STATUS','ENTRADA','PESO ENTRADA','PESO APARTE','DIAS','GMD','COMPRA','CUSTO ACUMULADO','CUSTO ATUAL','CUSTO TOTAL*'].map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+linhas+'</tbody></table></div><p style="font-size:11px">* Custo total apresentado apenas quando existem preço de compra e componentes de custo; não é lucro. GMD estimado com o peso do aparte, quando houver peso de entrada. Nenhuma venda foi lançada.</p>';
+ }catch(e){el.textContent='ERRO AO CONSULTAR LOTE: '+String(e.message||e);}
 }
 async function relLeilaoAtualConsultar(){
  const el=document.getElementById('rel_leilao_atual_resultado');if(!el)return;
- const sel=document.getElementById('rel_leilao_lote');if(!sel?.value){await relLeilaoCarregarLotes();return;} const [localSelecionado,dataSelecionada]=JSON.parse(sel.value);el.textContent='CONSULTANDO '+localSelecionado+' EM '+dataSelecionada+'...';
+ const sel=document.getElementById('rel_leilao_lote');if(!sel?.value){await relLeilaoCarregarLotes();return;} if(sel.value.startsWith('APARTE|'))return relLeilaoConsultarAparte(sel.value.slice(7)); const dataSelecionada=sel.value.slice(6),localSelecionado='LEILÃO';el.textContent='CONSULTANDO LOTE VENDIDO EM '+dataSelecionada+'...';
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmt=(v,n=2)=>Number(v).toLocaleString('pt-BR',{minimumFractionDigits:n,maximumFractionDigits:n});
  const moeda=v=>Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});

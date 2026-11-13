@@ -4327,7 +4327,7 @@ function trOrdenarIngredientes(lista){
 
 // Ordem operacional solicitada para a distribuição; chaves canônicas evitam duplicações visuais.
 const TG_ORDEM_DISTRIBUICAO=['BAIA A1','BAIA A2','BAIA A3','BAIA A4','BAIA A5','PASTO A1','PASTO A2','PASTO B2','PASTO B1','BAIA B5','BAIA B4','BAIA B3','BAIA B2','BAIA B1','VINHACA','CASINHA CARLINHOS','BARRACAO','SEDE PIQUETE','PIQUETEAMENTO BAIXO','PIQUETEAMENTO ASFALTO','MOMBACA'];
-function tgOrdemChave(nome){return String(nome||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().replace(/^([AB][1-5])$/,'BAIA $1').replace(/^SEDE$/,'SEDE PIQUETE').replace(/^PQT\.?\s+BAIXO$|^PIQ\.?\s+BAIXO$/,'PIQUETEAMENTO BAIXO').replace(/^PQT\.?\s+ASFALTO$|^PIQ\.?\s+ASFALTO$/,'PIQUETEAMENTO ASFALTO');}
+function tgOrdemChave(nome){return String(nome||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().replace(/^([AB][1-5])$/,'BAIA $1').replace(/^SAO GUILERME /,'SAO GUILHERME ').replace(/^SAO GUILHERME ALTO$/,'SAO GUILHERME ACIMA').replace(/^BAIXO CASINHA$/,'ABAIXO CASINHA').replace(/^AROEIRA CIMA$/,'AROEIRA ALTO').replace(/^SEDE$/,'SEDE PIQUETE').replace(/^PQT\.?\s+BAIXO$|^PIQ\.?\s+BAIXO$/,'PIQUETEAMENTO BAIXO').replace(/^PQT\.?\s+ASFALTO$|^PIQ\.?\s+ASFALTO$/,'PIQUETEAMENTO ASFALTO');}
 const TG_ORDEM_DISTRIBUICAO_SEMI=['SAO GUILHERME ACIMA','SAO GUILHERME BAIXO','BELEI BAIXO','BELEI ALTO','CASINHA','DIRCE','ABAIXO CASINHA','AROEIRA MANGUEIRA','AROEIRA ALTO','ACUDE'];
 function tgOrdenarCurrais(lista){const m=new Map();for(const x of lista||[]){const k=tgOrdemChave(x[0]);if(!m.has(k))m.set(k,[x[0],Number(x[1])||0]);else m.get(k)[1]+=Number(x[1])||0;}return [...m.values()].sort((a,b)=>{const ordem=tgSistema==='SEMI'?TG_ORDEM_DISTRIBUICAO_SEMI:TG_ORDEM_DISTRIBUICAO;const ia=ordem.indexOf(tgOrdemChave(a[0])),ib=ordem.indexOf(tgOrdemChave(b[0]));return (ia<0?999:ia)-(ib<0?999:ib)||String(a[0]).localeCompare(String(b[0]),'pt-BR');});}
 // Redistribuição local por curral: preservar os lançamentos confirmados e
@@ -4361,7 +4361,33 @@ function tgHomPlanoDinamico(n){
  const ingredientes=receita>0?base.ingredientes.map(x=>[x[0],total*Number(x[1])/receita,x[2]]):[];
  return {ingredientes,currais:tgOrdenarCurrais(currais)};
 }
-function tgHomLista(n,fase){const plano=tgHomDadosNumero(Number(n)).planoCongelado||tgHomPlanoDinamico(Number(n));return plano?.[fase==='ingredientes'?'ingredientes':'currais']||[];}
+// Ordenação no fluxo MOBILE: fichas offline antigas e planos congelados
+// também devem seguir a ordem operacional. Nunca mudar índices de pesos já lançados.
+function tgHomOrdenarSemiSeguro(n){
+ if(tgSistema!=='SEMI')return;
+ const d=tgHomDadosNumero(Number(n));
+ const temPeso=Object.keys(d.registros||{}).some(k=>/^C\d+$/.test(k));
+ const pendente=typeof tgProdFilaLer==='function'&&tgProdFilaLer().some(x=>x.dia===tgHomDia()&&x.sistema==='SEMI'&&Number(x.n)===Number(n)&&x.etapa==='currais');
+ if(temPeso||pendente)return; // não trocar a associação índice/peso
+ const ordenar=p=>{if(p&&Array.isArray(p.currais))p.currais=tgOrdenarCurrais(p.currais);};
+ ordenar(tgHomFicha?.planos?.[n]);
+ ordenar(d.planoCongelado);
+}
+function tgHomLista(n,fase){
+ tgHomOrdenarSemiSeguro(n);
+ const dados=tgHomDadosNumero(Number(n));
+ const plano=dados.planoCongelado||tgHomPlanoDinamico(Number(n));
+ if(fase!=='currais')return plano?.ingredientes||[];
+ const lista=plano?.currais||[];
+ // A ordem deve ser a mesma em todos os aparelhos, inclusive com plano congelado.
+ // Se já há peso por índice, preservar a associação e impedir mudança silenciosa.
+ if(String(tgSistema).toUpperCase()==='SEMI'){
+  const temPesos=Object.keys(dados.registros||{}).some(k=>/^C\d+$/.test(k));
+  if(temPesos)return lista;
+  return tgOrdenarCurrais(lista);
+ }
+ return lista;
+}
 function tgHomPronto(n){return tgSistema==='SEMI'||n===1||Array.from({length:n-1},(_,i)=>i+1).every(k=>tgHomDadosNumero(k).fase==='concluido');}
 function tgHomCongelarPlano(n,d){if(!d.planoCongelado){const p=tgHomPlanoDinamico(n);if(!p)return false;d.planoCongelado=JSON.parse(JSON.stringify(p));d.versaoDieta=tgHomFicha?.versaoDieta||null;d.congeladoEm=new Date().toISOString();}return true;}
 function tgHomPlanoValido(n){const p=tgHomFicha?.planos?.[n];return !!(p&&p.ingredientes.length&&p.currais.length);}

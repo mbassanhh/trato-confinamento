@@ -7542,7 +7542,7 @@ function dieselLeiturasCorrigidasParaPainel(registros){
 function dieselPainelHoras(){
  const el=dieselEl('diesel_painel_horas');if(!el)return;
  const hojeBR=new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
- const dataLimite=new Date(hojeBR+'T12:00:00');dataLimite.setDate(dataLimite.getDate()-1);const ultimoDiaFechado=dataLimite.toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
+ const ultimoDiaFechado=hojeBR; // Exibir leituras registradas hoje; nunca datas futuras.
  const historico=dieselLeiturasOficiais().filter(x=>String(x.data_leitura||'').slice(0,10)<=ultimoDiaFechado); // Nunca exibir leituras futuras como realizadas.
  const linhas=dieselMaquinas.map(m=>{
   const iguais=historico.filter(x=>String(x.maquina_id||'')===String(m.id)||(!x.maquina_id&&String(x.maquina||'').trim().toUpperCase().replace(/\s+/g,'')===String(m.nome).trim().toUpperCase().replace(/\s+/g,'')));
@@ -7560,7 +7560,7 @@ function dieselPainelHoras(){
   const totalMes=noMes.length&&base?noMes[0].valor-base.valor:null;
   return '<tr><td>'+dieselEsc(m.nome)+'</td><td>'+(atual?dieselData(atual.data):'—')+'</td><td>'+(atual?dieselN(atual.valor):'—')+'</td><td>'+(anterior?dieselData(anterior.data):'—')+'</td><td>'+(anterior?dieselN(anterior.valor):'—')+'</td><td style="font-weight:700;color:'+(diferenca<0?'#b91c1c':'#146c43')+'">'+(diferenca===null||diferenca<0?'—':dieselN(diferenca))+'</td><td>'+(totalMes===null||totalMes<0?'—':dieselN(totalMes))+'</td><td>'+estado+'</td></tr>';
  });
- el.innerHTML='<div class="diesel-horas-compacto"><table><thead><tr><th>MÁQUINA</th><th>ÚLTIMA LEITURA</th><th>LEITURA ANTERIOR</th><th>TRABALHADO</th><th>STATUS</th></tr></thead><tbody>'+linhas.map(row=>{const t=document.createElement('tbody');t.innerHTML=row;const c=[...t.querySelectorAll('td')];if(c.length<8)return row;return '<tr><td>'+c[0].innerHTML+'</td><td>'+c[1].innerHTML+' · '+c[2].innerHTML+'</td><td>'+c[3].innerHTML+' · '+c[4].innerHTML+'</td><td>'+c[5].innerHTML+'</td><td>'+c[7].innerHTML+'</td></tr>';}).join('')+'</tbody></table></div><p class="small-note" style="margin-top:7px">PAINEL FECHADO ATÉ ONTEM. SEM NOVA LEITURA, O ÚLTIMO HORÍMETRO É MANTIDO VISUALMENTE E AS HORAS DO DIA SÃO ZERO. HORAS/KM ENTRE AS DUAS ÚLTIMAS LEITURAS VÁLIDAS DA MESMA MÁQUINA, INDEPENDENTEMENTE DE ABASTECIMENTO. LEITURAS IGUAIS RESULTAM EM 0,00; SEM LEITURA ANTERIOR, EXIBE —.</p>';
+ el.innerHTML='<div class="diesel-horas-compacto"><table><thead><tr><th>MÁQUINA</th><th>ÚLTIMA LEITURA</th><th>LEITURA ANTERIOR</th><th>TRABALHADO</th><th>STATUS</th></tr></thead><tbody>'+linhas.map(row=>{const t=document.createElement('tbody');t.innerHTML=row;const c=[...t.querySelectorAll('td')];if(c.length<8)return row;return '<tr><td>'+c[0].innerHTML+'</td><td>'+c[1].innerHTML+' · '+c[2].innerHTML+'</td><td>'+c[3].innerHTML+' · '+c[4].innerHTML+'</td><td>'+c[5].innerHTML+'</td><td>'+c[7].innerHTML+'</td></tr>';}).join('')+'</tbody></table></div><p class="small-note" style="margin-top:7px">PAINEL ATUALIZADO ATÉ HOJE. SEM NOVA LEITURA, O ÚLTIMO HORÍMETRO É MANTIDO VISUALMENTE E AS HORAS DO DIA SÃO ZERO. HORAS/KM ENTRE AS DUAS ÚLTIMAS LEITURAS VÁLIDAS DA MESMA MÁQUINA, INDEPENDENTEMENTE DE ABASTECIMENTO. LEITURAS IGUAIS RESULTAM EM 0,00; SEM LEITURA ANTERIOR, EXIBE —.</p>';
 }
 function dieselSelecionarMesHoras(valor){const x=dieselEl('diesel_mes');if(x){x.value=valor;dieselRender();}}
 function dieselHistoricoDiario(){
@@ -7568,8 +7568,7 @@ function dieselHistoricoDiario(){
  const mes=dieselEl('diesel_mes').value||new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'}).slice(0,7);
  const mesHoras=dieselEl('diesel_mes_horas');if(mesHoras&&mesHoras.value!==mes)mesHoras.value=mes;
  const hoje=new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
- const ontemObj=new Date(hoje+'T12:00:00');ontemObj.setDate(ontemObj.getDate()-1);
- const fechado=ontemObj.toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
+ const fechado=hoje; // Incluir o dia corrente na matriz de leituras.
  const ano=Number(mes.slice(0,4)),numMes=Number(mes.slice(5,7));
  const dias=Array.from({length:new Date(ano,numMes,0).getDate()},(_,i)=>mes+'-'+String(new Date(ano,numMes,0).getDate()-i).padStart(2,'0'));
  const dados=dieselLeiturasOficiais();

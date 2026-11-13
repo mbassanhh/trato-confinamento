@@ -4195,7 +4195,7 @@ async function tgHomCarregarFicha(){
    ]);
    if(leit.error)throw leit.error;if(cfg.error)throw cfg.error;if(rj.error)throw rj.error;
    if((rj.data||[]).length)throw Error('EXISTEM TRATOS OFICIAIS REALIZADOS HOJE. ABRA A GRADE ADMINISTRATIVA PARA CONFERIR A REDISTRIBUIÇÃO ANTES DE TESTAR.');
-   const canon=n=>norm(n).replace(/^BAIA /,'').replace(/^SAO GUILHERME (ALTO|CIMA)$/,'SAO GUILHERME ACIMA');
+   const canon=n=>norm(n).replace(/^BAIA /,'').replace(/^BAIXO CASINHA$/,'ABAIXO CASINHA').replace(/^SAO GUILHERME (ALTO|CIMA)$/,'SAO GUILHERME ACIMA');
    const semDieta=new Set((cfg.data||[]).filter(x=>x.recebe_dieta===false).map(x=>canon(x.localizacao)));
    const configuracao=trCochoConfig();
    const encontrados=new Set();
@@ -4219,7 +4219,7 @@ async function tgHomCarregarFicha(){
    const sg=await supa.from('semi_leituras_cocho').select('localizacao,total_previsto').eq('data_leitura',dia);
    if(sg.error)throw sg.error;
    const cfgSG=trCochoConfig();
-   const canonSG=n=>norm(n).replace(/^SAO GUILHERME (ALTO|CIMA)$/,'SAO GUILHERME ACIMA');
+   const canonSG=n=>norm(n).replace(/^BAIXO CASINHA$/,'ABAIXO CASINHA').replace(/^SAO GUILHERME (ALTO|CIMA)$/,'SAO GUILHERME ACIMA');
    for(const item of sg.data||[]){
     const chave=canonSG(item.localizacao),peso=Number(item.total_previsto);
     if(!['SAO GUILHERME ACIMA','SAO GUILHERME BAIXO'].includes(chave)||!(peso>0))continue;
@@ -4328,7 +4328,8 @@ function trOrdenarIngredientes(lista){
 // Ordem operacional solicitada para a distribuição; chaves canônicas evitam duplicações visuais.
 const TG_ORDEM_DISTRIBUICAO=['BAIA A1','BAIA A2','BAIA A3','BAIA A4','BAIA A5','PASTO A1','PASTO A2','PASTO B2','PASTO B1','BAIA B5','BAIA B4','BAIA B3','BAIA B2','BAIA B1','VINHACA','CASINHA CARLINHOS','BARRACAO','SEDE PIQUETE','PIQUETEAMENTO BAIXO','PIQUETEAMENTO ASFALTO','MOMBACA'];
 function tgOrdemChave(nome){return String(nome||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().replace(/^([AB][1-5])$/,'BAIA $1').replace(/^SEDE$/,'SEDE PIQUETE').replace(/^PQT\.?\s+BAIXO$|^PIQ\.?\s+BAIXO$/,'PIQUETEAMENTO BAIXO').replace(/^PQT\.?\s+ASFALTO$|^PIQ\.?\s+ASFALTO$/,'PIQUETEAMENTO ASFALTO');}
-function tgOrdenarCurrais(lista){const m=new Map();for(const x of lista||[]){const k=tgOrdemChave(x[0]);if(!m.has(k))m.set(k,[x[0],Number(x[1])||0]);else m.get(k)[1]+=Number(x[1])||0;}return [...m.values()].sort((a,b)=>{const ia=TG_ORDEM_DISTRIBUICAO.indexOf(tgOrdemChave(a[0])),ib=TG_ORDEM_DISTRIBUICAO.indexOf(tgOrdemChave(b[0]));return (ia<0?999:ia)-(ib<0?999:ib)||String(a[0]).localeCompare(String(b[0]),'pt-BR');});}
+const TG_ORDEM_DISTRIBUICAO_SEMI=['SAO GUILHERME ACIMA','SAO GUILHERME BAIXO','BELEI BAIXO','BELEI ALTO','CASINHA','DIRCE','ABAIXO CASINHA','AROEIRA MANGUEIRA','AROEIRA ALTO','ACUDE'];
+function tgOrdenarCurrais(lista){const m=new Map();for(const x of lista||[]){const k=tgOrdemChave(x[0]);if(!m.has(k))m.set(k,[x[0],Number(x[1])||0]);else m.get(k)[1]+=Number(x[1])||0;}return [...m.values()].sort((a,b)=>{const ordem=tgSistema==='SEMI'?TG_ORDEM_DISTRIBUICAO_SEMI:TG_ORDEM_DISTRIBUICAO;const ia=ordem.indexOf(tgOrdemChave(a[0])),ib=ordem.indexOf(tgOrdemChave(b[0]));return (ia<0?999:ia)-(ib<0?999:ib)||String(a[0]).localeCompare(String(b[0]),'pt-BR');});}
 // Redistribuição local por curral: preservar os lançamentos confirmados e
 // repartir apenas o saldo do dia entre os tratos ainda não realizados.
 function tgHomPlanoDinamico(n){
@@ -5705,9 +5706,9 @@ async function tratosRender(){
   }catch(e){erro='FALHA AO SINCRONIZAR ZERO DA NOTA 2: '+String(e.message||e);}
  }
  // Classificação operacional validada para o módulo de TRATOS (não modifica cadastros no banco).
- const trSemiOficial=['SAO GUILHERME ACIMA','SAO GUILHERME BAIXO','BELEI BAIXO','BELEI ALTO','CASINHA','DIRCE','ABAIXO CASINHA','AROEIRA ALTO','AROEIRA MANGUEIRA','ACUDE'];
+ const trSemiOficial=['SAO GUILHERME ACIMA','SAO GUILHERME BAIXO','BELEI BAIXO','BELEI ALTO','CASINHA','DIRCE','ABAIXO CASINHA','AROEIRA MANGUEIRA','AROEIRA ALTO','ACUDE'];
  const trConfOficial=['BAIA A1','BAIA A2','BAIA A3','BAIA A4','BAIA A5','BAIA B1','BAIA B2','BAIA B3','BAIA B4','BAIA B5','CASINHA CARLINHOS','VINHACA','SEDE PIQUETE','SEDE','BARRACAO','PASTO A1','PASTO A2','PASTO B1','PASTO B2','MOMBACA','PIQUETEAMENTO ASFALTO','PIQUETEAMENTO BAIXO'];
- const trChaveLocal=n=>String(n||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ').replace(/^SAO GUILHERME (ALTO|CIMA)$/,'SAO GUILHERME ACIMA').replace(/^PIQ\.?\s*ASFALTO$/,'PIQUETEAMENTO ASFALTO').replace(/^PIQ\.?\s*BAIXO$/,'PIQUETEAMENTO BAIXO');
+ const trChaveLocal=n=>String(n||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ').replace(/^BAIXO CASINHA$/,'ABAIXO CASINHA').replace(/^SAO GUILHERME (ALTO|CIMA)$/,'SAO GUILHERME ACIMA').replace(/^PIQ\.?\s*ASFALTO$/,'PIQUETEAMENTO ASFALTO').replace(/^PIQ\.?\s*BAIXO$/,'PIQUETEAMENTO BAIXO');
  const trSistemaOficial=n=>trSemiOficial.includes(trChaveLocal(n))?'SEMI':trConfOficial.includes(trChaveLocal(n))?'CONFINAMENTO':null;
  registros=registros.filter(r=>trSistemaOficial(r.local)).map(r=>({...r,sistema:trSistemaOficial(r.local)}));
  // Completar o Cadastro de Tratos com localidades oficiais que tenham animais ativos,
@@ -6551,7 +6552,7 @@ async function trCargaRender(){
    const ids=new Set(validos.map(r=>String(r.id)));
    const dados=new Map();
    for(const it of iq.data||[]){if(!ids.has(String(it.carregamento_id)))continue;const id=String(it.insumo_id);if(!dados.has(id))dados.set(id,{id,nome:nomes.get(id)||id,prev:0,real:0,cargas:{}});const d=dados.get(id),r=regPorId.get(String(it.carregamento_id));d.prev+=Number(it.previsto_kg||0);d.real+=Number(it.carregado_kg||0);d.cargas[String(r.carga)]=Number(it.carregado_kg||0);}
-   const valores=[...dados.values()].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+   const valores=trOrdenarTortaAposPolpa([...dados.values()].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')));
    const previsto=valores.reduce((v,x)=>v+x.prev,0),real=valores.reduce((v,x)=>v+x.real,0);
    const f=v=>trFmt(v);const esc=v=>trEsc(String(v));
    const cab=consolidado?'<th>REALIZADO CONSOLIDADO</th>':'<th>CARGA 1</th><th>CARGA 2</th><th>CARGA 3</th><th>CARGA 4</th>';
@@ -8378,6 +8379,14 @@ window.visaoAbateImprimir=function(){
 
 <script id="fichas-espelho-final-1111">
 /* Impressão única: fonte de verdade = grade atual e carregamentos persistidos. */
+function trOrdenarTortaAposPolpa(itens){
+ const lista=[...itens];
+ const norm=x=>String(x.nome||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+ const posTorta=lista.findIndex(x=>norm(x).includes('TORTA')&&norm(x).includes('ALGOD'));
+ const posPolpa=lista.findIndex(x=>norm(x).includes('POLPA')&&norm(x).includes('CITR'));
+ if(posTorta>=0&&posPolpa>=0){const [torta]=lista.splice(posTorta,1);const novaPos=lista.findIndex(x=>norm(x).includes('POLPA')&&norm(x).includes('CITR'));lista.splice(novaPos+1,0,torta);}
+ return lista;
+}
 async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
  const janela=trAbrirJanelaImpressao();
  if(!janela){trToast('LIBERE A JANELA DE IMPRESSÃO',true);return;}
@@ -8421,13 +8430,63 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
   let itens=[];
   if(cargas.length){const iq=await supa.from('tratos_carregamento_ingredientes').select('carregamento_id,insumo_id,previsto_kg,carregado_kg').in('carregamento_id',cargas.map(x=>x.id));if(iq.error)throw iq.error;itens=iq.data||[];}
   const retificacoes=await trRetificacoesPorCarga(cargas.map(c=>c.id));
-  const nomes=new Map((typeof nutriCache!=='undefined'&&nutriCache?.insumos||[]).map(x=>[String(x.id),x.nome]));
+  // Fonte oficial dos nomes: cadastro Supabase, inclusive ao abrir a impressão
+  // antes de visitar a tela Nutrição. Não entregar códigos ao tratador.
+  const nomesQ=await supa.from('nutri_insumos').select('id,nome');
+  if(nomesQ.error)throw Error('NÃO FOI POSSÍVEL CARREGAR OS NOMES DOS INGREDIENTES: '+nomesQ.error.message);
+  const nomes=new Map((nomesQ.data||[]).map(x=>[String(x.id),String(x.nome||'').trim()]));
   const matriz=new Map();
   for(const carga of cargas){for(const item of itens.filter(x=>x.carregamento_id===carga.id)){
     const k=String(item.insumo_id),i=Number(carga.carga)-1;
-    const linha=matriz.get(k)||{nome:nomes.get(k)||'INSUMO '+k,prev:[null,null,null,null],real:[null,null,null,null]};
+    const linha=matriz.get(k)||{nome:nomes.get(k)||'',prev:[null,null,null,null],real:[null,null,null,null]};
     linha.prev[i]=trPrevisaoRetificada(item,retificacoes);linha.real[i]=item.carregado_kg;matriz.set(k,linha);
   }}
+  // Se ainda não há cargas salvas, a ficha precisa mostrar o planejamento
+  // por ingrediente e por carga, derivado da MESMA grade de distribuição.
+  // Nunca apresentar zeros como se fossem previsões.
+  if(cargas.length<4){
+    if(typeof carregarDietasMS==='function')await carregarDietasMS();
+    const dieta=(nutriCache.dietas||[]).find(x=>String(x.tipo||'').toUpperCase().includes(sistema==='SEMI'?'SEMI':'CONFINAMENTO')&&!String(x.tipo||'').toUpperCase().includes(sistema==='CONFINAMENTO'?'SEMI':'ZZZZ'));
+    if(!dieta)throw Error('DIETA ATIVA NÃO ENCONTRADA PARA A PREVISÃO DE '+sistema);
+    const versao=(nutriCache.versoes||[]).filter(x=>String(x.dieta_id)===String(dieta.id)&&String(x.status).toUpperCase()==='ATIVA').sort((a,b)=>Number(b.versao||0)-Number(a.versao||0))[0];
+    if(!versao)throw Error('VERSÃO ATIVA DA DIETA NÃO ENCONTRADA.');
+    const receita=(nutriCache.itens||[]).filter(x=>String(x.versao_id)===String(versao.id));
+    const somaReceita=receita.reduce((a,i)=>a+Number(i.batida_kg??i.quantidade_mn??0),0);
+    if(!receita.length||!(somaReceita>0))throw Error('DIETA SEM INGREDIENTES PARA GERAR A FICHA.');
+    const bruto=[0,0,0,0];
+    for(const r of trs){
+      if(r.querySelector('[data-tr-dieta]')?.checked===false)continue;
+      const cel=[...r.querySelectorAll('td[data-prev]')];
+      for(let j=0;j<4;j++){
+        const v=Number(cel[j]?.dataset.prev);
+        if(!Number.isFinite(v)||v<0)throw Error('PREVISÃO INVÁLIDA NA FICHA: '+r.dataset.local);
+        bruto[j]+=v;
+      }
+    }
+    const ajustesQ=await supa.from('tratos_ajustes_df').select('tipo,quantidade_kg,desconto_selecionado,localizacao').eq('data_referencia',dia).eq('sistema',sistema);
+    if(ajustesQ.error)throw ajustesQ.error;
+    const ajustes=ajustesQ.data||[];
+    const sobra=sistema==='CONFINAMENTO'?ajustes.filter(x=>x.tipo==='SOBRA_VAGAO').reduce((a,x)=>a+Number(x.quantidade_kg||0),0):0;
+    const marcados=new Set(ajustes.filter(x=>x.tipo==='DESCONTO_NOTA_2'&&x.desconto_selecionado===true&&x.localizacao).map(x=>trNormNome(x.localizacao).replace(/^BAIA\s+/,'').trim()));
+    let nota2=0;
+    if(sistema==='CONFINAMENTO')for(const r of trs){
+      const nome=trNormNome(r.dataset.local).replace(/^BAIA\s+/,'').trim();
+      if(marcados.has(nome)&&r.querySelector('[data-tr-dieta]')?.checked!==false)nota2+=Number(r.querySelectorAll('td[data-prev]')[0]?.dataset.prev||0);
+    }
+    const liquido=[...bruto];
+    liquido[0]-=sobra+nota2;
+    if(liquido[0]<-0.01)throw Error('DESCONTOS SUPERIORES À PREVISÃO DA CARGA 1.');
+    liquido[0]=Math.max(0,liquido[0]);
+    for(let j=0;j<4;j++){
+      if(cargas.some(c=>Number(c.carga)===j+1))continue;
+      for(const item of receita){
+        const k=String(item.insumo_id),peso=Number(item.batida_kg??item.quantidade_mn??0);
+        const linha=matriz.get(k)||{nome:nomes.get(k)||'',prev:[null,null,null,null],real:[null,null,null,null]};
+        linha.prev[j]=liquido[j]*peso/somaReceita;
+        matriz.set(k,linha);
+      }
+    }
+  }
   const estilo='@page{size:A4 landscape;margin:7mm}*{box-sizing:border-box}body{font:9px Arial;color:#172027;margin:0}h2{text-align:center;border:1px solid #555;padding:5px;margin:7px 0}table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:8px}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}th,td{border:1px solid #999;padding:2px 3px;text-align:center;line-height:1.2}th:first-child,td:first-child{text-align:left;width:20%}th{background:#e9eeeb}.head{display:flex;align-items:center;gap:9px}.head img{width:35px;height:35px;object-fit:contain}.head strong{font-size:12px}.pagebreak{break-before:page;page-break-before:always}.info{margin:5px 0;padding:4px;background:#f1f5f2}.total{font-weight:bold;background:#edf1ee}@media print{button{display:none}}';
   const logo=document.querySelector('.side .brand img')?.src||document.querySelector('.marca-fazenda-topo')?.src||'';
   const cab='<div class="head"><img src="'+esc(logo)+'"><strong>FAZENDA NOVA ESPERANÇA</strong><span style="margin-left:auto">'+esc(dia.split('-').reverse().join('/'))+'</span></div>';
@@ -8435,12 +8494,49 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
   html+='<h2>DISTRIBUIÇÃO '+esc(sistema)+'</h2><div class="info">ESPELHO DA GRADE ADMINISTRATIVA APÓS ATUALIZAÇÃO. PREVISTO E REALIZADO SEPARADOS; VALORES EXECUTADOS NÃO SÃO SUBSTITUÍDOS.</div>';
   html+='<table><thead><tr><th rowspan="2">CURRAL</th><th rowspan="2">TOTAL</th><th rowspan="2">BOIS</th>'+[1,2,3,4].map(i=>'<th colspan="2">TRATO '+i+'</th>').join('')+'</tr><tr>'+[1,2,3,4].map(()=>'<th>PREV.</th><th>REAL.</th>').join('')+'</tr></thead><tbody>';
   for(const r of rows)html+='<tr>'+td(r.local)+td(num(r.total))+td(num(r.bois))+[0,1,2,3].map(i=>td(r.previsto[i])+td(r.realizado[i])).join('')+'</tr>';
-  html+='</tbody></table><div class="pagebreak"></div>'+cab+'<h2>CARREGAMENTO '+esc(sistema)+'</h2><div class="info">INGREDIENTES PREVISTOS E EFETIVAMENTE CARREGADOS CONFORME SUPABASE. SEM RECONSTRUÇÃO COM DIETA ANTIGA.</div>';
-  html+='<table><thead><tr><th rowspan="2">INGREDIENTE</th>'+[1,2,3,4].map(i=>'<th colspan="2">CARGA '+i+'</th>').join('')+'</tr><tr>'+[1,2,3,4].map(()=>'<th>PREV.</th><th>REAL.</th>').join('')+'</tr></thead><tbody>';
-  const linhas=[...matriz.values()].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
-  for(const r of linhas)html+='<tr>'+td(r.nome)+[0,1,2,3].map(i=>td(num(r.prev[i]))+td(num(r.real[i]))).join('')+'</tr>';
-  html+='<tr class="total">'+td('TOTAL')+[0,1,2,3].map(i=>td(num(linhas.reduce((a,r)=>a+Number(r.prev[i]||0),0)))+td(num(linhas.reduce((a,r)=>a+Number(r.real[i]||0),0)))).join('')+'</tr>';
-  html+='</tbody></table><p><button onclick="window.print()">IMPRIMIR / SALVAR PDF</button></p></body></html>';
+  // Totais conferidos diretamente nas mesmas células da grade que alimentam a ficha.
+  const totaisPrev=[0,0,0,0],totaisReal=[0,0,0,0],temReal=[false,false,false,false];
+  for(const r of trs){
+    const prevs=[...r.querySelectorAll('td[data-prev]')];
+    const reais=[...r.querySelectorAll('input[data-f="v"]')];
+    for(let i=0;i<4;i++){
+      const bruto=String(prevs[i]?.dataset.prev??prevs[i]?.textContent??'').trim();
+      const valor=Number(bruto.replace(/\./g,'').replace(',','.'));
+      // dataset.prev é numérico com ponto decimal: usá-lo prioritariamente.
+      const numerico=prevs[i]?.dataset.prev!==undefined?Number(prevs[i].dataset.prev):valor;
+      if(!Number.isFinite(numerico))throw Error('PREVISÃO INVÁLIDA EM '+r.dataset.local+' TRATO '+(i+1));
+      totaisPrev[i]+=numerico;
+      const rv=String(reais[i]?.value??'').trim();
+      if(rv!==''){
+        const nr=Number(rv.replace(',','.'));
+        if(!Number.isFinite(nr))throw Error('REALIZADO INVÁLIDO EM '+r.dataset.local+' TRATO '+(i+1));
+        totaisReal[i]+=nr;temReal[i]=true;
+      }
+    }
+  }
+  html+='<tr class="total">'+td('TOTAL POR TRATO')+td(num(totaisPrev.reduce((a,b)=>a+b,0)))+td('—')+[0,1,2,3].map(i=>td(num(totaisPrev[i]))+td(temReal[i]?num(totaisReal[i]):'—')).join('')+'</tr>';
+  html+='</tbody></table><div class="pagebreak"></div>'+cab+'<h2>CARREGAMENTO '+esc(sistema)+' — TOTAL POR INGREDIENTE E TOTAL GERAL</h2><div class="info">PREVISÃO DE INGREDIENTES PELA DIETA ATIVA; REALIZADO CONFORME REGISTROS SALVOS NO SUPABASE.</div>';
+  html+='<table><thead><tr><th rowspan="2">INGREDIENTE</th>'+'<th colspan="2">TOTAL INGREDIENTE</th>'+[1,2,3,4].map(i=>'<th colspan="2">CARGA '+i+'</th>').join('')+'</tr><tr>'+'<th>PREV.</th><th>REAL.</th>'+[1,2,3,4].map(()=>'<th>PREV.</th><th>REAL.</th>').join('')+'</tr></thead><tbody>';
+  // Ordem operacional da ficha, com torta imediatamente após polpa.
+  const ordem=['FARELO DE ARROZ','POLPA CITRICA','TORTA GORDA DE ALGODAO','NUCLEO','UREIA','MILHO','AGUA','SILAGEM'];
+  const normalizarNome=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+  const linhas=[...matriz.values()].sort((a,b)=>{
+    const ia=ordem.findIndex(t=>normalizarNome(a.nome).includes(t));
+    const ib=ordem.findIndex(t=>normalizarNome(b.nome).includes(t));
+    return (ia<0?99:ia)-(ib<0?99:ib)||a.nome.localeCompare(b.nome,'pt-BR');
+  });
+  if(linhas.some(x=>!x.nome||/^INSUMO\s+\d+$/i.test(x.nome)))throw Error('FICHA BLOQUEADA: INGREDIENTE SEM NOME CADASTRADO.');
+  for(const r of linhas){
+    const totalPrev=r.prev.reduce((a,v)=>a+Number(v||0),0);
+    const totalReal=r.real.reduce((a,v)=>a+Number(v||0),0);
+    const algumReal=r.real.some(v=>v!==null&&v!==undefined&&v!=='');
+    html+='<tr>'+td(r.nome)+td(num(totalPrev))+td(algumReal?num(totalReal):'—')+[0,1,2,3].map(i=>td(num(r.prev[i]))+td(r.real[i]===null||r.real[i]===undefined?'—':num(r.real[i]))).join('')+'</tr>';
+  }
+  const totalGeralPrev=linhas.reduce((a,r)=>a+r.prev.reduce((x,v)=>x+Number(v||0),0),0);
+  const totalGeralReal=linhas.reduce((a,r)=>a+r.real.reduce((x,v)=>x+Number(v||0),0),0);
+  html+='<tr class="total">'+td('TOTAL GERAL')+td(num(totalGeralPrev))+td(cargas.length?num(totalGeralReal):'—')+[0,1,2,3].map(i=>td(num(linhas.reduce((a,r)=>a+Number(r.prev[i]||0),0)))+td(cargas.some(c=>Number(c.carga)===i+1)?num(linhas.reduce((a,r)=>a+Number(r.real[i]||0),0)):'—')).join('')+'</tr>';
+  html+='</tbody></table>';
+  html+='<p><button onclick="window.print()">IMPRIMIR / SALVAR PDF</button></p></body></html>';
   // Controle de completude: a impressão deve conter TODOS os currais da grade.
   if(rows.length!==trs.length)throw Error('IMPRESSÃO INCOMPLETA: '+rows.length+' DE '+trs.length+' CURRAIS.');
   html=html.replace('ESPELHO DA GRADE ADMINISTRATIVA APÓS ATUALIZAÇÃO.', 'ESPELHO DA GRADE ADMINISTRATIVA — '+rows.length+' CURRAIS.');

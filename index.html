@@ -4246,7 +4246,9 @@ async function tgHomCarregarFicha(){
     if(jaMarcados.has(nome))continue;
     const linha=locais.find(l=>normLocal(l.nome)===nome);
     if(!linha)throw Error('NOTA 2 SEM CURRAL NA FICHA MÓVEL: '+a.localizacao);
-    const desconto=Number(a.quantidade_kg);
+    // A quantidade gravada anteriormente pode ser o total diário da leitura.
+    // Nota 2 abate exclusivamente a previsão do primeiro trato do curral.
+    const desconto=Number(linha.divisao[0]||0);
     if(!Number.isFinite(desconto)||desconto<0)throw Error('NOTA 2 INVÁLIDA: '+a.localizacao);
     if(desconto>Number(linha.divisao[0]||0)+0.001){
       // A grade do administrativo pode já conter o desconto depois do Trato 1.
@@ -4327,9 +4329,9 @@ function trOrdenarIngredientes(lista){
 
 // Ordem operacional solicitada para a distribuição; chaves canônicas evitam duplicações visuais.
 const TG_ORDEM_DISTRIBUICAO=['BAIA A1','BAIA A2','BAIA A3','BAIA A4','BAIA A5','PASTO A1','PASTO A2','PASTO B2','PASTO B1','BAIA B5','BAIA B4','BAIA B3','BAIA B2','BAIA B1','VINHACA','CASINHA CARLINHOS','BARRACAO','SEDE PIQUETE','PIQUETEAMENTO BAIXO','PIQUETEAMENTO ASFALTO','MOMBACA'];
-function tgOrdemChave(nome){return String(nome||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().replace(/^([AB][1-5])$/,'BAIA $1').replace(/^SAO GUILERME /,'SAO GUILHERME ').replace(/^SAO GUILHERME ALTO$/,'SAO GUILHERME ACIMA').replace(/^BAIXO CASINHA$/,'ABAIXO CASINHA').replace(/^AROEIRA CIMA$/,'AROEIRA ALTO').replace(/^SEDE$/,'SEDE PIQUETE').replace(/^PQT\.?\s+BAIXO$|^PIQ\.?\s+BAIXO$/,'PIQUETEAMENTO BAIXO').replace(/^PQT\.?\s+ASFALTO$|^PIQ\.?\s+ASFALTO$/,'PIQUETEAMENTO ASFALTO');}
-const TG_ORDEM_DISTRIBUICAO_SEMI=['SAO GUILHERME ACIMA','SAO GUILHERME BAIXO','BELEI BAIXO','BELEI ALTO','CASINHA','DIRCE','ABAIXO CASINHA','AROEIRA MANGUEIRA','AROEIRA ALTO','ACUDE'];
-function tgOrdenarCurrais(lista){const m=new Map();for(const x of lista||[]){const k=tgOrdemChave(x[0]);if(!m.has(k))m.set(k,[x[0],Number(x[1])||0]);else m.get(k)[1]+=Number(x[1])||0;}return [...m.values()].sort((a,b)=>{const ordem=tgSistema==='SEMI'?TG_ORDEM_DISTRIBUICAO_SEMI:TG_ORDEM_DISTRIBUICAO;const ia=ordem.indexOf(tgOrdemChave(a[0])),ib=ordem.indexOf(tgOrdemChave(b[0]));return (ia<0?999:ia)-(ib<0?999:ib)||String(a[0]).localeCompare(String(b[0]),'pt-BR');});}
+function tgOrdemChave(nome){return String(nome||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().replace(/^([AB][1-5])$/,'BAIA $1').replace(/^SAO GUILERME /,'SAO GUILHERME ').replace(/^SAO GUILHERME (CIMA|ALTO)$/,'SAO GUILHERME ACIMA').replace(/^SAO GUILHERME (DE )?BAIXO$/,'SAO GUILHERME BAIXO').replace(/^AROREIRA /,'AROEIRA ').replace(/^SAO GUILHERME ALTO$/,'SAO GUILHERME ACIMA').replace(/^BAIXO CASINHA$/,'ABAIXO CASINHA').replace(/^AROEIRA CIMA$/,'AROEIRA ALTO').replace(/^SEDE$/,'SEDE PIQUETE').replace(/^PQT\.?\s+BAIXO$|^PIQ\.?\s+BAIXO$/,'PIQUETEAMENTO BAIXO').replace(/^PQT\.?\s+ASFALTO$|^PIQ\.?\s+ASFALTO$/,'PIQUETEAMENTO ASFALTO');}
+const TG_ORDEM_DISTRIBUICAO_SEMI=['SAO GUILHERME ACIMA','SAO GUILHERME BAIXO','BELEI BAIXO','BELEI ALTO','CASINHA','DIRCE','ABAIXO CASINHA','AROEIRA MANGUEIRA','AROEIRA ALTO'];
+function tgOrdenarCurrais(lista){const m=new Map();for(const x of lista||[]){const k=tgOrdemChave(x[0]);if(!m.has(k))m.set(k,[x[0],Number(x[1])||0]);else m.get(k)[1]+=Number(x[1])||0;}return [...m.values()].filter(x=>tgSistema!=='SEMI'||TG_ORDEM_DISTRIBUICAO_SEMI.includes(tgOrdemChave(x[0]))).sort((a,b)=>{const ordem=tgSistema==='SEMI'?TG_ORDEM_DISTRIBUICAO_SEMI:TG_ORDEM_DISTRIBUICAO;const ia=ordem.indexOf(tgOrdemChave(a[0])),ib=ordem.indexOf(tgOrdemChave(b[0]));return (ia<0?999:ia)-(ib<0?999:ib)||String(a[0]).localeCompare(String(b[0]),'pt-BR');});}
 // Redistribuição local por curral: preservar os lançamentos confirmados e
 // repartir apenas o saldo do dia entre os tratos ainda não realizados.
 function tgHomPlanoDinamico(n){
@@ -4365,25 +4367,51 @@ function tgHomPlanoDinamico(n){
 // também devem seguir a ordem operacional. Nunca mudar índices de pesos já lançados.
 function tgHomOrdenarSemiSeguro(n){
  if(tgSistema!=='SEMI')return;
- const d=tgHomDadosNumero(Number(n));
- const temPeso=Object.keys(d.registros||{}).some(k=>/^C\d+$/.test(k));
- const pendente=typeof tgProdFilaLer==='function'&&tgProdFilaLer().some(x=>x.dia===tgHomDia()&&x.sistema==='SEMI'&&Number(x.n)===Number(n)&&x.etapa==='currais');
- if(temPeso||pendente)return; // não trocar a associação índice/peso
- const ordenar=p=>{if(p&&Array.isArray(p.currais))p.currais=tgOrdenarCurrais(p.currais);};
- ordenar(tgHomFicha?.planos?.[n]);
- ordenar(d.planoCongelado);
+ const numero=Number(n),d=tgHomDadosNumero(numero);
+ const key='homologacao_tratos_ficha_v1_'+tgHomDia()+'_'+tgSistema+'_'+numero;
+ const pendente=typeof tgProdFilaLer==='function'&&tgProdFilaLer().some(x=>x.dia===tgHomDia()&&x.sistema==='SEMI'&&Number(x.n)===numero&&x.etapa==='currais');
+ const original=d.planoCongelado?.currais||tgHomFicha?.planos?.[numero]?.currais;
+ if(!Array.isArray(original))return;
+ const ordenada=tgOrdenarCurrais(original);
+ const mudou=original.length!==ordenada.length||original.some((x,i)=>tgOrdemChave(x[0])!==tgOrdemChave(ordenada[i]?.[0]));
+ if(!mudou)return;
+ if(pendente){
+  tgHomOfflineAviso='EXISTEM DISTRIBUIÇÕES PENDENTES DE SINCRONIZAÇÃO. SINCRONIZE ANTES DE CORRIGIR A ORDEM DO SEMI.';
+  return;
+ }
+ const registros={...d.registros};
+ const antigos=Object.entries(registros).filter(([k])=>/^C\d+$/.test(k));
+ for(const [k] of antigos)delete registros[k];
+ const fora=[];
+ for(const [k,peso] of antigos){
+  const anterior=original[Number(k.slice(1))];
+  if(!anterior){fora.push({indice:k,peso});continue;}
+  const novo=ordenada.findIndex(x=>tgOrdemChave(x[0])===tgOrdemChave(anterior[0]));
+  if(novo<0){fora.push({curral:anterior[0],peso});continue;}
+  registros['C'+novo]=peso;
+ }
+ if(fora.length){
+  // Nunca apagar ou reassociar silenciosamente pesos de localidades fora da rota.
+  tgHomOfflineAviso='HÁ PESOS LANÇADOS PARA LOCALIDADES FORA DA ROTA OFICIAL DO SEMI. CONFERIR ANTES DE CONTINUAR.';
+  return;
+ }
+ d.registros=registros;
+ if(d.planoCongelado)d.planoCongelado.currais=ordenada;
+ // Persistir remapeamento: tgHomDadosNumero lê uma nova cópia do armazenamento a cada chamada.
+ localStorage.setItem(key,JSON.stringify(d));
+ if(tgHomFicha?.planos?.[numero])tgHomFicha.planos[numero].currais=tgOrdenarCurrais(tgHomFicha.planos[numero].currais);
 }
 function tgHomLista(n,fase){
- tgHomOrdenarSemiSeguro(n);
+ if(tgSistema==='SEMI'&&fase==='currais')tgHomOrdenarSemiSeguro(n);
  const dados=tgHomDadosNumero(Number(n));
  const plano=dados.planoCongelado||tgHomPlanoDinamico(Number(n));
  if(fase!=='currais')return plano?.ingredientes||[];
  const lista=plano?.currais||[];
- // A ordem deve ser a mesma em todos os aparelhos, inclusive com plano congelado.
- // Se já há peso por índice, preservar a associação e impedir mudança silenciosa.
- if(String(tgSistema).toUpperCase()==='SEMI'){
+ if(tgSistema==='SEMI'){
+  const pendente=typeof tgProdFilaLer==='function'&&tgProdFilaLer().some(x=>x.dia===tgHomDia()&&x.sistema==='SEMI'&&Number(x.n)===Number(n)&&x.etapa==='currais');
   const temPesos=Object.keys(dados.registros||{}).some(k=>/^C\d+$/.test(k));
-  if(temPesos)return lista;
+  // Fila pendente ou peso de localidade excluída: não trocar índices até conferir.
+  if(pendente||temPesos&&lista.some(x=>!TG_ORDEM_DISTRIBUICAO_SEMI.includes(tgOrdemChave(x[0]))))return lista;
   return tgOrdenarCurrais(lista);
  }
  return lista;
@@ -5732,7 +5760,7 @@ async function tratosRender(){
   }catch(e){erro='FALHA AO SINCRONIZAR ZERO DA NOTA 2: '+String(e.message||e);}
  }
  // Classificação operacional validada para o módulo de TRATOS (não modifica cadastros no banco).
- const trSemiOficial=['SAO GUILHERME ACIMA','SAO GUILHERME BAIXO','BELEI BAIXO','BELEI ALTO','CASINHA','DIRCE','ABAIXO CASINHA','AROEIRA MANGUEIRA','AROEIRA ALTO','ACUDE'];
+ const trSemiOficial=['SAO GUILHERME ACIMA','SAO GUILHERME BAIXO','BELEI BAIXO','BELEI ALTO','CASINHA','DIRCE','ABAIXO CASINHA','AROEIRA MANGUEIRA','AROEIRA ALTO'];
  const trConfOficial=['BAIA A1','BAIA A2','BAIA A3','BAIA A4','BAIA A5','BAIA B1','BAIA B2','BAIA B3','BAIA B4','BAIA B5','CASINHA CARLINHOS','VINHACA','SEDE PIQUETE','SEDE','BARRACAO','PASTO A1','PASTO A2','PASTO B1','PASTO B2','MOMBACA','PIQUETEAMENTO ASFALTO','PIQUETEAMENTO BAIXO'];
  const trChaveLocal=n=>String(n||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ').replace(/^BAIXO CASINHA$/,'ABAIXO CASINHA').replace(/^SAO GUILHERME (ALTO|CIMA)$/,'SAO GUILHERME ACIMA').replace(/^PIQ\.?\s*ASFALTO$/,'PIQUETEAMENTO ASFALTO').replace(/^PIQ\.?\s*BAIXO$/,'PIQUETEAMENTO BAIXO');
  const trSistemaOficial=n=>trSemiOficial.includes(trChaveLocal(n))?'SEMI':trConfOficial.includes(trChaveLocal(n))?'CONFINAMENTO':null;
@@ -6554,6 +6582,15 @@ async function trSelecionarDataDistribuicao(){
  await trCargaRender();
 }
 
+// Ajustes oficiais persistidos: abater na ordem dos carregamentos, sem gerar carga negativa.
+// Nota 2 reduz a distribuição do primeiro trato; sobra do vagão abate carregamentos disponíveis.
+function trAbaterCargasSemNegativo(valores,desconto){
+ const out=valores.map(v=>Number(v)||0);let resto=Number(desconto)||0;
+ if(resto<0||!Number.isFinite(resto))throw Error('DESCONTO INVÁLIDO');
+ for(let i=0;i<out.length&&resto>0;i++){const usado=Math.min(out[i],resto);out[i]-=usado;resto-=usado;}
+ if(resto>0.001)throw Error('DESCONTOS SUPERIORES À PREVISÃO TOTAL DO DIA');
+ return out;
+}
 async function trCargaRender(){
  const sequencia=++trCargaRenderSeq;
  const cfg=trCochoConfig();
@@ -6787,17 +6824,25 @@ async function trCargaRender(){
     if(!Number.isFinite(kg)||kg<0)throw Error('PREVISÃO DO PRIMEIRO TRATO INVÁLIDA: '+ajuste.localizacao);
     const confirmado=Number(ajuste.quantidade_kg);
     if(!Number.isFinite(confirmado)||confirmado<0)throw Error('NOTA 2 INVÁLIDA: '+ajuste.localizacao);
-    nota2PorLocal.set(chave,confirmado);
+    nota2PorLocal.set(chave,kg);
   }
-  const nota2Confirmada=sistema==='CONFINAMENTO'&&(carga==='CONSOLIDADO'||carga==='1')
-    ?[...nota2PorLocal.values()].reduce((n,v)=>n+v,0):0;
+  const nota2Dia=sistema==='CONFINAMENTO'?[...nota2PorLocal.values()].reduce((n,v)=>n+v,0):0;
+  const nota2Confirmada=(carga==='CONSOLIDADO'||carga==='1')?nota2Dia:0;
   const sobraConfirmada=sistema==='CONFINAMENTO'&&(carga==='CONSOLIDADO'||carga==='1')
     ?ajustesConfirmados.filter(a=>a.tipo==='SOBRA_VAGAO')
        .reduce((n,a)=>n+Number(a.quantidade_kg||0),0):0;
   const sobraPlanejada=registro?0:sobraConfirmada;
   const brutoDaCarga=previstoCargaIndividual===null?brutoPlanejado:previstoCargaIndividual;
   if(sobraPlanejada>brutoDaCarga)throw Error('SOBRA MAIOR QUE A PREVISÃO DO CARREGAMENTO.');
-  if(!registro&&nota2Confirmada+sobraPlanejada>brutoDaCarga)throw Error('DESCONTOS MAIORES QUE A PREVISÃO DESTA CARGA. CONFIRA NOTA 2 E SOBRA.');
+  // Nota 2 e sobra podem exceder a carga 1; excedente da sobra migra para a carga 2.
+  // Nunca criar previsão negativa, nem reduzir o total do dia duas vezes.
+  const cargasBase=[0,0,0,0];
+  for(const rr of gradeNota2){if(rr.dataset.total===''||rr.querySelector('[data-tr-dieta]')?.checked===false)continue;
+   rr.querySelectorAll('td[data-prev]').forEach((td,i)=>{if(i<4)cargasBase[i]+=Number(td.dataset.prev)||0;});}
+  const cargasAjustadas=sistema==='CONFINAMENTO'
+   ?trAbaterCargasSemNegativo(trAbaterCargasSemNegativo(cargasBase,nota2Dia),sobraConfirmada)
+   :cargasBase;
+  const previstoCargaAjustado=carga==='CONSOLIDADO'?cargasAjustadas.reduce((a,b)=>a+b,0):cargasAjustadas[Number(carga)-1]??0;
   const historicoCongelado=!!registro;
   // Os ajustes históricos são os efetivamente gravados, nunca valores reconstruídos pela grade atual.
 
@@ -6817,13 +6862,13 @@ async function trCargaRender(){
     ?Math.max(0,previstoCargaIndividual-nota2Confirmada-sobraConfirmada)
     :([...mapa.values()].reduce((sum,x)=>sum+Number(x.previsto_kg||0),0)||historicoBruto);
   if(historicoCongelado&&historicoLiquido<0)throw Error('AJUSTES HISTÓRICOS MAIORES QUE O PREVISTO SALVO.');
-  const totalPlanejado=historicoCongelado?historicoLiquido:brutoDaCarga-nota2Confirmada-sobraPlanejada;
+  const totalPlanejado=historicoCongelado?historicoLiquido:previstoCargaAjustado;
   const campoSobra=document.getElementById('tr_carga_sobra');
   const chaveSobra=data+'|'+sistema+'|'+carga;
   if(campoSobra.dataset.chave!==chaveSobra){campoSobra.value=sobraPlanejada;campoSobra.dataset.chave=chaveSobra;}
   const sobraAtual=registro?0:sobraConfirmada;
   if(!registro&&(!Number.isFinite(sobraAtual)||sobraAtual<0||sobraAtual>brutoDaCarga))throw Error('SOBRA INVÁLIDA. CONFIRA O VALOR.');
-  const liquidoAtual=historicoCongelado?historicoLiquido:brutoDaCarga-nota2Confirmada-sobraAtual;
+  const liquidoAtual=historicoCongelado?historicoLiquido:previstoCargaAjustado;
   // Para cargas históricas já gravadas, o previsto por ingrediente é exibido
   // líquido da Nota 2. Não regravar a previsão original nem alterar o realizado.
   const brutoIngredientes=[...mapa.values()].reduce((n,i)=>n+Number(i.previsto_kg||0),0);
@@ -6841,7 +6886,7 @@ async function trCargaRender(){
   if(origemSobra)origemSobra.textContent='';
   document.getElementById('tr_carga_bruto').disabled=!!registro;
   document.getElementById('tr_carga_sobra').disabled=!!registro;
-  document.getElementById('tr_carga_conciliacao').textContent=(registro&& !historicoCongelado && Math.abs(Number(registro.previsto_kg)-liquidoAtual)>0.02)?'ATENÇÃO: PREVISÃO SALVA NO BANCO ('+trFmt(registro.previsto_kg)+' KG) DIVERGE DA PREVISÃO RECONCILIADA ('+trFmt(liquidoAtual)+' KG). VALOR SALVO NÃO FOI ALTERADO.':registroCompleto?'CARREGAMENTO JÁ SALVO — VALORES REAIS BLOQUEADOS PARA PRESERVAR O HISTÓRICO.':registroPendente?'REGISTRO INCOMPLETO NO BANCO — PREENCHA OS INGREDIENTES E CONCLUA O SALVAMENTO.':'DISTRIBUIÇÃO '+trFmt(brutoDaCarga)+' KG − NOTA 2 '+trFmt(nota2Confirmada)+' KG − SOBRA '+trFmt(sobraAtual)+' KG = PREVISTO '+trFmt(liquidoAtual)+' KG.';
+  document.getElementById('tr_carga_conciliacao').textContent=(registro&& !historicoCongelado && Math.abs(Number(registro.previsto_kg)-liquidoAtual)>0.02)?'ATENÇÃO: PREVISÃO SALVA NO BANCO ('+trFmt(registro.previsto_kg)+' KG) DIVERGE DA PREVISÃO RECONCILIADA ('+trFmt(liquidoAtual)+' KG). VALOR SALVO NÃO FOI ALTERADO.':registroCompleto?'CARREGAMENTO JÁ SALVO — VALORES REAIS BLOQUEADOS PARA PRESERVAR O HISTÓRICO.':registroPendente?'REGISTRO INCOMPLETO NO BANCO — PREENCHA OS INGREDIENTES E CONCLUA O SALVAMENTO.':'PREVISÃO DA CARGA '+trEsc(carga)+': '+trFmt(liquidoAtual)+' KG. AJUSTES DO DIA: NOTA 2 '+trFmt(nota2Dia)+' KG; SOBRA '+trFmt(sobraConfirmada)+' KG. EXCEDENTE TRANSFERIDO À CARGA SEGUINTE.';
   const distribuido=(distribuicoes.data||[]).reduce((sum,x)=>sum+[x.trato_1,x.trato_2,x.trato_3,x.trato_4].reduce((a,b)=>a+Number(b||0),0),0);
   const completas=false; // Sem fechamento formal confirmado, a distribuição deve permanecer PARCIAL; não inferir conclusão a partir de um único trato lançado.
   if(sequencia!==trCargaRenderSeq||data!==document.getElementById('tr_carga_data').value||sistema!==document.getElementById('tr_carga_sistema').value||carga!==document.getElementById('tr_carga_num').value)return;
@@ -6853,7 +6898,7 @@ async function trCargaRender(){
    const cs=tr.querySelectorAll('td[data-prev]');
    for(let k=0;k<4;k++)if(cs[k]&&cs[k].dataset.prev!=='')previsoesQuatro[k]+=Number(cs[k].dataset.prev)||0;
   }
-  if(sistema==='CONFINAMENTO')previsoesQuatro[0]=Math.max(0,previsoesQuatro[0]-ajustesConfirmados.filter(a=>a.tipo==='DESCONTO_NOTA_2'&&a.desconto_selecionado===true).reduce((n,a)=>n+Number(a.quantidade_kg||0),0)-sobraConfirmada);
+  if(sistema==='CONFINAMENTO'){const corrigidas=trAbaterCargasSemNegativo(trAbaterCargasSemNegativo(previsoesQuatro,nota2Dia),sobraConfirmada);previsoesQuatro.splice(0,4,...corrigidas);}
   trCargaUltima={previsaoConsolidada,totalPrevisaoConsolidada,totalPrevisaoCargasSalvas,previsaoSalvaPorIngrediente,historicoCongelado,previsaoLegadaCorrigida:historicoLegadoDiaInteiro,descontoDF,sobraDF,sobraFinalDF,nota2Confirmada,data,sistema,carga,versao:String(versao.id),linhas,distribuido,completas,base,previsoesQuatro,matrizCarregados,todasCargas:todasCargas.data||[],registroSalvo:registroCompleto||consultaConsolidada,registroPendente,registroId:registro?.id||null,temPrevisao:hojeValidos.length>0,dataAnterior};
   if(destaqueData)destaqueData.innerHTML='DATA SELECIONADA: <strong>'+data.split('-').reverse().join('/')+'</strong> • SISTEMA: <strong>'+trEsc(sistema)+'</strong><div style="font-size:13px;margin-top:8px">REFERÊNCIA INTERNA DO SISTEMA: <strong>'+(hojeQ.error?'INDISPONÍVEL':trFmt(previstoHoje)+' KG')+'</strong> ('+hojeValidos.length+' LOCAIS COM ANIMAIS)</div><div style="font-size:12px;margin-top:6px">INFORME SOMENTE AS QUANTIDADES EFETIVAMENTE CARREGADAS.</div>';
   // Uma única grade: insumos, total previsto, total realizado (distribuição),
@@ -7267,9 +7312,8 @@ async function trImprimirPrevisaoConferida(){
   const cargas=[0,1,2,3].map(i=>locais.reduce((t,r)=>t+Number(r.divisao[i]||0),0));
   // Aplicar Nota 2 uma única vez na primeira carga; a sobra também na primeira carga.
   if(nota2Ficha>cargas[0]+0.001)throw Error('NOTA 2 MAIOR QUE A PRIMEIRA CARGA');
-  cargas[0]-=nota2Ficha;
-  let restoSobra=sobra;
-  for(let i=0;i<4&&restoSobra>0;i++){const abatido=Math.min(cargas[i],restoSobra);cargas[i]-=abatido;restoSobra-=abatido;}
+  const corrigidas=trAbaterCargasSemNegativo(trAbaterCargasSemNegativo(cargas,nota2Ficha),sobra);
+  cargas.splice(0,4,...corrigidas);
   const detalhe=locais.map(r=>'<tr><td>'+esc(r.nome)+'</td><td>'+fmt(r.valor)+'</td><td>'+fmt(r.realizado)+'</td>'+r.divisao.map(v=>'<td>'+fmt(v)+'</td>').join('')+'</tr>').join('');
   const linhas=itens.map(i=>{const frac=Number(i.batida_kg??i.quantidade_mn??0)/receita;return {nome:insumos.get(String(i.insumo_id))||i.insumo_id,frac};});
   const tabelaHTML=linhas.map(l=>'<tr><td>'+esc(l.nome)+'</td><td>'+fmt(liquido*l.frac)+'</td>'+cargas.map(c=>'<td>'+fmt(c*l.frac)+'</td>').join('')+'</tr>').join('');
@@ -8355,7 +8399,7 @@ window.visaoAbateImprimir=function(){
    const [leit,cur,aj]=await Promise.all([
     supa.from('leituras_cocho').select('curral_id,total_previsto,nota').eq('data_leitura',dia).eq('nota',2),
     supa.from('currais').select('id,codigo'),
-    supa.from('tratos_ajustes_df').select('id,localizacao,desconto_selecionado').eq('data_referencia',dia).eq('sistema','CONFINAMENTO').eq('tipo','DESCONTO_NOTA_2')
+    supa.from('tratos_ajustes_df').select('id,localizacao,desconto_selecionado,quantidade_kg').eq('data_referencia',dia).eq('sistema','CONFINAMENTO').eq('tipo','DESCONTO_NOTA_2')
    ]);
    for(const r of [leit,cur,aj])if(r.error)throw r.error;
    if(seq!==token||trData()!==dia)return;
@@ -8380,8 +8424,9 @@ window.visaoAbateImprimir=function(){
       if(existente){res=await supa.from('tratos_ajustes_df').update({desconto_selecionado:selecionado,atualizado_em:new Date().toISOString()}).eq('id',existente.id).select('id,desconto_selecionado').single();}
       else{
        if(!selecionado){check.disabled=false;return;}
-       const kg=Number(nota.total_previsto);
-       if(!Number.isFinite(kg)||kg<0)throw Error('PREVISÃO INVÁLIDA PARA '+local);
+       const celPrimeiro=row.querySelectorAll('td[data-prev]')[0];
+       const kg=Number(celPrimeiro?.dataset.prev);
+       if(!celPrimeiro||!Number.isFinite(kg)||kg<0)throw Error('PREVISÃO DO PRIMEIRO TRATO INVÁLIDA PARA '+local);
        res=await supa.from('tratos_ajustes_df').insert({data_informada:dia,data_referencia:dia,sistema:'CONFINAMENTO',tipo:'DESCONTO_NOTA_2',localizacao:row.dataset.local,quantidade_kg:kg,trato_numero:1,desconto_selecionado:true,observacao:'SELEÇÃO EXPLÍCITA NA GRADE — NOTA 2'}).select('id,desconto_selecionado').single();
       }
       if(res.error)throw res.error;
@@ -8499,10 +8544,8 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
       const nome=trNormNome(r.dataset.local).replace(/^BAIA\s+/,'').trim();
       if(marcados.has(nome)&&r.querySelector('[data-tr-dieta]')?.checked!==false)nota2+=Number(r.querySelectorAll('td[data-prev]')[0]?.dataset.prev||0);
     }
-    const liquido=[...bruto];
-    liquido[0]-=sobra+nota2;
-    if(liquido[0]<-0.01)throw Error('DESCONTOS SUPERIORES À PREVISÃO DA CARGA 1.');
-    liquido[0]=Math.max(0,liquido[0]);
+    // Nota 2 é abatida do trato 1; a sobra remanescente passa às cargas seguintes.
+    const liquido=trAbaterCargasSemNegativo(trAbaterCargasSemNegativo(bruto,nota2),sobra);
     for(let j=0;j<4;j++){
       if(cargas.some(c=>Number(c.carga)===j+1))continue;
       for(const item of receita){

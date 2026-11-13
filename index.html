@@ -4348,6 +4348,7 @@ function trOrdemIngrediente(nome){
  const n=String(nome||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
  if(/MILHO/.test(n))return 0;
  if(/POLPA/.test(n))return 1;
+ if(/TORTA/.test(n))return 1.5;
  if(/DDG/.test(n))return 2;
  if(/ARROZ/.test(n))return 3;
  if(/NUCLEO/.test(n))return 4;

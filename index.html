@@ -371,6 +371,10 @@ body.acesso-tratador #tratadorInicio{padding-top:30px}
 #visaoAbate .va-scroll .va-total td:first-child{white-space:normal!important}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script id="nota2-data-origem-20261114">
+// Nota 2 da leitura de D aplica-se ao primeiro trato de D+1.
+function trDiaAnteriorNota2(dia){return String(dia).slice(0,10);} // Nota 2 selecionada vale para o PRIMEIRO TRATO DA PRÓPRIA DATA
+</script>
 <script>
 // Fechamento idempotente: usa exclusivamente insumos, tratos e lotações da data.
 // Sobras de vagão: custo médio histórico por kg de MS; nunca cria carregamento.
@@ -4269,7 +4273,9 @@ async function tgHomCarregarFicha(){
     .select('tipo,localizacao,quantidade_kg,desconto_selecionado')
     .eq('data_referencia',dia).eq('sistema',tgSistema);
   if(ajustesQ.error)throw Error('AJUSTES OFICIAIS NÃO DISPONÍVEIS: '+ajustesQ.error.message);
-  const ajustes=ajustesQ.data||[];
+  const nota2Q=await supa.from('tratos_ajustes_df').select('tipo,localizacao,quantidade_kg,desconto_selecionado').eq('data_referencia',trDiaAnteriorNota2(dia)).eq('sistema',tgSistema).eq('tipo','DESCONTO_NOTA_2');
+  if(nota2Q.error)throw nota2Q.error;
+  const ajustes=[...(ajustesQ.data||[]).filter(a=>a.tipo!=='DESCONTO_NOTA_2'),...(nota2Q.data||[])];
   const sobra=tgSistema==='CONFINAMENTO'?ajustes.filter(a=>a.tipo==='SOBRA_VAGAO').reduce((v,a)=>v+Number(a.quantidade_kg||0),0):0;
   const normLocal=v=>String(v||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/^BAIA\s+/,'').replace(/\s+/g,' ').trim();
   let nota2=0;
@@ -5757,7 +5763,7 @@ async function tratosRender(){
   try{
    const ajustes=await supa.from('tratos_ajustes_df')
     .select('localizacao,sistema,tipo,desconto_selecionado,trato_numero')
-    .eq('data_referencia',data).eq('tipo','DESCONTO_NOTA_2').eq('desconto_selecionado',true);
+    .eq('data_referencia',trDiaAnteriorNota2(data)).eq('tipo','DESCONTO_NOTA_2').eq('desconto_selecionado',true);
    if(ajustes.error)throw ajustes.error;
    const canon=n=>String(n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim().replace(/\s+/g,' ').replace(/^([AB][1-5])$/,'BAIA $1');
    const pendentes=[];
@@ -5920,6 +5926,14 @@ async function tratosRender(){
   }
   registros=publicadas.map(([k,v])=>({local:v.__local,sistema:v.__sistema,previsao:Number(v.total),bois:Number(v.__bois)||0,dias:Number(v.__dias)||0}));
  }
+ const nota2Selecionados=new Set();
+ try{
+  const q=await supa.from('tratos_ajustes_df').select('localizacao')
+   .eq('data_referencia',data).eq('sistema','CONFINAMENTO')
+   .eq('tipo','DESCONTO_NOTA_2').eq('desconto_selecionado',true);
+  if(q.error)throw q.error;
+  for(const a of q.data||[])nota2Selecionados.add(trNormNome(a.localizacao));
+ }catch(e){erro=(erro?erro+' | ':'')+'FALHA AO CONSULTAR NOTA 2: '+String(e.message||e)}
  const cfg=trCochoConfig(),atuais=salvos.filter(x=>x.data===data),rascunhos={};
  // Lançamentos históricos são preservados no banco, mas só aparecem no planejamento
  // quando há uma localidade vinculada a uma dieta/previsão válida.
@@ -5961,6 +5975,10 @@ async function tratosRender(){
   // A previsão oficial já foi calculada pela LEITURA DE COCHO.
   // Não aplicar desconto adicional nem pedir segunda confirmação.
   const p=baseDiaAnterior===null?null:trDividir(baseDiaAnterior,pct);
+  const zeroNota2=db.sistema==='CONFINAMENTO'&&nota2Selecionados.has(trNormNome(local));
+  // O desconto elimina APENAS o primeiro trato selecionado.
+  // Os demais tratos mantêm seus valores originais, sem redistribuição.
+  if(p&&zeroNota2)p[0]=0;
   const ultimoAnterior=salvos.find(x=>x.data<data&&chaveCadastro(x.local)===chaveCadastro(local));
   const total=baseDiaAnterior===null?'—':trFmt(baseDiaAnterior),bois=db.bois==null?'—':trFmt(db.bois),dias=db.dias==null?'—':trFmt(db.dias);
   let h='<tr style="'+separador+'" data-pct="'+trEsc(pct.join(','))+'" data-sistema="'+trEsc(r.sistema||db.sistema)+'" title="'+trEsc(ultimoAnterior?'ÚLTIMO REALIZADO: '+ultimoAnterior.data+' — '+ultimoAnterior.v.map((v,i)=>v!==''?'TRATO '+(i+1)+': '+v+' KG':'').filter(Boolean).join(' | '):'SEM REALIZADO ANTERIOR')+'" data-local="'+trEsc(local)+'" data-total="'+trEsc(baseDiaAnterior??'')+'"><td style="text-align:center"><input type="checkbox" data-tr-dieta checked onchange="trGradeSelecionar(this)" aria-label="COM DIETA"></td><td title="'+trEsc(db.sistema)+'"><b>'+trEsc(local)+'</b>'+'</td><td>'+dias+'</td><td data-c="total">'+total+' <button type="button" class="tr-edit-prev" onclick="trGradeEditar(this)" title="EDITAR PREVISÃO" aria-label="EDITAR PREVISÃO">✎</button></td><td>'+bois+'</td>';
@@ -5969,6 +5987,27 @@ async function tratosRender(){
  }).join('');
  if(aviso)aviso.textContent=erro||('PREVISÃO ÚNICA: AJUSTES DO ADMINISTRADOR SÃO PUBLICADOS NO SUPABASE E COMPARTILHADOS ENTRE OS PERFIS; NÃO ALTERAM A LEITURA OFICIAL. PREVISÃO: ÚLTIMA LEITURA DE COCHO DISPONÍVEL ATÉ O DIA ANTERIOR (CONFIRA A DATA AO PASSAR O MOUSE NO CURRAL). DISTRIBUIÇÃO: 20/30/30/20 OU PERCENTUAIS CONFIGURADOS; BAIAS A1 A B5: QUATRO TRATOS. DEMAIS CONFINAMENTO: DOIS TRATOS (1º E 4º). SEMI: UM TRATO. SEM LEITURA OU PREVISÃO COMPROVADA, MOSTRA —. SEMI USA SUA PRÓPRIA LEITURA DO DIA ANTERIOR. A PREVISÃO E OS DESCONTOS SÃO DEFINIDOS EXCLUSIVAMENTE NA LEITURA DE COCHO. '+'');
  trGradeRestaurar();
+ // NOTA 2: o realizado do primeiro trato é zero, não editável,
+ // independentemente de a grade ter sido restaurada do rascunho local.
+ try{
+  const n2=await supa.from('tratos_ajustes_df')
+   .select('localizacao').eq('data_referencia',data).eq('sistema','CONFINAMENTO')
+   .eq('tipo','DESCONTO_NOTA_2').eq('desconto_selecionado',true);
+  if(n2.error)throw n2.error;
+  const normN2=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim().replace(/\s+/g,' ').replace(/^([AB][1-5])$/,'BAIA $1');
+  const bloqueados=new Set((n2.data||[]).map(x=>normN2(x.localizacao)));
+  document.querySelectorAll('#tr_grade_body tr[data-local]').forEach(row=>{
+   if(row.dataset.sistema!=='CONFINAMENTO'||!bloqueados.has(normN2(row.dataset.local)))return;
+   const input=row.querySelector('input[data-f="v"][data-n="0"]');
+   if(!input)return;
+   input.value='0';input.disabled=true;input.readOnly=true;
+   input.title='NOTA 2 SELECIONADA — ZERO AUTOMÁTICO NO PRIMEIRO TRATO';
+   input.style.background='#edf1ef';
+   row.dataset.nota2Bloqueado='1';
+  });
+ }catch(e){console.error('NOTA 2: falha ao bloquear primeiro trato',e);
+  if(aviso)aviso.textContent='ERRO AO CONFERIR BLOQUEIOS NOTA 2: '+String(e.message||e);
+ }
  trCalc();
  // A grade administrativa é a origem oficial. Publicar a versão COMPLETA
  // quando houver divergência, antes que o Tratador possa consumir a ficha.
@@ -6027,11 +6066,11 @@ function trCalc(){
   const realizados=active.filter(i=>r.v[i]!=='');const pendentes=active.filter(i=>r.v[i]==='');
   const realizado=realizados.reduce((a,i)=>a+trN(r.v[i]),0);
   const saldo=totalPrev===null?null:Math.max(0,totalPrev-realizado);
-  // Mesma regra de arredondamento da ficha: diferença fica no último trato ativo.
-  const pesosPendentes=[0,1,2,3].map(i=>pendentes.includes(i)?pct[i]:0);
-  const divisaoPendente=saldo===null?null:trDividir(saldo,pesosPendentes);
-  pendentes.forEach(i=>{const n=divisaoPendente?.[i]??null;const td=tr.querySelectorAll('[data-prev]')[i];if(td){td.textContent=n===null?'—':trFmt(n);td.dataset.ajustado=n===null?'':String(n)}});
-  realizados.forEach(i=>{const td=tr.querySelectorAll('[data-prev]')[i];if(td){td.textContent='—';td.title='TRATO JÁ REALIZADO NESTA DATA — SEM NOVA PREVISÃO';td.dataset.ajustado=''}});
+  // Previsões fixas por trato: NÃO redistribuir quando houver Nota 2,
+  // zero já salvo ou qualquer outro trato realizado.
+  // A grade, a impressão e o tratador devem usar o mesmo valor base.
+  pendentes.forEach(i=>{const td=tr.querySelectorAll('[data-prev]')[i];if(td){const v=td.dataset.prev;td.textContent=v===''?'—':trFmt(Number(v));td.dataset.ajustado=v;}});
+  realizados.forEach(i=>{const td=tr.querySelectorAll('[data-prev]')[i];if(td){td.textContent='—';td.title='TRATO JÁ REALIZADO NESTA DATA';td.dataset.ajustado='';}});
   const set=(k,v)=>{const el=tr.querySelector('[data-c="'+k+'"]');if(el)el.textContent=v};
   const historico=trData()<trHojeISO();
   const complete=(pendentes.length===0&&active.length>0);
@@ -6058,8 +6097,8 @@ function trCalc(){
   rows.forEach(row=>{
    if(row.querySelector('[data-tr-dieta]')?.checked===false||row.dataset.total==='')return;
    const sis=trNormNome(row.dataset.sistema),dest=porSistema[sis];if(!dest)return;
-   dest.total+=Number(row.dataset.total)||0;
-   [...row.querySelectorAll('td[data-prev]')].forEach((td,i)=>{dest.tratos[i]+=Number(td.dataset.ajustado!==undefined?td.dataset.ajustado:td.dataset.prev)||0});
+   // Total ajustado: soma somente as previsões efetivas dos tratos.
+   [...row.querySelectorAll('td[data-prev]')].forEach((td,i)=>{const kg=Number(td.dataset.ajustado!==undefined?td.dataset.ajustado:td.dataset.prev)||0;dest.tratos[i]+=kg;dest.total+=kg});
   });
   // Resumo visual: mostrar realizado quando há registro (inclusive zero),
   // e previsão somente para tratos ainda não lançados.
@@ -6070,7 +6109,8 @@ function trCalc(){
    const inputs=[...row.querySelectorAll('[data-f="v"]')];
    for(let i=0;i<(sis==='SEMI'?1:4);i++){
     const inp=inputs.find(x=>Number(x.dataset.n)===i);
-    if(inp && inp.value.trim()!==''){arr[i].real+=trN(inp.value);arr[i].n++}
+    if(inp && inp.value.trim()!=='' && !(i===0 && row.dataset.nota2Bloqueado==='1')){arr[i].real+=trN(inp.value);arr[i].n++}
+    if(inp && !(i===0 && row.dataset.nota2Bloqueado==='1') && Number(row.querySelectorAll('td[data-prev]')[i]?.dataset.prev||0)>0){arr[i].esperados=(arr[i].esperados||0)+1}
     const td=row.querySelectorAll('td[data-prev]')[i];
     arr[i].prev+=Number(td?.dataset.ajustado!==undefined?td.dataset.ajustado:td?.dataset.prev)||0;
    }
@@ -6080,7 +6120,7 @@ function trCalc(){
    +'<div style="font-size:11px;font-weight:700;color:#45665a">'+nome+'</div>'
    +'<div style="font-size:19px;font-weight:800;margin:4px 0">'+trFmt(grupo.total)+' KG</div>'
    +'<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px">'
-   +(semi?[0]:[0,1,2,3]).map(i=>{const x=resumoEstado[nome==='CONFINAMENTO'?'CONFINAMENTO':'SEMI'][i],feito=x.n>0;return '<span style="padding:4px 6px;border-radius:5px;background:'+(feito?'#d9f0df':'#f9dddd')+';color:'+(feito?'#17663b':'#a32323')+'">'+(semi?'TRATO ÚNICO':(i+1)+'º TRATO')+': <b>'+trFmt(feito?x.real:x.prev)+' KG</b> '+(feito?'REALIZADO':'PREVISTO')+'</span>'}).join('')
+   +(semi?[0]:[0,1,2,3]).map(i=>{const x=resumoEstado[nome==='CONFINAMENTO'?'CONFINAMENTO':'SEMI'][i],feito=(x.esperados||0)>0&&x.n>=x.esperados;return '<span style="padding:4px 6px;border-radius:5px;background:'+(feito?'#d9f0df':'#f9dddd')+';color:'+(feito?'#17663b':'#a32323')+'">'+(semi?'TRATO ÚNICO':(i+1)+'º TRATO')+': <b>'+trFmt(feito?x.real:x.prev)+' KG</b> '+(feito?'REALIZADO':'PREVISTO')+'</span>'}).join('')
    +'</div></div>';
   resumo.innerHTML='<div style="font-size:12px;font-weight:800;margin-bottom:7px">PREVISÃO DE TRATOS — '+trEsc(trData().split('-').reverse().join('/'))+'</div>'
    +'<div style="display:flex;flex-wrap:wrap;gap:8px">'+bloco('CONFINAMENTO',c,false)+bloco('SEMICONFINAMENTO',m,true)+'</div>'
@@ -6326,7 +6366,7 @@ async function tratosSalvarDistribuicao(){
    const i=Number(input.dataset.n);
    if(input.disabled||input.value.trim()!=='')return;
    const previstoOriginal=Number(tr.querySelectorAll('td[data-prev]')[i]?.dataset.prev||0);
-   const zeroPrimeiro= i===0 && previstoOriginal===0;
+   const zeroPrimeiro= i===0 && tr.dataset.nota2Bloqueado==='1';
    if(atingiu||cargasFim[r.sistema]||zeroPrimeiro){input.value='0';r.v[i]='0';}
   });
  });
@@ -6819,7 +6859,9 @@ async function trCargaRender(){
     .select('tipo,quantidade_kg,localizacao,desconto_selecionado')
     .eq('data_referencia',data).eq('sistema',sistema);
   if(ajustesQ.error)throw ajustesQ.error;
-  const ajustesConfirmados=ajustesQ.data||[];
+  const nota2Q=await supa.from('tratos_ajustes_df').select('tipo,localizacao,quantidade_kg,desconto_selecionado').eq('data_referencia',trDiaAnteriorNota2(data)).eq('sistema',sistema).eq('tipo','DESCONTO_NOTA_2');
+  if(nota2Q.error)throw nota2Q.error;
+  const ajustesConfirmados=[...(ajustesQ.data||[]).filter(a=>a.tipo!=='DESCONTO_NOTA_2'),...(nota2Q.data||[])];
   // A sobra de D+1 é o saldo que foi transferido ao final de D.
   // Consultar a mesma fonte utilizada pelo histórico, sem alterar lançamentos.
   const dataSeguinteDF=new Date(data+'T12:00:00Z');
@@ -6860,7 +6902,7 @@ async function trCargaRender(){
     if(!Number.isFinite(confirmado)||confirmado<0)throw Error('NOTA 2 INVÁLIDA: '+ajuste.localizacao);
     nota2PorLocal.set(chave,kg);
   }
-  const nota2Dia=sistema==='CONFINAMENTO'?[...nota2PorLocal.values()].reduce((n,v)=>n+v,0):0;
+  const nota2Dia=sistema==='CONFINAMENTO'?ajustesConfirmados.filter(a=>a.tipo==='DESCONTO_NOTA_2'&&a.desconto_selecionado===true).reduce((n,a)=>n+Number(a.quantidade_kg||0),0):0;
   const nota2Confirmada=(carga==='CONSOLIDADO'||carga==='1')?nota2Dia:0;
   const sobraConfirmada=sistema==='CONFINAMENTO'&&(carga==='CONSOLIDADO'||carga==='1')
     ?ajustesConfirmados.filter(a=>a.tipo==='SOBRA_VAGAO')
@@ -6874,7 +6916,7 @@ async function trCargaRender(){
   for(const rr of gradeNota2){if(rr.dataset.total===''||rr.querySelector('[data-tr-dieta]')?.checked===false)continue;
    rr.querySelectorAll('td[data-prev]').forEach((td,i)=>{if(i<4)cargasBase[i]+=Number(td.dataset.prev)||0;});}
   const cargasAjustadas=sistema==='CONFINAMENTO'
-   ?trAbaterCargasSemNegativo(trAbaterCargasSemNegativo(cargasBase,nota2Dia),sobraConfirmada)
+   ?trAbaterCargasSemNegativo(cargasBase,sobraConfirmada)
    :cargasBase;
   const previstoCargaAjustado=carga==='CONSOLIDADO'?cargasAjustadas.reduce((a,b)=>a+b,0):cargasAjustadas[Number(carga)-1]??0;
   const historicoCongelado=!!registro;
@@ -6932,7 +6974,7 @@ async function trCargaRender(){
    const cs=tr.querySelectorAll('td[data-prev]');
    for(let k=0;k<4;k++)if(cs[k]&&cs[k].dataset.prev!=='')previsoesQuatro[k]+=Number(cs[k].dataset.prev)||0;
   }
-  if(sistema==='CONFINAMENTO'){const corrigidas=trAbaterCargasSemNegativo(trAbaterCargasSemNegativo(previsoesQuatro,nota2Dia),sobraConfirmada);previsoesQuatro.splice(0,4,...corrigidas);}
+  if(sistema==='CONFINAMENTO'){const corrigidas=trAbaterCargasSemNegativo(previsoesQuatro,sobraConfirmada);previsoesQuatro.splice(0,4,...corrigidas);}
   trCargaUltima={previsaoConsolidada,totalPrevisaoConsolidada,totalPrevisaoCargasSalvas,previsaoSalvaPorIngrediente,historicoCongelado,previsaoLegadaCorrigida:historicoLegadoDiaInteiro,descontoDF,sobraDF,sobraFinalDF,nota2Confirmada,data,sistema,carga,versao:String(versao.id),linhas,distribuido,completas,base,previsoesQuatro,matrizCarregados,todasCargas:todasCargas.data||[],registroSalvo:registroCompleto||consultaConsolidada,registroPendente,registroId:registro?.id||null,temPrevisao:hojeValidos.length>0,dataAnterior};
   if(destaqueData)destaqueData.innerHTML='DATA SELECIONADA: <strong>'+data.split('-').reverse().join('/')+'</strong> • SISTEMA: <strong>'+trEsc(sistema)+'</strong><div style="font-size:13px;margin-top:8px">REFERÊNCIA INTERNA DO SISTEMA: <strong>'+(hojeQ.error?'INDISPONÍVEL':trFmt(previstoHoje)+' KG')+'</strong> ('+hojeValidos.length+' LOCAIS COM ANIMAIS)</div><div style="font-size:12px;margin-top:6px">INFORME SOMENTE AS QUANTIDADES EFETIVAMENTE CARREGADAS.</div>';
   // Uma única grade: insumos, total previsto, total realizado (distribuição),
@@ -7232,7 +7274,7 @@ async function trSincronizarPrevisaoFicha(dia,sistema){
  if(dia!==trData())throw Error('A DATA FOI ALTERADA DURANTE A CONFERÊNCIA.');
  const aviso=document.getElementById('tr_db_aviso')?.textContent||'';
  if(/FALHA AO CONSULTAR|ERRO AO LER|ERRO AO VERIFICAR/.test(aviso))throw Error('NÃO FOI POSSÍVEL ATUALIZAR AS PREVISÕES: '+aviso);
- const norm=v=>String(v||'').toUpperCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').trim();
+ const norm=v=>String(v||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
  const linhas=[...document.querySelectorAll('#tr_grade_body tr')].filter(r=>norm(r.dataset.sistema)===norm(sistema)&&r.dataset.total!=='');
  if(!linhas.length)throw Error('SEM PREVISÕES ATUALIZADAS PARA '+sistema);
  const [conf,semi]=await Promise.all([
@@ -7316,8 +7358,10 @@ async function trImprimirPrevisaoConferida(){
     .select('tipo,quantidade_kg,localizacao,desconto_selecionado')
     .eq('data_referencia',dia).eq('sistema',sistema);
   if(ajusteQ.error)throw ajusteQ.error;
+  const nota2FichaQ=await supa.from('tratos_ajustes_df').select('tipo,quantidade_kg,localizacao,desconto_selecionado').eq('data_referencia',trDiaAnteriorNota2(dia)).eq('sistema',sistema).eq('tipo','DESCONTO_NOTA_2');
+  if(nota2FichaQ.error)throw nota2FichaQ.error;
   const marcadosFicha=sistema==='CONFINAMENTO'
-    ?(ajusteQ.data||[]).filter(a=>a.tipo==='DESCONTO_NOTA_2'&&a.desconto_selecionado===true&&a.localizacao):[];
+    ?(nota2FichaQ.data||[]).filter(a=>a.tipo==='DESCONTO_NOTA_2'&&a.desconto_selecionado===true&&a.localizacao):[];
   const normLocal=v=>norm(v).replace(/^BAIA\s+/,'').replace(/\s+/g,' ').trim();
   const nomesFicha=new Set();let nota2Ficha=0;
   for(const a of marcadosFicha){
@@ -8451,7 +8495,7 @@ window.visaoAbateImprimir=function(){
 })();
 </script>
 <script id="nota2-selecao-persistente-20261111">
-/* Nota 2: seleção persistente, por dia e curral, independente do dia anterior.
+/* Nota 2: seleção persistente, por dia e curral, aplicada na própria data.
    Não modifica distribuições ou carregamentos realizados. */
 (function(){
  let token=0, busy=false;
@@ -8459,14 +8503,14 @@ window.visaoAbateImprimir=function(){
  async function montar(){
   const grade=document.getElementById('tr_grade_body');
   if(!grade||busy||!grade.querySelector('tr[data-local]')||typeof supa==='undefined'||typeof trData!=='function')return;
-  const dia=trData(),rows=[...grade.querySelectorAll('tr[data-local]')].filter(r=>norm(r.dataset.sistema)==='CONFINAMENTO');
+  const dia=trData(),diaOrigem=trDiaAnteriorNota2(dia),rows=[...grade.querySelectorAll('tr[data-local]')].filter(r=>norm(r.dataset.sistema)==='CONFINAMENTO');
   if(!rows.length||rows.every(r=>r.dataset.nota2Dia===dia))return;
   busy=true;const seq=++token;
   try{
    const [leit,cur,aj]=await Promise.all([
-    supa.from('leituras_cocho').select('curral_id,total_previsto,nota').eq('data_leitura',dia).eq('nota',2),
+    supa.from('leituras_cocho').select('curral_id,total_previsto,nota').eq('data_leitura',diaOrigem).eq('nota',2),
     supa.from('currais').select('id,codigo'),
-    supa.from('tratos_ajustes_df').select('id,localizacao,desconto_selecionado,quantidade_kg').eq('data_referencia',dia).eq('sistema','CONFINAMENTO').eq('tipo','DESCONTO_NOTA_2')
+    supa.from('tratos_ajustes_df').select('id,localizacao,desconto_selecionado,quantidade_kg').eq('data_referencia',diaOrigem).eq('sistema','CONFINAMENTO').eq('tipo','DESCONTO_NOTA_2')
    ]);
    for(const r of [leit,cur,aj])if(r.error)throw r.error;
    if(seq!==token||trData()!==dia)return;
@@ -8494,7 +8538,7 @@ window.visaoAbateImprimir=function(){
        const celPrimeiro=row.querySelectorAll('td[data-prev]')[0];
        const kg=Number(celPrimeiro?.dataset.prev);
        if(!celPrimeiro||!Number.isFinite(kg)||kg<0)throw Error('PREVISÃO DO PRIMEIRO TRATO INVÁLIDA PARA '+local);
-       res=await supa.from('tratos_ajustes_df').insert({data_informada:dia,data_referencia:dia,sistema:'CONFINAMENTO',tipo:'DESCONTO_NOTA_2',localizacao:row.dataset.local,quantidade_kg:kg,trato_numero:1,desconto_selecionado:true,observacao:'SELEÇÃO EXPLÍCITA NA GRADE — NOTA 2'}).select('id,desconto_selecionado').single();
+       res=await supa.from('tratos_ajustes_df').insert({data_informada:diaOrigem,data_referencia:diaOrigem,sistema:'CONFINAMENTO',tipo:'DESCONTO_NOTA_2',localizacao:row.dataset.local,quantidade_kg:kg,trato_numero:1,desconto_selecionado:true,observacao:'SELEÇÃO EXPLÍCITA NA GRADE — NOTA 2'}).select('id,desconto_selecionado').single();
       }
       if(res.error)throw res.error;
       const verificacao=await supa.from('tratos_ajustes_df').select('id,desconto_selecionado').eq('id',res.data.id).single();
@@ -8603,7 +8647,9 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
     }
     const ajustesQ=await supa.from('tratos_ajustes_df').select('tipo,quantidade_kg,desconto_selecionado,localizacao').eq('data_referencia',dia).eq('sistema',sistema);
     if(ajustesQ.error)throw ajustesQ.error;
-    const ajustes=ajustesQ.data||[];
+    const nota2DiaQ=await supa.from('tratos_ajustes_df').select('tipo,quantidade_kg,desconto_selecionado,localizacao').eq('data_referencia',trDiaAnteriorNota2(dia)).eq('sistema',sistema).eq('tipo','DESCONTO_NOTA_2');
+    if(nota2DiaQ.error)throw nota2DiaQ.error;
+    const ajustes=[...(ajustesQ.data||[]).filter(x=>x.tipo!=='DESCONTO_NOTA_2'),...(nota2DiaQ.data||[])];
     const sobra=sistema==='CONFINAMENTO'?ajustes.filter(x=>x.tipo==='SOBRA_VAGAO').reduce((a,x)=>a+Number(x.quantidade_kg||0),0):0;
     const marcados=new Set(ajustes.filter(x=>x.tipo==='DESCONTO_NOTA_2'&&x.desconto_selecionado===true&&x.localizacao).map(x=>trNormNome(x.localizacao).replace(/^BAIA\s+/,'').trim()));
     let nota2=0;
@@ -8612,7 +8658,7 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
       if(marcados.has(nome)&&r.querySelector('[data-tr-dieta]')?.checked!==false)nota2+=Number(r.querySelectorAll('td[data-prev]')[0]?.dataset.prev||0);
     }
     // Nota 2 é abatida do trato 1; a sobra remanescente passa às cargas seguintes.
-    const liquido=trAbaterCargasSemNegativo(trAbaterCargasSemNegativo(bruto,nota2),sobra);
+    const liquido=trAbaterCargasSemNegativo(bruto,sobra); // Nota 2 já abatida da grade
     for(let j=0;j<4;j++){
       if(cargas.some(c=>Number(c.carga)===j+1))continue;
       for(const item of receita){

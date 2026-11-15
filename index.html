@@ -312,6 +312,46 @@ body.acesso-tratador #tratadorInicio{padding-top:30px}
 .tr-mat input[type="hidden"]{display:none!important}.tr-mat tfoot th{background:#e8efeb;font-weight:800;border-top:2px solid #3b6954}
 @media(max-width:750px){.tr-mat th,.tr-mat td{font-size:9px!important;padding:5px 2px!important}.tr-mat input[data-t="real"]{padding:3px 1px!important}}
 .tr-mat input[data-t="real"]:disabled{background:transparent!important;border:0!important;box-shadow:none!important;color:inherit!important;opacity:1!important;text-align:center!important;padding:0!important;min-width:0!important;max-width:100%!important;font:inherit!important;}
+
+/* Compras do mês: tabela sem barra de rolagem */
+#cp_lista .cp-sem-rolagem{overflow-x:hidden!important;overflow-y:visible!important;width:100%;max-width:100%}
+#cp_lista .cp-sem-rolagem table{width:100%!important;min-width:0!important;table-layout:fixed!important;border-collapse:collapse;font-size:clamp(9px,.82vw,12px)}
+#cp_lista .cp-sem-rolagem th,#cp_lista .cp-sem-rolagem td{min-width:0!important;white-space:normal!important;overflow-wrap:anywhere!important;padding:7px 4px!important;line-height:1.25;box-sizing:border-box}
+#cp_lista .cp-sem-rolagem th:nth-child(1){width:12%}#cp_lista .cp-sem-rolagem th:nth-child(2){width:23%}#cp_lista .cp-sem-rolagem th:nth-child(3){width:10%}#cp_lista .cp-sem-rolagem th:nth-child(4){width:14%}#cp_lista .cp-sem-rolagem th:nth-child(5){width:12%}#cp_lista .cp-sem-rolagem th:nth-child(6){width:13%}#cp_lista .cp-sem-rolagem th:nth-child(7){width:16%}
+
+#cp_lista .cp-sem-rolagem th:nth-child(1){width:11%}#cp_lista .cp-sem-rolagem th:nth-child(2){width:19%}#cp_lista .cp-sem-rolagem th:nth-child(3){width:9%}#cp_lista .cp-sem-rolagem th:nth-child(4){width:12%}#cp_lista .cp-sem-rolagem th:nth-child(5){width:11%}#cp_lista .cp-sem-rolagem th:nth-child(6){width:11%}#cp_lista .cp-sem-rolagem th:nth-child(7){width:13%}#cp_lista .cp-sem-rolagem th:nth-child(8){width:14%}
+#cp_lista .cp-status{display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;padding:4px 1px;font-size:clamp(8px,.7vw,11px);font-weight:600;border:1px solid #d7dde1;border-radius:5px;background:transparent;color:inherit}
+
+#cp_lista .cp-sem-rolagem th:nth-child(1){width:10%}#cp_lista .cp-sem-rolagem th:nth-child(2){width:17%}#cp_lista .cp-sem-rolagem th:nth-child(3){width:8%}#cp_lista .cp-sem-rolagem th:nth-child(4){width:11%}#cp_lista .cp-sem-rolagem th:nth-child(5){width:10%}#cp_lista .cp-sem-rolagem th:nth-child(6){width:11%}#cp_lista .cp-sem-rolagem th:nth-child(7){width:13%}#cp_lista .cp-sem-rolagem th:nth-child(8){width:15%}#cp_lista .cp-sem-rolagem th:nth-child(9){width:5%}
+</style>
+<style id="cp-processamento-visual-1511">
+#cp_lista .cp-sem-rolagem th:nth-child(1){width:9%}#cp_lista .cp-sem-rolagem th:nth-child(2){width:16%}#cp_lista .cp-sem-rolagem th:nth-child(3){width:8%}#cp_lista .cp-sem-rolagem th:nth-child(4){width:10%}#cp_lista .cp-sem-rolagem th:nth-child(5){width:9%}#cp_lista .cp-sem-rolagem th:nth-child(6){width:10%}#cp_lista .cp-sem-rolagem th:nth-child(7){width:12%}#cp_lista .cp-sem-rolagem th:nth-child(8){width:10%}#cp_lista .cp-sem-rolagem th:nth-child(9){width:12%}#cp_lista .cp-sem-rolagem th:nth-child(10){width:4%}
+#cp_lista .cp-processar{display:block;width:100%;max-width:100%;min-width:0;padding:3px 1px;font-size:inherit;border:1px solid #d6dce0;border-radius:4px;background:transparent;color:inherit}
+</style>
+<style id="compras-status-visual-discreto">
+/* Ajuste restrito à tabela mensal de compras */
+#cp_lista .cp-sem-rolagem table{font-size:clamp(10px,.77vw,12px)!important}
+#cp_lista .cp-sem-rolagem th,#cp_lista .cp-sem-rolagem td{padding:8px 5px!important;vertical-align:middle;overflow-wrap:normal!important;word-break:normal!important}
+#cp_lista .cp-sem-rolagem th{font-size:10px!important;letter-spacing:.015em;line-height:1.25}
+#cp_lista .cp-sem-rolagem th:nth-child(1){width:9%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(2){width:17%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(3){width:7%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(4){width:11%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(5){width:10%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(6){width:10%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(7){width:12%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(8){width:8%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(9){width:12%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(10){width:4%!important}
+#cp_lista .cp-processar-cell{text-align:center}
+#cp_lista select.cp-processar{display:inline-block!important;box-sizing:border-box!important;width:100%!important;max-width:74px!important;height:27px!important;min-height:0!important;margin:0!important;padding:2px 15px 2px 7px!important;border:1px solid #dce2e4!important;border-radius:6px!important;background-color:#f8faf9!important;color:#46535a!important;font:600 10px/1.2 inherit!important;box-shadow:none!important;cursor:pointer!important}
+#cp_lista select.cp-processar:focus{outline:1px solid #6c9385;outline-offset:1px}
+#cp_lista .cp-status{display:inline-block;max-width:100%;padding:4px 6px;border-radius:5px;font-size:9px;line-height:1.3;font-weight:600;letter-spacing:0;white-space:normal;text-align:center}
+#cp_lista .cp-st-muted{background:#f2f3f4;color:#697178}
+#cp_lista .cp-st-pending{background:#fff5e7;color:#8d632b}
+#cp_lista .cp-st-partial{background:#fff2dd;color:#875c22}
+#cp_lista .cp-st-ok{background:#e9f4ee;color:#347357}
+#cp_lista .cp-faltam{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
 </style>
 <style id="visao-abate-estilos">
 #visaoAbate .va-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0 18px}
@@ -1584,6 +1624,7 @@ body{background:#f4f8f7}
 <button class="active" onclick="showPage('dashboard',this)">PAINEL PRINCIPAL</button>
 <div class="nav-group">PESAGENS E ANIMAIS</div>
 <button onclick="showPage('lote',this)">PESAGEM DE ENTRADA</button>
+<button class="admin-only" onclick="showPage('comprasAnimais',this);comprasCarregar()">COMPRAS</button>
 <button onclick="showPage('animais',this)">ANIMAIS</button> <button onclick="showPage('peso_estimado',this);carregarVisaoPesoEstimado()">PESO ESTIMADO</button>
 <button onclick="showPage('pesagens',this)">PESAGEM DE SAÍDA</button>
 <button onclick="showPage('pesagemIntermediaria',this);piCarregar()">PESAGEM INTERMEDIÁRIA</button>
@@ -1904,7 +1945,22 @@ body{background:#f4f8f7}
  </div>
 </section>
 
-  <section id="lote" class="page">
+  <section id="comprasAnimais" class="page admin-only"><div class="panel"><div class="section-head"><div><h2>COMPRAS DE ANIMAIS</h2><p>Cadastro do lote e controle de frete. O lançamento dos brincos permanece na Pesagem de Entrada.</p></div></div><div class="grid">
+<div class="field"><label>Localidade (opcional)</label><select id="cp_local"><option value="">SELECIONAR NA CHEGADA</option><option value="ABAIXO CASINHA">ABAIXO CASINHA</option><option value="AÇUDE">AÇUDE</option><option value="AROEIRA ALTO">AROEIRA ALTO</option><option value="AROEIRA MANGUEIRA">AROEIRA MANGUEIRA</option><option value="BAIA A1">BAIA A1</option><option value="BAIA A2">BAIA A2</option><option value="BAIA A3">BAIA A3</option><option value="BAIA A5">BAIA A5</option><option value="BAIA B1">BAIA B1</option><option value="BAIA B2">BAIA B2</option><option value="BAIA B4">BAIA B4</option><option value="BAIA B5">BAIA B5</option><option value="BARRACÃO">BARRACÃO</option><option value="BELEI ALTO">BELEI ALTO</option><option value="BELEI BAIXO">BELEI BAIXO</option><option value="CASINHA">CASINHA</option><option value="CASINHA CARLINHOS">CASINHA CARLINHOS</option><option value="DIRCE">DIRCE</option><option value="ESPIRITO SANTO DO TURVO">ESPIRITO SANTO DO TURVO</option><option value="LEILÃO">LEILÃO</option><option value="MOMBAÇA">MOMBAÇA</option><option value="PASTO A1">PASTO A1</option><option value="PASTO A1 LD CONF">PASTO A1 LD CONF</option><option value="PASTO A2">PASTO A2</option><option value="PASTO B1">PASTO B1</option><option value="PASTO B1 LADO CONF">PASTO B1 LADO CONF</option><option value="PASTO B2">PASTO B2</option><option value="PIQUETEAMENTO ASFALTO">PIQUETEAMENTO ASFALTO</option><option value="PIQUETEAMENTO BAIXO">PIQUETEAMENTO BAIXO</option><option value="POSTO KAFE">POSTO KAFE</option><option value="POSTO KAFÉ">POSTO KAFÉ</option><option value="REPOSITÓRIO">REPOSITÓRIO</option><option value="SÃO GUILHERME ACIMA">SÃO GUILHERME ACIMA</option><option value="SÃO GUILHERME ALTO">SÃO GUILHERME ALTO</option><option value="SÃO GUILHERME BAIXO">SÃO GUILHERME BAIXO</option><option value="SEDE PIQUETE">SEDE PIQUETE</option><option value="TIMBURI">TIMBURI</option><option value="VINHAÇA">VINHAÇA</option></select></div>
+<div class="field"><label>Data da compra *</label><input id="cp_data" type="date"></div>
+<div class="field"><label>Data da chegada (opcional)</label><input id="cp_chegada" type="date"></div>
+<div class="field"><label>Quantidade de animais *</label><input id="cp_quantidade" type="number" min="1" step="1" oninput="comprasCalcularFaturamento()"></div>
+<div class="field"><label>Origem da compra</label><input id="cp_origem"></div>
+<div class="field"><label>Sexo</label><input id="cp_sexo"></div>
+<div class="field"><label>Valor de compra por animal (R$) *</label><input id="cp_valor" type="number" min="0" step="0.01"></div>
+<div class="field"><label>Comissão por animal (R$)</label><input id="cp_comissao" type="number" min="0" step="0.01"></div>
+<div class="field"><label>Tipo de frete</label><select id="cp_tipo" onchange="comprasFreteAlternar()"><option value="TERCEIROS">TERCEIROS</option><option value="PROPRIO">PRÓPRIO</option></select></div>
+<div class="field"><label>Frete por animal (R$)</label><input id="cp_frete" type="number" min="0" step="0.01" oninput="comprasCalcularFaturamento()"></div>
+<div class="field" id="cp_box_caminhao" style="display:none"><label>Caminhão próprio *</label><select id="cp_caminhao"><option value="">SELECIONE</option><option value="6">MB1620</option><option value="7">MB1621</option></select></div>
+<div class="field" id="cp_box_faturamento" style="display:none"><label>Faturamento do frete próprio (R$) — automático</label><input id="cp_faturamento" type="number" min="0" step="0.01" readonly style="background:#f4f6f6"></div>
+<div class="field"><label>Categoria</label><input id="cp_categoria"></div><div class="field"><label>Idade</label><input id="cp_idade"></div><div class="field"><label>Marca</label><input id="cp_marca"></div>
+</div><div class="notice">Os valores de compra, comissão e frete são por animal. O faturamento do caminhão próprio é calculado automaticamente (quantidade × frete por animal), separado e não é somado ao preço de compra. Este cadastro não adiciona animais ao estoque.</div><div class="form-actions"><button class="btn primary" id="cp_salvar" onclick="comprasSalvar()">SALVAR COMPRA</button></div></div><div class="panel"><div class="section-head"><div><h2>COMPRAS DO MÊS</h2></div><div class="field" style="min-width:170px;margin:0"><label for="cp_mes">MÊS DE REFERÊNCIA</label><input id="cp_mes" type="month" onchange="comprasCarregar()"></div></div><div id="cp_lista">CARREGANDO...</div></div></section>
+<section id="lote" class="page">
 <div class="panel">
  <div class="section-head"><div><h2>Entrada / Cadastro</h2><p>Informe os dados do lote uma vez e depois lance os animais individualmente.</p></div><span class="tag">NOVO LOTE</span></div>
  <div class="grid">
@@ -2590,7 +2646,7 @@ async function renderAnimaisLocalidade(){
   todos.sort((a,b)=>String(a.brinco||'').localeCompare(String(b.brinco||''),'pt-BR',{numeric:true}));
   resumo.innerHTML=`<div class="notice"><b>${loc||'TODAS AS LOCALIDADES'}</b> — <b>${todos.length} ANIMAL(IS) ATIVO(S)</b></div>`;
   if(!todos.length){box.innerHTML='<div class="empty">Nenhum animal ativo nesta localidade.</div>';return}
-  let h='<div class="table-wrap"><table style="min-width:900px"><thead><tr><th>BRINCO</th><th>LOCALIDADE</th><th>PESO ENTRADA</th><th>DATA ENTRADA</th><th>DIAS</th><th>STATUS</th></tr></thead><tbody>';
+  let h='<div class="table-wrap"><table style="min-width:900px"><thead><tr><th>BRINCO</th><th>LOCALIDADE</th><th>PESO ENTRADA</th><th>DATA ENTRADA</th><th>DIAS</th><th>SERÁ PROCESSADA?</th><th>STATUS</th><th style="text-align:right">FALTAM</th></tr></thead><tbody>';
   const hoje=new Date();hoje.setHours(12,0,0,0);
   todos.forEach(a=>{
    let dias='—';if(a.data_entrada){const d=new Date(a.data_entrada+'T12:00:00');if(!isNaN(d))dias=Math.max(0,Math.floor((hoje-d)/86400000))}
@@ -5439,7 +5495,7 @@ document.addEventListener('change',e=>{if(e.target.matches('.lei_fim_chk'))atual
 function atualizarPreviaLeilao(){const n=document.querySelectorAll('.lei_fim_chk:checked').length;const v=Number(($('lei_valor_venda')?.value||'').replace(',','.'));const el=$('lei_previa_receita');if(el)el.textContent=n+' ANIMAIS × '+(Number.isFinite(v)&&v>0?money(v):'VALOR PENDENTE')+' = '+(Number.isFinite(v)&&v>0?money(n*v):'—');}
 function listarAtivosLeilao(){
  $('lei_resumo').innerHTML=`<p><b>${leiAtivos.length} ANIMAIS ATIVOS AGUARDANDO DEFINIÇÃO NO LEILÃO</b></p>`;
- $('lei_ativos').innerHTML=leiAtivos.length?`<div class="table-wrap" style="max-height:450px;overflow:auto"><table><thead><tr><th></th><th>BRINCO</th><th>ENTRADA</th><th>ACUMULADO</th><th>STATUS</th></tr></thead><tbody>${leiAtivos.map(x=>`<tr><td><input type="checkbox" class="lei_fim_chk" value="${leiHTML(x.id)}"></td><td>${leiHTML(x.brinco)}</td><td>${leiHTML(x.data_entrada||'SEM DATA')}</td><td>${money(Number(x.custo_acumulado)||0)}</td><td>AGUARDANDO VENDA</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Nenhum animal aguardando venda.</div>';
+ $('lei_ativos').innerHTML=leiAtivos.length?`<div class="table-wrap" style="max-height:450px;overflow:auto"><table><thead><tr><th></th><th>BRINCO</th><th>ENTRADA</th><th>ACUMULADO</th><th>STATUS</th><th style="text-align:right">FALTAM</th></tr></thead><tbody>${leiAtivos.map(x=>`<tr><td><input type="checkbox" class="lei_fim_chk" value="${leiHTML(x.id)}"></td><td>${leiHTML(x.brinco)}</td><td>${leiHTML(x.data_entrada||'SEM DATA')}</td><td>${money(Number(x.custo_acumulado)||0)}</td><td>AGUARDANDO VENDA</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Nenhum animal aguardando venda.</div>';
 }
 function leiDias(a,b){if(!a||!b)return null;const n=Math.round((Date.parse(b+'T12:00:00')-Date.parse(a+'T12:00:00'))/86400000);return n>=0?n:null}
 async function leiMovimentarUm(a,origem,destino,data,diaria,acao,valorVenda=null){
@@ -7512,17 +7568,18 @@ function dieselTipoAlterado(){
 async function dieselCarregar(){
  try{
   await dieselAdmin();
-  const [e,m,v,h,man,fat,ct]=await Promise.all([
+  const [e,m,v,h,man,fat,ct,comprasFrete]=await Promise.all([
    supa.from('diesel_estoque').select('*').eq('id',1).single(),
    supa.from('diesel_maquinas').select('*').eq('ativo',true).order('nome'),
    supa.from('diesel_movimentos').select('*').order('data_movimento',{ascending:false}).order('id',{ascending:false}).limit(2000),
    supa.from('diesel_horimetros').select('*').order('data_leitura',{ascending:false}).limit(3000),
    supa.from('diesel_manutencoes').select('*').order('data_manutencao',{ascending:false}).limit(2000),
    supa.from('diesel_faturamentos_servicos').select('*').order('data_servico',{ascending:false}).order('id',{ascending:false}).limit(5000),
-   supa.from('diesel_leituras_contador').select('*').order('data_leitura',{ascending:false}).order('id',{ascending:false}).limit(2000)
+   supa.from('diesel_leituras_contador').select('*').order('data_leitura',{ascending:false}).order('id',{ascending:false}).limit(2000),
+   supa.from('entradas_lotes').select('id,data_compra,origem_compra,quantidade_animais,frete,tipo_frete,caminhao_frete_id,faturamento_frete_proprio').eq('tipo_frete','PROPRIO').not('caminhao_frete_id','is',null).order('data_compra',{ascending:false}).limit(5000)
   ]);
-  for(const r of [e,m,v,h,man,fat,ct])if(r.error)throw r.error;
-  dieselEstoque=e.data;dieselMaquinas=m.data||[];dieselMovimentos=v.data||[];dieselHoras=h.data||[];dieselManutencoes=man.data||[];dieselFaturamentos=fat.data||[];dieselContadores=ct.data||[];if(dieselEl('diesel_cd')&&!dieselEl('diesel_cd').value)dieselEl('diesel_cd').value=new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
+  for(const r of [e,m,v,h,man,fat,ct,comprasFrete])if(r.error)throw r.error;
+  dieselEstoque=e.data;dieselMaquinas=m.data||[];dieselMovimentos=v.data||[];dieselHoras=h.data||[];dieselManutencoes=man.data||[];dieselFaturamentos=[...(fat.data||[]),...(comprasFrete.data||[]).filter(x=>Number(x.faturamento_frete_proprio)>0).map(x=>({id:'COMPRA-'+x.id,maquina_id:x.caminhao_frete_id,data_servico:x.data_compra,descricao:'FRETE ANIMAIS — '+(x.origem_compra||'COMPRA')+' ('+x.quantidade_animais+' CAB)',valor:Number(x.faturamento_frete_proprio),origem:'COMPRA'}))].sort((a,b)=>String(b.data_servico).localeCompare(String(a.data_servico)));dieselContadores=ct.data||[];if(dieselEl('diesel_cd')&&!dieselEl('diesel_cd').value)dieselEl('diesel_cd').value=new Date().toLocaleDateString('sv-SE',{timeZone:'America/Sao_Paulo'});
   const op='<option value="">SELECIONE</option>'+dieselMaquinas.map(x=>'<option value="'+x.id+'">'+dieselEsc(x.nome)+'</option>').join('');
   for(const id of ['diesel_maquina','diesel_hm','diesel_mm','diesel_fmaquina']){const el=dieselEl(id),sel=el.value;el.innerHTML=op;el.value=sel;}
   dieselTipoAlterado();dieselRender();
@@ -7679,7 +7736,7 @@ function dieselPainelHoras(){
   const totalMes=noMes.length&&base?noMes[0].valor-base.valor:null;
   return '<tr><td>'+dieselEsc(m.nome)+'</td><td>'+(atual?dieselData(atual.data):'—')+'</td><td>'+(atual?dieselN(atual.valor):'—')+'</td><td>'+(anterior?dieselData(anterior.data):'—')+'</td><td>'+(anterior?dieselN(anterior.valor):'—')+'</td><td style="font-weight:700;color:'+(diferenca<0?'#b91c1c':'#146c43')+'">'+(diferenca===null||diferenca<0?'—':dieselN(diferenca))+'</td><td>'+(totalMes===null||totalMes<0?'—':dieselN(totalMes))+'</td><td>'+estado+'</td></tr>';
  });
- el.innerHTML='<div class="diesel-horas-compacto"><table><thead><tr><th>MÁQUINA</th><th>ÚLTIMA LEITURA</th><th>LEITURA ANTERIOR</th><th>TRABALHADO</th><th>STATUS</th></tr></thead><tbody>'+linhas.map(row=>{const t=document.createElement('tbody');t.innerHTML=row;const c=[...t.querySelectorAll('td')];if(c.length<8)return row;return '<tr><td>'+c[0].innerHTML+'</td><td>'+c[1].innerHTML+' · '+c[2].innerHTML+'</td><td>'+c[3].innerHTML+' · '+c[4].innerHTML+'</td><td>'+c[5].innerHTML+'</td><td>'+c[7].innerHTML+'</td></tr>';}).join('')+'</tbody></table></div><p class="small-note" style="margin-top:7px">PAINEL ATUALIZADO ATÉ HOJE. SEM NOVA LEITURA, O ÚLTIMO HORÍMETRO É MANTIDO VISUALMENTE E AS HORAS DO DIA SÃO ZERO. HORAS/KM ENTRE AS DUAS ÚLTIMAS LEITURAS VÁLIDAS DA MESMA MÁQUINA, INDEPENDENTEMENTE DE ABASTECIMENTO. LEITURAS IGUAIS RESULTAM EM 0,00; SEM LEITURA ANTERIOR, EXIBE —.</p>';
+ el.innerHTML='<div class="diesel-horas-compacto"><table><thead><tr><th>MÁQUINA</th><th>ÚLTIMA LEITURA</th><th>LEITURA ANTERIOR</th><th>TRABALHADO</th><th>STATUS</th><th style="text-align:right">FALTAM</th></tr></thead><tbody>'+linhas.map(row=>{const t=document.createElement('tbody');t.innerHTML=row;const c=[...t.querySelectorAll('td')];if(c.length<8)return row;return '<tr><td>'+c[0].innerHTML+'</td><td>'+c[1].innerHTML+' · '+c[2].innerHTML+'</td><td>'+c[3].innerHTML+' · '+c[4].innerHTML+'</td><td>'+c[5].innerHTML+'</td><td>'+c[7].innerHTML+'</td></tr>';}).join('')+'</tbody></table></div><p class="small-note" style="margin-top:7px">PAINEL ATUALIZADO ATÉ HOJE. SEM NOVA LEITURA, O ÚLTIMO HORÍMETRO É MANTIDO VISUALMENTE E AS HORAS DO DIA SÃO ZERO. HORAS/KM ENTRE AS DUAS ÚLTIMAS LEITURAS VÁLIDAS DA MESMA MÁQUINA, INDEPENDENTEMENTE DE ABASTECIMENTO. LEITURAS IGUAIS RESULTAM EM 0,00; SEM LEITURA ANTERIOR, EXIBE —.</p>';
 }
 function dieselSelecionarMesHoras(valor){const x=dieselEl('diesel_mes');if(x){x.value=valor;dieselRender();}}
 function dieselHistoricoDiario(){
@@ -7766,15 +7823,24 @@ function dieselRenderFaturamentos(){
  const seletor=dieselEl('diesel_mes_faturamento');if(seletor&&seletor.value!==mes)seletor.value=mes;
  const dados=dieselFaturamentos.filter(x=>String(x.data_servico).startsWith(mes));
  const total=dados.reduce((a,x)=>a+Number(x.valor||0),0);
- // Grade com quatro colunas fixas, sem recorte do valor por estilos globais de tabelas.
  const col='grid-template-columns:15% 18% minmax(0,1fr) 180px;';
- const cell='padding:11px 9px;border-bottom:1px solid #e5e9eb;min-width:0;overflow-wrap:anywhere;';
+ const cell='padding:10px 9px;border-bottom:1px solid #e5e9eb;min-width:0;overflow-wrap:anywhere;';
  const row=(a,b,c,d,bg='')=>'<div style="display:grid;'+col+'align-items:center;'+bg+'">'+
  '<div style="'+cell+'">'+a+'</div><div style="'+cell+'">'+b+'</div><div style="'+cell+'">'+c+'</div><div style="'+cell+'text-align:right;font-weight:700;white-space:nowrap">'+d+'</div></div>';
- let html=row('<b>DATA</b>','<b>MÁQUINA</b>','<b>SERVIÇO</b>','<b>VALOR FATURADO (R$)</b>','background:#e9eef1;');
- if(!dados.length)html+=row('—','—','NENHUM SERVIÇO FATURADO NESTE MÊS.','R$ 0,00');
- else for(const x of dados)html+=row(dieselData(x.data_servico),dieselEsc(dieselNome(x.maquina_id)),dieselEsc(x.descricao),dieselR(Number(x.valor||0)));
- html+=row('','', '<b>TOTAL FATURADO NO MÊS ('+mes.slice(5)+'/'+mes.slice(0,4)+')</b>','<b>'+dieselR(total)+'</b>','background:#eaf3ed;');
+ let html='';
+ const grupos=new Map();
+ for(const x of dados){const id=String(x.maquina_id??'');if(!grupos.has(id))grupos.set(id,[]);grupos.get(id).push(x);}
+ const ordenados=Array.from(grupos.entries()).sort((a,b)=>dieselNome(a[0]).localeCompare(dieselNome(b[0]),'pt-BR',{numeric:true}));
+ if(!ordenados.length){html=row('<b>DATA</b>','<b>MÁQUINA</b>','<b>SERVIÇO</b>','<b>VALOR FATURADO (R$)</b>','background:#e9eef1;');html+=row('—','—','NENHUM SERVIÇO FATURADO NESTE MÊS.','R$ 0,00');}
+ for(const [id,itens] of ordenados){
+  const nome=dieselEsc(dieselNome(id));
+  html+='<div style="font-size:13px;font-weight:700;padding:12px 9px 7px;margin-top:8px;border-bottom:2px solid #d6dfe3">'+nome+'</div>';
+  html+=row('<b>DATA</b>','<b>MÁQUINA</b>','<b>SERVIÇO</b>','<b>VALOR FATURADO (R$)</b>','background:#e9eef1;');
+  for(const x of itens)html+=row(dieselData(x.data_servico),dieselEsc(dieselNome(x.maquina_id)),dieselEsc(x.descricao),dieselR(Number(x.valor||0)));
+  const subtotal=itens.reduce((a,x)=>a+Number(x.valor||0),0);
+  html+=row('','', '<b>TOTAL '+nome+'</b>','<b>'+dieselR(subtotal)+'</b>','background:#f1f4f5;');
+ }
+ html+=row('','', '<b>TOTAL DAS MÁQUINAS ('+mes.slice(5)+'/'+mes.slice(0,4)+')</b>','<b>'+dieselR(total)+'</b>','background:#eaf3ed;');
  el.innerHTML='<div style="width:100%;max-width:100%;overflow:visible;font-size:13px">'+html+'</div>';
 }
 function dieselJanela(titulo,conteudo){
@@ -9061,4 +9127,95 @@ function piImprimir(){
  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>PESAGEM INTERMEDIÁRIA</title><style>@page{size:A4 landscape;margin:9mm}body{font:11px Arial}table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:10px}td,th{border:1px solid #aaa;padding:4px 2px;text-align:center;overflow-wrap:anywhere;white-space:normal}.pi-resumo{display:flex;gap:7px;margin:10px 0}.pi-resumo>div{flex:1;border:1px solid #aaa;padding:7px}.pi-resumo small{display:block;font-size:9px}.pi-resumo strong{display:block;font-size:13px}tr{break-inside:avoid}thead{display:table-header-group}</style></head><body>'+html.innerHTML+'</body></html>');
  w.document.close();w.focus();setTimeout(()=>w.print(),300);
 }
-</script></body></html>
+</script><script id="compras-animais-1511">
+function comprasCalcularFaturamento(){
+ const q=Number(document.getElementById('cp_quantidade')?.value||0);
+ const f=Number(document.getElementById('cp_frete')?.value||0);
+ const out=document.getElementById('cp_faturamento');
+ if(out)out.value=(Number.isFinite(q)&&Number.isFinite(f)&&q>0&&f>=0)?(Math.round(q*f*100)/100).toFixed(2):'';
+}
+function comprasFreteAlternar(){comprasCalcularFaturamento();const p=document.getElementById('cp_tipo').value==='PROPRIO';document.getElementById('cp_box_caminhao').style.display=p?'':'none';document.getElementById('cp_box_faturamento').style.display=p?'':'none';}
+async function comprasSalvar(){
+ const el=id=>document.getElementById('cp_'+id),v=id=>String(el(id)?.value||'').trim(),num=id=>Number(v(id)||0);
+ if(!v('data')||!v('valor')){alert('PREENCHA DATA DA COMPRA E VALOR DE COMPRA.');return;}
+ const quantidade=Number(v('quantidade'));if(!Number.isSafeInteger(quantidade)||quantidade<1){alert('INFORME A QUANTIDADE DE ANIMAIS (INTEIRO MAIOR QUE ZERO).');return;}
+ comprasCalcularFaturamento();
+ const localSelecionada=v('local');if(localSelecionada && !Array.from(el('local').options).some(o=>o.value===localSelecionada && o.value!=='')){alert('SELECIONE UMA LOCALIDADE CADASTRADA.');return;}
+ const proprio=v('tipo')==='PROPRIO';if(proprio&&!v('caminhao')){alert('SELECIONE O CAMINHÃO PRÓPRIO.');return;}
+ for(const id of ['valor','frete','comissao',...(proprio?['faturamento']:[])])if(num(id)<0||!Number.isFinite(num(id))){alert('VALOR INVÁLIDO: '+id);return;}
+ const btn=el('salvar');btn.disabled=true;
+ try{const row={localizacao:v('local')?v('local').toUpperCase():null,data_compra:v('data'),data_chegada:v('chegada')||null,quantidade_animais:quantidade,origem_compra:v('origem').toUpperCase(),sexo:v('sexo').toUpperCase(),valor_compra:num('valor'),frete:num('frete'),comissao:num('comissao'),categoria:v('categoria').toUpperCase(),status_processamento:'NAO_PROCESSADO',idade:v('idade').toUpperCase(),marca:v('marca').toUpperCase(),tipo_frete:v('tipo'),caminhao_frete_id:proprio?Number(v('caminhao')):null,faturamento_frete_proprio:proprio?Math.round(quantidade*num('frete')*100)/100:null};
+ const r=await supa.from('entradas_lotes').insert(row).select('id').single();if(r.error)throw r.error;
+ toast('COMPRA CADASTRADA COM SUCESSO.');
+ // Limpar somente após confirmação de gravação, evitando lançamento duplicado.
+ for(const id of ['local','data','chegada','quantidade','origem','sexo','valor','comissao','frete','caminhao','faturamento','categoria','idade','marca']){
+   const campo=el(id);if(campo)campo.value='';
+ }
+ if(el('tipo'))el('tipo').value='TERCEIROS';
+ comprasFreteAlternar();
+ await comprasCarregar();
+ }catch(e){alert('NÃO FOI POSSÍVEL SALVAR: '+(e.message||e));}finally{btn.disabled=false;}
+}
+
+async function comprasDefinirProcessamento(id, seraProcessada, campo){
+ if(!id||!campo)return;
+ campo.disabled=true;
+ try{
+  const status=seraProcessada==='SIM'?'NAO_PROCESSADO':'SEM_PROCESSO';
+  const r=await supa.from('entradas_lotes').update({status_processamento:status}).eq('id',id).select('id').single();
+  if(r.error)throw r.error;
+  toast('PROCESSAMENTO DA COMPRA ATUALIZADO.');
+  await comprasCarregar();
+ }catch(e){toast('ERRO AO ATUALIZAR: '+(e.message||e));campo.disabled=false;await comprasCarregar();}
+}
+
+async function comprasCarregar(){
+ const box=document.getElementById('cp_lista');if(!box)return;
+ const mesEl=document.getElementById('cp_mes');
+ if(mesEl&&!mesEl.value){const d=new Date();mesEl.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+ const mes=mesEl?.value||new Date().toISOString().slice(0,7);
+ if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(mes)){box.textContent='SELECIONE UM MÊS VÁLIDO.';return;}
+ const [ano,numeroMes]=mes.split('-').map(Number);
+ const inicio=mes+'-01';const fim=numeroMes===12?(ano+1)+'-01-01':ano+'-'+String(numeroMes+1).padStart(2,'0')+'-01';
+ box.textContent='CARREGANDO COMPRAS...';
+ try{
+  const r=await supa.from('entradas_lotes')
+   .select('id,data_compra,origem_compra,localizacao,quantidade_animais,valor_compra,frete,comissao,status_processamento')
+   .gte('data_compra',inicio).lt('data_compra',fim)
+   .order('data_compra',{ascending:false}).order('criado_em',{ascending:false});
+  if(r.error)throw r.error;
+  const rows=r.data||[];
+  const ids=rows.filter(x=>x.status_processamento!=='SEM_PROCESSO').map(x=>x.id);
+  const processados={};
+  if(ids.length){
+   const ar=await supa.from('animais').select('entrada_lote_id,brinco,peso_entrada,peso_chegada').in('entrada_lote_id',ids);
+   if(ar.error)throw ar.error;
+   for(const a of ar.data||[]){
+    if(String(a.brinco||'').trim() && (Number(a.peso_entrada)>0||Number(a.peso_chegada)>0))
+     processados[a.entrada_lote_id]=(processados[a.entrada_lote_id]||0)+1;
+   }
+  }
+  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const money=x=>Number(x).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  const n=x=>Number(x||0);
+  let totalCentavos=0,compraCentavos=0,freteCentavos=0,comissaoCentavos=0,animais=0,semQuantidade=0;
+  const linhas=rows.map(x=>{
+   const q=x.quantidade_animais===null||x.quantidade_animais===undefined?null:Number(x.quantidade_animais);
+   const valido=Number.isSafeInteger(q)&&q>0;
+   const unit=n(x.valor_compra),frete=n(x.frete),comissao=n(x.comissao);
+   const total=valido?Math.round(q*(unit+frete+comissao)*100):null;
+   if(valido){animais+=q;totalCentavos+=total;compraCentavos+=Math.round(q*unit*100);freteCentavos+=Math.round(q*frete*100);comissaoCentavos+=Math.round(q*comissao*100);}else semQuantidade++;
+   const feitos=Math.min(valido?q:0,processados[x.id]||0);
+   const semProcesso=x.status_processamento==='SEM_PROCESSO';
+   const faltam=semProcesso?'—':valido?Math.max(0,q-feitos):'—';
+   const status=semProcesso?'SEM PROCESSAMENTO':!valido?'QTD PENDENTE':feitos===0?'NÃO PROCESSADO':feitos<q?'PARCIALMENTE PROCESSADO':'PROCESSADO';
+   const statusClasse=semProcesso?'cp-st-muted':status==='PROCESSADO'?'cp-st-ok':status==='PARCIALMENTE PROCESSADO'?'cp-st-partial':'cp-st-pending';
+   const selecao='<select class="cp-processar" aria-label="SERÁ PROCESSADA?" title="DEFINIR SE ESTA COMPRA SERÁ PROCESSADA" onchange="comprasDefinirProcessamento(this.dataset.id,this.value,this)" data-id="'+esc(x.id)+'"><option value="SIM"'+(!semProcesso?' selected':'')+'>SIM</option><option value="NAO"'+(semProcesso?' selected':'')+'>NÃO</option></select>';
+   return '<tr><td>'+esc((x.data_compra||'').split('-').reverse().join('/'))+'</td><td>'+esc(x.origem_compra||'—')+'</td><td style="text-align:right">'+(valido?q:'—')+'</td><td style="text-align:right">'+money(unit)+'</td><td style="text-align:right">'+money(frete)+'</td><td style="text-align:right">'+money(comissao)+'</td><td style="text-align:right;font-weight:600">'+(valido?money(total/100):'PENDENTE QTD')+'</td><td>'+selecao+'</td><td style="font-weight:600">'+status+'</td><td style="text-align:right;font-weight:600">'+faltam+'</td></tr>';
+  }).join('');
+  const pendencia=semQuantidade?'<div class="notice" style="margin-top:8px">'+semQuantidade+' compra(s) sem quantidade cadastrada. O total abaixo é parcial; os valores dessas compras não foram estimados.</div>':'';
+  box.innerHTML='<div class="table-wrap cp-sem-rolagem"><table><thead><tr><th>DATA DA COMPRA</th><th>ORIGEM</th><th style="text-align:right">QTD ANIMAIS</th><th style="text-align:right">VALOR UNIT.</th><th style="text-align:right">FRETE/CAB</th><th style="text-align:right">COMISSÃO/CAB</th><th style="text-align:right">VALOR TOTAL</th><th>PROCESSAR?</th><th>STATUS</th><th style="text-align:right">FALTAM</th></tr></thead><tbody>'+(linhas||'<tr><td colspan="10" style="text-align:center">NENHUMA COMPRA NESTE MÊS.</td></tr>')+'</tbody><tfoot><tr style="font-weight:700"><td colspan="2">'+(semQuantidade?'TOTAL PARCIAL DO MÊS':'TOTAL DO MÊS')+'</td><td style="text-align:right">'+animais+'</td><td style="text-align:right" title="SOMA DOS VALORES DE COMPRA MULTIPLICADOS PELA QUANTIDADE">'+money(compraCentavos/100)+'</td><td style="text-align:right" title="FRETE TOTAL: FRETE POR CABEÇA VEZES QUANTIDADE">'+money(freteCentavos/100)+'</td><td style="text-align:right" title="COMISSÃO TOTAL: COMISSÃO POR CABEÇA VEZES QUANTIDADE">'+money(comissaoCentavos/100)+'</td><td style="text-align:right">'+money(totalCentavos/100)+'</td><td></td><td></td><td></td></tr></tfoot></table></div>'+pendencia;
+ }catch(e){box.textContent='ERRO NA CONSULTA: '+(e.message||e);}
+}
+</script>
+</body></html>

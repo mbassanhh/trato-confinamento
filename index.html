@@ -4649,7 +4649,8 @@ function tgHomOfflineStatus(){
  const resumo=document.createElement('span');
  resumo.textContent=(navigator.onLine?'REDE DISPONÍVEL':'SEM INTERNET')+' · '+n+' ETAPA(S) PENDENTE(S) NO SUPABASE'+(tgHomOfflineAviso?' · PREVISÃO EM CACHE':'');
  area.appendChild(resumo);
- area.style.color=navigator.onLine?'#225d45':'#a32320';
+ area.style.color=(n||!navigator.onLine)?'#a32320':'#225d45';
+ if(n){area.style.border='2px solid #a32320';area.style.padding='10px';resumo.textContent+=' · NÃO CONFIRMADO NO BANCO';}else{area.style.border='';area.style.padding='';}
  if(n){
   const botao=document.createElement('button');
   botao.type='button';botao.textContent=tgProdEmCurso?'SINCRONIZANDO...':'SINCRONIZAR PENDÊNCIAS';
@@ -4771,6 +4772,11 @@ async function tgProdSincronizar(){
  }
 }
 window.addEventListener('online',()=>{if(perfilLogado==='TRATADOR')tgProdSincronizar()});
+// Reconectar mesmo quando navigator.onLine permanece true após uma falha temporária.
+// Fila permanece no dispositivo até confirmação no Supabase.
+setInterval(()=>{if(perfilLogado==='TRATADOR'&&navigator.onLine&&tgProdFilaLer().length&&!tgProdEmCurso)tgProdSincronizar()},30000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&perfilLogado==='TRATADOR'&&navigator.onLine)tgProdSincronizar()});
+window.addEventListener('focus',()=>{if(perfilLogado==='TRATADOR'&&navigator.onLine)tgProdSincronizar()});
 
 function tgHomDia(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
 function tgHomSobraKey(){return 'homologacao_sobra_vagao_v1_'+tgHomDia()+'_'+tgSistema;}
@@ -4981,7 +4987,7 @@ function tgHomConfirmar(){
  atual.registros[prefix+i]=peso;
  if(fase==='ingredientes'&&tgHomLista(n,'ingredientes').length&&tgHomLista(n,'ingredientes').every((x,j)=>Object.prototype.hasOwnProperty.call(atual.registros,'I'+j)))atual.fase='aguardando_distribuicao';
  if(fase==='currais'&&tgHomLista(n,'currais').length&&tgHomLista(n,'currais').every((x,j)=>Object.prototype.hasOwnProperty.call(atual.registros,'C'+j)))atual.fase='concluido';
- localStorage.setItem('homologacao_tratos_ficha_v1_'+tgHomDia()+'_'+tgSistema+'_'+n,JSON.stringify(atual));if(['aguardando_distribuicao','concluido'].includes(atual.fase))tgProdFilaAdicionar(n,atual);tgHomLog(fase==='ingredientes'?'INGREDIENTE_CONFIRMADO':'CURRAL_DISTRIBUIDO',{carregamento:n,item:lista[i]?.[0],peso_kg:peso,etapa:atual.fase});if(atual.fase==='concluido')tgHomAtualizarOpcoes('');if(atual.fase==='aguardando_distribuicao'){tgHomModo='distribuicao';tgHomDistribuicaoSelecionada='';tgHomAtualizarOpcoes('');}else if(atual.fase==='concluido'){tgHomModo='distribuicao';tgHomDistribuicaoSelecionada='';}tgHomRender();
+ localStorage.setItem('homologacao_tratos_ficha_v1_'+tgHomDia()+'_'+tgSistema+'_'+n,JSON.stringify(atual));if(['aguardando_distribuicao','concluido'].includes(atual.fase))tgProdFilaAdicionar(n,atual);tgHomLog(fase==='ingredientes'?'INGREDIENTE_CONFIRMADO':'CURRAL_DISTRIBUIDO',{carregamento:n,item:lista[i]?.[0],peso_kg:peso,etapa:atual.fase});if(atual.fase==='concluido'){tgHomAtualizarOpcoes('');tgHomOfflineStatus();}if(atual.fase==='aguardando_distribuicao'){tgHomModo='distribuicao';tgHomDistribuicaoSelecionada='';tgHomAtualizarOpcoes('');}else if(atual.fase==='concluido'){tgHomModo='distribuicao';tgHomDistribuicaoSelecionada='';}tgHomRender();
 }
 function tgHomBotaoReiniciar(){return '<button type="button" style="display:block;width:100%;margin-top:18px;background:#fff;color:#9a342a;border:1px solid #cda49f;border-radius:9px;padding:12px;font-weight:700" onclick="tgHomReiniciarTesteSistema()">LIBERAR CARREGAMENTOS PARA NOVO TESTE</button>';}
 function tgHomReiniciarTesteSistema(){
@@ -6402,8 +6408,13 @@ async function tratosSalvarDistribuicao(){
   // Automação pós-salvamento: gravar MN de dias fechados, %PV somente com dados verificáveis.
   // Se a verificação falhar, a distribuição permanece salva e o erro é sinalizado.
   if(trData()>='2026-10-19') {
-   try { await consumoAutoAposTrato(trData()); }
-   catch(autoErro){trToast('TRATO SALVO. %PV PENDENTE: '+String(autoErro.message||autoErro),true);}
+   try {
+     if(typeof consumoAutoAposTrato==='function') await consumoAutoAposTrato(trData());
+     else console.warn('Cálculo %PV indisponível nesta versão; trato gravado no Supabase.');
+   }catch(autoErro){
+     console.warn('Trato salvo; falha apenas no cálculo %PV:',autoErro);
+     trToast('TRATO SALVO. %PV PENDENTE: '+String(autoErro.message||autoErro),true);
+   }
   }
 
   trRascunhoLimparSalvos();
@@ -8669,7 +8680,7 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
       }
     }
   }
-  const estilo='@page{size:A4 landscape;margin:7mm}*{box-sizing:border-box}body{font:9px Arial;color:#172027;margin:0}h2{text-align:center;border:1px solid #555;padding:5px;margin:7px 0}table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:8px}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}th,td{border:1px solid #999;padding:2px 3px;text-align:center;line-height:1.2}th:first-child,td:first-child{text-align:left;width:20%}th{background:#e9eeeb}.head{display:flex;align-items:center;gap:9px}.head img{width:35px;height:35px;object-fit:contain}.head strong{font-size:12px}.pagebreak{break-before:page;page-break-before:always}.info{margin:5px 0;padding:4px;background:#f1f5f2}.total{font-weight:bold;background:#edf1ee}@media print{button{display:none}}';
+  const estilo='@page{size:A4 landscape;margin:3mm}*{box-sizing:border-box}body{font:14px Arial;color:#172027;margin:0}h2{text-align:center;border:1px solid #555;padding:4px;margin:4px 0;font-size:20px}table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:14px}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}th,td{border:1px solid #999;padding:3px 0;text-align:center;line-height:1.15;overflow-wrap:normal;white-space:nowrap;font-variant-numeric:tabular-nums}th:first-child,td:first-child{text-align:left;width:15%;white-space:normal;font-weight:700;padding-left:2px}th{background:#e9eeeb;font-size:12px}.head{display:flex;align-items:center;gap:7px}.head img{width:32px;height:32px;object-fit:contain}.head strong{font-size:18px}.pagebreak{break-before:page;page-break-before:always}.info{margin:4px 0;padding:3px;background:#f1f5f2;font-size:13px}.total{font-weight:bold;background:#edf1ee;font-size:14px}@media print{button{display:none}}';
   const logo=document.querySelector('.side .brand img')?.src||document.querySelector('.marca-fazenda-topo')?.src||'';
   const cab='<div class="head"><img src="'+esc(logo)+'"><strong>FAZENDA NOVA ESPERANÇA</strong><span style="margin-left:auto">'+esc(dia.split('-').reverse().join('/'))+'</span></div>';
   let html='<!doctype html><html><head><meta charset="utf-8"><title>FICHAS '+esc(sistema)+' '+esc(dia)+'</title><style>'+estilo+'</style></head><body>'+cab;

@@ -939,12 +939,12 @@ async function consumoReprocessarHistorico(){
  if(!el)return;
  const original=el.value;
  try{
-  for(const dia of ['2026-10-31','2026-11-01','2026-11-02']){
+  for(const dia of ['2026-11-13','2026-11-14']){
    if(st)st.textContent='PROCESSANDO '+dia+' — APENAS DADOS COMPLETOS...';const vis=document.getElementById('consumo_reprocessamento_visivel');if(vis)vis.textContent='PROCESSANDO '+dia+'...';
    await consumoAutoAposTrato(dia);
   }
   await consumoHistoricoRender();
-  if(st)st.textContent='REPROCESSAMENTO 31/10 A 02/11 CONCLUÍDO. VALORES JÁ EXISTENTES PRESERVADOS. REVISE OS PERCENTUAIS.';const vis=document.getElementById('consumo_reprocessamento_visivel');if(vis)vis.textContent='REPROCESSAMENTO CONCLUÍDO. CONFIRA OS PERCENTUAIS NA TABELA.';
+  if(st)st.textContent='REPROCESSAMENTO EXECUTADO. CONFIRA OS PERCENTUAIS GRAVADOS E AS PENDÊNCIAS POR LOCALIDADE.';const vis=document.getElementById('consumo_reprocessamento_visivel');if(vis)vis.textContent='REPROCESSAMENTO CONCLUÍDO. CONFIRA OS PERCENTUAIS NA TABELA.';
  }catch(e){if(st)st.textContent='ERRO NO REPROCESSAMENTO: '+String(e.message||e);const vis=document.getElementById('consumo_reprocessamento_visivel');if(vis)vis.textContent='ERRO: '+String(e.message||e);}
  finally{el.value=original;}
 }
@@ -1032,9 +1032,9 @@ async function consumoHistoricoRender(){
  if(!window.__pvAutoHistoricoTentado){
   window.__pvAutoHistoricoTentado=true;
   const aviso=document.getElementById('consumo_dia_status');
-  if(aviso)aviso.textContent='CONFERINDO AUTOMATICAMENTE %PV DE 19 A 21/10...';
+  if(aviso)aviso.textContent='CONFERINDO AUTOMATICAMENTE %PV DE 13 E 14/11...';
   let erros=[];
-  for(const dia of ['2026-10-31','2026-11-01','2026-11-02']){
+  for(const dia of ['2026-11-13','2026-11-14']){
    try{await consumoAutoAposTrato(dia);}catch(e){erros.push(dia+': '+String(e.message||e));}
   }
   if(aviso)aviso.textContent=erros.length?'PENDÊNCIAS DE INTEGRAÇÃO: '+erros.join(' | '):'CONFERÊNCIA AUTOMÁTICA CONCLUÍDA. LOCAIS SEM PESO OU PARÂMETROS PERMANECEM PENDENTES.';
@@ -1072,7 +1072,7 @@ async function consumoHistoricoRender(){
   }
   // Exibição operacional: somente localidades com animais ativos.
   // Histórico das desocupadas continua armazenado no Supabase.
-  const localVisivel=loc=>true; // Histórico completo, inclusive localidades atualmente sem animais
+  const localVisivel=loc=>locaisComAnimais.has(consumoNorm(loc)); // Somente localidades com animais ATIVOS; histórico preservado no Supabase
   // A planilha é a referência até que os valores tenham sido efetivamente importados.
   const porChave=new Map();
   for(const x of CONSUMO_PLANILHA_DADOS)porChave.set(x.indicador+'|'+consumoNorm(x.localizacao)+'|'+x.data_referencia,x);
@@ -1168,61 +1168,7 @@ function consumoImprimirDezDias(kind){
   return '<tr><td>'+esc(r.localidade)+'</td><td>'+validos.length+'</td><td><b>'+fmt(media)+'</b></td>'+vals.map(v=>'<td>'+fmt(v)+'</td>').join('')+'</tr>';
  }).join('');
  const inicio=datas.at(-1).split('-').reverse().join('/'),fim=datas[0].split('-').reverse().join('/');
- const pagina='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+esc(vista.title)+'</title><style>@page{size:A4 landscape;margin:9mm}body{font:10px Arial,sans-serif;color:#20262d}h1{font-size:16px;margin:0 0 5px}h2{font-size:13px;margin:0 0 8px}.sub{margin-bottom:12px;color:#59636b}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{border:1px solid #cbd3d8;padding:5px 3px;text-align:center;overflow-wrap:anywhere}th{background:#e9eef0}th:first-child,td:first-child{text-align:left;width:17%}tr{break-inside:avoid}footer{margin-top:9px;font-size:9px;color:#59636b}</style><style id="marca-unificada-1111">.side .brand img,.top .marca-fazenda-topo{width:46px!important;height:46px!important;max-width:46px!important;max-height:46px!important;object-fit:contain!important;object-position:center!important;filter:none!important;opacity:1!important;transform:none!important;background:transparent!important;box-shadow:none!important;border:0!important}</style><style id="horimetro-visual-v2">
-/* Logo do menu do tratador: sem a caixa branca, mantendo a arte original. */
-#tratadorInicio .th-logo-marca{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;border-radius:0!important;overflow:visible!important}
-#tratadorInicio .th-logo-marca img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply}
-/* Horímetros no mesmo desenho do Abastecimento Rápido, em azul-petróleo. */
-#horMobile{padding:14px!important;background:linear-gradient(160deg,#edf5f7,#f8fafb)!important}
-#horMobile>.hor-panel{max-width:760px;margin:0 auto;background:#fff;border:1px solid #c8dfe4;border-radius:18px;padding:20px;box-shadow:0 12px 32px #164c5a16}
-#horMobile .hor-head{background:linear-gradient(115deg,#124e67,#167b89 55%,#36a2a6);padding:22px;border-radius:16px;margin-bottom:16px;box-shadow:0 7px 20px #145b7330}
-#horMobile .hor-head h2{color:#fff!important;font-size:clamp(22px,4vw,31px);letter-spacing:.04em;margin:0 0 8px}
-#horMobile .hor-head p{color:#e5fbff!important;font-weight:700;letter-spacing:.04em;margin:0}
-#horMobile .field label{color:#155468!important;font-weight:800;letter-spacing:.045em;font-size:12px}
-#horMobile .field input,#horMobile .field select{background:#fff!important;color:#173e4e!important;border:1.5px solid #81bbc5!important;border-radius:11px!important;min-height:48px;font-size:16px!important;padding:10px 12px!important;box-sizing:border-box;width:100%}
-#horMobile #horMData{background:#e8f4f7!important;cursor:default}
-#horMobile .field input:focus,#horMobile .field select:focus{outline:3px solid #b3e4e9!important;border-color:#13798a!important}
-#horMobile .hor-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px!important;margin:18px 0!important}
-#horMobile .form-actions{display:flex;gap:10px;flex-wrap:wrap}
-#horMobile .form-actions>.btn{border-radius:12px!important;font-weight:800!important;padding:13px 18px!important}
-#horMobile .hor-voltar{background:#e9f5f7!important;color:#135a6b!important;border:1.5px solid #83b9c4!important}
-#horMobile #horMSalvar{background:linear-gradient(100deg,#12556f,#16869a,#36a4a6)!important;color:#fff!important;border:0!important;box-shadow:0 6px 16px #167d9440;font-size:16px!important;min-height:52px;flex:1}
-#horMobile #horMStatus{background:#eaf5f7!important;color:#155367!important;border-left:5px solid #258b9d!important;border-radius:8px;padding:13px!important;font-weight:650}
-@media(max-width:600px){#horMobile{padding:10px!important}#horMobile>.hor-panel{padding:14px;border-radius:16px}#horMobile .hor-head{padding:17px}#horMobile .hor-grid{grid-template-columns:1fr!important}#horMobile #horMSalvar{width:100%}}
-</style><style id="ajuste-leilao-aparte-sem-rolagem">
-#rel_leilao_atual_resultado .aparte-sem-scroll{width:100%;max-width:100%;overflow:visible!important}
-#rel_leilao_atual_resultado{min-width:0!important;max-width:100%!important;width:100%!important;overflow-x:clip!important;box-sizing:border-box!important}
-#rel_leilao_atual_resultado .aparte-tabela{width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse;font-size:9px!important}
-#rel_leilao_atual_resultado .aparte-tabela th,#rel_leilao_atual_resultado .aparte-tabela td{min-width:0!important;max-width:none!important}
-#rel_leilao_atual_resultado .resumo-medias-aparte{display:flex;flex-wrap:wrap;gap:10px 24px;margin:8px 0;font-size:13px}
-@media(max-width:1050px){#rel_leilao_atual_resultado .aparte-tabela{font-size:8px!important}#rel_leilao_atual_resultado .aparte-tabela th,#rel_leilao_atual_resultado .aparte-tabela td{padding:4px 1px!important}}
-#rel_leilao_atual_resultado .aparte-tabela th,#rel_leilao_atual_resultado .aparte-tabela td{padding:5px 2px!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;text-align:center;line-height:1.25}
-#rel_leilao_atual_resultado .aparte-tabela th:nth-child(1){width:3%}
-#rel_leilao_atual_resultado .aparte-tabela th:nth-child(2){width:6%}
-#rel_leilao_atual_resultado .aparte-tabela th:nth-child(3){width:12%}
-#rel_leilao_atual_resultado .aparte-tabela th:nth-child(4){width:6%}
-#rel_leilao_atual_resultado .aparte-tabela th:nth-child(5){width:8%}
-#rel_leilao_atual_resultado .aparte-tabela th:nth-child(6){width:7%}
-#rel_leilao_atual_resultado .aparte-tabela th:nth-child(7){width:7%}
-#rel_leilao_atual_resultado .aparte-tabela th:nth-child(8){width:4%}
-#rel_leilao_atual_resultado .aparte-tabela th:nth-child(9){width:6%}
-#rel_leilao_atual_resultado .aparte-tabela th:nth-child(10){width:9%}
-#rel_leilao_atual_resultado .aparte-tabela th:nth-child(11){width:11%}
-#rel_leilao_atual_resultado .aparte-tabela th:nth-child(12){width:10%}
-#rel_leilao_atual_resultado .aparte-tabela th:nth-child(13){width:11%}
-</style><style id="aparte-grid-sem-rolagem-final">
-/* O grid elimina larguras minimas globais de table/th/td sem afetar outras telas. */
-#rel_leilao_atual_resultado .aparte-sem-scroll{display:block!important;max-width:100%!important;width:100%!important;min-width:0!important;overflow-x:hidden!important;box-sizing:border-box!important}
-#rel_leilao_atual_resultado .aparte-tabela{display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;font-size:10px!important}
-#rel_leilao_atual_resultado .aparte-tabela thead,#rel_leilao_atual_resultado .aparte-tabela tbody{display:block!important;width:100%!important;min-width:0!important}
-#rel_leilao_atual_resultado .aparte-tabela tr{display:grid!important;grid-template-columns:3% 6% 14% 6% 8% 7% 7% 4% 6% 9% 10% 10% 10%!important;width:100%!important;min-width:0!important;max-width:100%!important;align-items:stretch}
-#rel_leilao_atual_resultado .aparte-tabela th,#rel_leilao_atual_resultado .aparte-tabela td{display:block!important;position:static!important;left:auto!important;right:auto!important;width:auto!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;padding:7px 2px!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important;overflow:hidden!important;text-overflow:clip!important;font-size:10px!important;line-height:1.25!important;text-align:center!important;border-bottom:1px solid #e5e9e9}
-#rel_leilao_atual_resultado .aparte-tabela th{font-size:9px!important;background:#edf1f3!important;font-weight:700!important}
-#rel_leilao_atual_resultado .aparte-tabela tbody tr:nth-child(even){background:#f7f9f9}
-#rel_leilao_atual_resultado .resumo-medias-aparte{gap:6px 24px!important;align-items:center}
-@media(max-width:1100px){#rel_leilao_atual_resultado .aparte-tabela th,#rel_leilao_atual_resultado .aparte-tabela td{font-size:8px!important;padding:5px 1px!important}}
-@media print{#rel_leilao_atual_resultado .aparte-tabela tr{break-inside:avoid}#rel_leilao_atual_resultado .aparte-tabela th,#rel_leilao_atual_resultado .aparte-tabela td{font-size:8px!important}}
-</style></head><body><h1>FAZENDA NOVA ESPERANÇA</h1><h2>'+esc(vista.title)+'</h2><div class="sub">PERÍODO: '+inicio+' A '+fim+' — 10 DIAS ENCERRADOS</div><table><thead><tr><th>LOCALIDADE</th><th>DIAS</th><th>MÉDIA</th>'+datas.map(d=>'<th>'+d.slice(8,10)+'/'+d.slice(5,7)+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table><footer>DIAS = TOTAL DO HISTÓRICO DO LOTE NA VISÃO DE %PV. MÉDIA = MÉDIA DOS DIAS VÁLIDOS DO PERÍODO IMPRESSO. ZERO REGISTRADO ENTRA NO CÁLCULO; AUSÊNCIA DE REGISTRO = —. SEM ALTERAÇÃO DO HISTÓRICO.</footer></body></html>';
+ const pagina='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+esc(vista.title)+'</title><style>@page{size:A4 landscape;margin:9mm}body{font:10px Arial,sans-serif;color:#20262d}h1{font-size:16px;margin:0 0 5px}h2{font-size:13px;margin:0 0 8px}.sub{margin-bottom:12px;color:#59636b}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{border:1px solid #cbd3d8;padding:5px 3px;text-align:center;overflow-wrap:anywhere}th{background:#e9eef0}th:first-child,td:first-child{text-align:left;width:17%}tr{break-inside:avoid}footer{margin-top:9px;font-size:9px;color:#59636b}</style></head><body><h1>FAZENDA NOVA ESPERANÇA</h1><h2>'+esc(vista.title)+'</h2><div class="sub">PERÍODO: '+inicio+' A '+fim+' — 10 DIAS ENCERRADOS</div><table><thead><tr><th>LOCALIDADE</th><th>DIAS</th><th>MÉDIA</th>'+datas.map(d=>'<th>'+d.slice(8,10)+'/'+d.slice(5,7)+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table><footer>DIAS = TOTAL DO HISTÓRICO DO LOTE NA VISÃO DE %PV. MÉDIA = MÉDIA DOS DIAS VÁLIDOS DO PERÍODO IMPRESSO. ZERO REGISTRADO ENTRA NO CÁLCULO; AUSÊNCIA DE REGISTRO = —. SEM ALTERAÇÃO DO HISTÓRICO.</footer></body></html>';
  const w=window.open('','_blank');if(!w){alert('LIBERE A JANELA DE IMPRESSÃO NO NAVEGADOR.');return;}
  w.document.open();w.document.write(pagina);w.document.close();w.focus();setTimeout(()=>w.print(),350);
 }
@@ -1829,7 +1775,7 @@ body{background:#f4f8f7}
 <div class="form-actions"><button class="btn" type="button" onclick="zooCarregar()">ATUALIZAR PARÂMETROS</button><button class="btn primary" type="button" onclick="zooSalvar()">SALVAR PARÂMETROS NO SUPABASE</button></div>
 <div id="zoo_parametros_status" class="notice">CLIQUE EM ATUALIZAR PARÂMETROS PARA CONSULTAR O BANCO.</div>
 <!-- Processamento nutricional interno: sem tabela, campos ou botões para o usuário. -->
-<div class="form-actions admin-only"><button type="button" class="btn primary" onclick="consumoReprocessarHistorico()">RECALCULAR %PV MS PENDENTE — 31/10 A 02/11</button></div><div id="consumo_reprocessamento_visivel" class="notice">RECALCULA APENAS PERCENTUAIS AUSENTES; NÃO SOBRESCREVE HISTÓRICO EXISTENTE.</div><div id="consumo_processo_interno" style="display:none!important" aria-hidden="true">
+<div class="form-actions admin-only"><button type="button" class="btn primary" onclick="consumoReprocessarHistorico()">RECALCULAR %PV MS PENDENTE — 13 E 14/11</button></div><div id="consumo_reprocessamento_visivel" class="notice">RECALCULA APENAS PERCENTUAIS AUSENTES; NÃO SOBRESCREVE HISTÓRICO EXISTENTE.</div><div id="consumo_processo_interno" style="display:none!important" aria-hidden="true">
 <input type="date" id="consumo_dia_auto" value="2026-10-22">
 <div id="consumo_dia_status"></div>
 <div id="consumo_dia_tabela"></div>
@@ -2818,27 +2764,48 @@ async function finPrepararCustosLeilao(registros){
 }
 function finCorrigirCusto(x){
  if(!x)return x;
+ // Nunca transformar estimativa de referência ou média em custo confirmado.
+ // Migração antiga: custo_atual recebeu compra + frete (não alimentação).
+ // Não somar compra duas vezes. Sem diária comprovada, manter pendência.
+ const r=finRegistrosConfirmados.get(x._dbid);
+ if(r&&String(r.status||'').toUpperCase()==='VENDA'
+    &&String(r.localizacao||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase()==='LEILAO'
+    &&Number(r.preco_compra)>0&&Number(r.frete)>0
+    &&r.valor_diaria==null
+    &&Math.abs(Number(r.custo_atual)-(Number(r.preco_compra)+Number(r.frete)))<0.011){
+   x.custoAtual=0;
+   x._custoAtualAusente=true;
+   x._custoPendente=true;
+   x._custoDuplicadoCompra=true;
+   x.custoAnimal=Number(x.compra||0)+Number(x.custoAcumulado||0);
+   return x;
+ }
+ const faltaCusto=x._custoAtualAusente===true;
  const custoOrigem=finCustoOrigemLeilao.get(x._dbid);
- if(custoOrigem){x.custoAtual=custoOrigem.atual;x.diaria=custoOrigem.diaria;x.dias=custoOrigem.dias;x._custoAtualAusente=false;x._diariaAusente=false;x._custoPendente=false;x._custoRecalculado=true;x.custoAnimal=Number(x.compra||0)+Number(x.custoAcumulado||0)+x.custoAtual;return x;} if(!x.entrada||!x.saida){if(x._custoAtualAusente===true){const ref=finReferenciaPorLocal.get(finNormalizaLocal(x.localizacao||x.origem));const dias=Number(x.dias);if(Number.isFinite(ref)&&Number.isFinite(dias)&&dias>0){x.custoAtual=Math.round(ref*dias*100)/100;x.diaria=ref;x._custoRecalculado=true;x._custoEstimadoReferencia=true;}else{x._custoPendente=true;}}return x;}
- const faltaDiaria=x._diariaAusente===true,faltaCusto=x._custoAtualAusente===true;
- if(!faltaDiaria&&!faltaCusto)return x;
+ if(custoOrigem&&faltaCusto){
+  x.custoAtual=custoOrigem.atual;x.diaria=custoOrigem.diaria;x.dias=custoOrigem.dias;
+  x._custoRecalculado=true;x._custoEstimadoReferencia=true;x._custoPendente=true;
+  x.custoAnimal=Number(x.compra||0)+Number(x.custoAcumulado||0)+x.custoAtual;
+  return x;
+ }
+ if(!faltaCusto)return x;
+ if(!x.entrada||!x.saida){x._custoPendente=true;return x;}
  const inicio=new Date(x.entrada+'T12:00:00'),fim=new Date(x.saida+'T12:00:00');
- if(!Number.isFinite(inicio.getTime())||!Number.isFinite(fim.getTime())||fim<=inicio){if(x._custoAtualAusente===true)x._custoPendente=true;return x;}
- const local=finNormalizaLocal(x.localizacao||x.origem),historico=finDiariasPorLocal.get(local)||new Map(),referencia=finReferenciaPorLocal.get(local);
- let soma=0,dias=0,semReferencia=0;
+ if(!Number.isFinite(inicio.getTime())||!Number.isFinite(fim.getTime())||fim<=inicio){x._custoPendente=true;return x;}
+ const local=finNormalizaLocal(x.localizacao||x.origem),historico=finDiariasPorLocal.get(local)||new Map();
+ let soma=0,dias=0,semHistorico=0;
  for(let d=new Date(inicio);d<fim&&dias<5000;d.setDate(d.getDate()+1)){
   const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  const v=historico.has(iso)?historico.get(iso):referencia;
-  if(!Number.isFinite(v)){semReferencia++;}else soma+=v;
+  if(!historico.has(iso)){semHistorico++;}else soma+=historico.get(iso);
   dias++;
  }
- if(!dias||semReferencia){x._custoPendente=true;return x;}
- if(faltaDiaria)x.diaria=soma/dias;
- if(faltaCusto)x.custoAtual=Math.round(soma*100)/100;
- x.dias=dias;x._custoRecalculado=true;
+ if(!dias||semHistorico){x._custoPendente=true;return x;}
+ x.custoAtual=Math.round(soma*100)/100;x.diaria=soma/dias;x.dias=dias;
+ x._custoRecalculado=true;x._custoPendente=false;
  x.custoAnimal=Number(x.compra||0)+Number(x.custoAtual||0)+Number(x.custoAcumulado||0);
  return x;
 }
+let finMortesFechadas=new Map();
 let finRegistrosConfirmados=new Map();
 async function atualizarFinanceiro(){
  try{
@@ -2858,6 +2825,15 @@ async function atualizarFinanceiro(){
   if(vendaConfirmada.error)throw vendaConfirmada.error;
   const porId=new Map(registros.map(r=>[r.id,r]));
   for(const r of vendaConfirmada.data||[])porId.set(r.id,r);
+  // Mortes: usar fechamento financeiro gravado, sem recalcular a diária após o óbito.
+  const mortesFechadas=await supa.from('mortes').select('animal_id,brinco,data_morte,custo_total').order('data_morte',{ascending:false}).range(0,999);
+  if(mortesFechadas.error)throw mortesFechadas.error;
+  finMortesFechadas=new Map();
+  for(const m of mortesFechadas.data||[]){
+   const chave=String(m.animal_id||'')+'|'+String(m.data_morte||'');
+   if(m.animal_id&&m.custo_total!==null&&!finMortesFechadas.has(chave))
+    finMortesFechadas.set(chave,Number(m.custo_total));
+  }
   await finCarregarDiarias();
   await finPrepararCustosLeilao([...porId.values()]);
   finRegistrosConfirmados=porId;
@@ -2904,7 +2880,7 @@ function atualizarPizzaResultadoTresMeses(){
    const ehLeilao=x=>String(x.destino||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')==='LEILAO';
    const liquido=soma(vendas,x=>numFin(x.valorVenda)*((ehLeilao(x)||!(x.pesagemId||x._pesagem_id))?1:(1-0.00199998)));
    const compra=soma(saidas,x=>x.compra),diarias=soma(saidas,x=>x.custoAtual),acumulados=soma(saidas,x=>x.custoAcumulado);
-   const mort=soma(mortes,x=>Math.max(numFin(x.custoAnimal),numFin(x.compra)+numFin(x.custoAtual)+numFin(x.custoAcumulado)));
+   const mort=soma(mortes,x=>finMortesFechadas.get(String(x._dbid||'')+'|'+String(x.saida||''))??Math.max(numFin(x.custoAnimal),numFin(x.compra)+numFin(x.custoAtual)+numFin(x.custoAcumulado)));
    mes.resultado=liquido-compra-diarias-acumulados-mort;
    mes.pendentes=saidas.filter(x=>Boolean(x.pesagemId||x._pesagem_id)&&!(Number(x.valorVenda)>0)).length+saidas.filter(x=>x._custoPendente).length;
   }
@@ -2940,11 +2916,11 @@ function renderFinanceiro(){
     Líquido financeiro é calculado por animal a partir da venda.
     Não usa a_receber do registro de abate porque registros históricos podem guardar total do lote. */
  const liquido=soma(vendas,liquidoVenda);
- const custoSemReferencia=todasVendas.filter(x=>x._custoPendente);const compra=soma(todasVendas,x=>x.compra),diarias=soma(todasVendas,x=>x.custoAtual),acumulados=soma(todasVendas,x=>x.custoAcumulado),mort=soma(mortes,x=>Math.max(numFin(x.custoAnimal),numFin(x.compra)+numFin(x.custoAtual)+numFin(x.custoAcumulado))),resultado=liquido-compra-diarias-acumulados-mort;
+ const custoSemReferencia=todasVendas.filter(x=>x._custoPendente);const compra=soma(todasVendas,x=>x.compra),diarias=soma(todasVendas,x=>x.custoAtual),acumulados=soma(todasVendas,x=>x.custoAcumulado),mort=soma(mortes,x=>finMortesFechadas.get(String(x._dbid||'')+'|'+String(x.saida||''))??Math.max(numFin(x.custoAnimal),numFin(x.compra)+numFin(x.custoAtual)+numFin(x.custoAcumulado))),resultado=liquido-compra-diarias-acumulados-mort;
  const semCompra=todasVendas.filter(x=>!(Number(x.compra)>0));
  
  const comPendencia=pendentes.length>0||custoSemReferencia.length>0||semCompra.length>0;const pendenciasPorPesagem=new Map();pendentes.forEach(x=>{const chave=String(x.pesagemId||x._pesagem_id);pendenciasPorPesagem.set(chave,(pendenciasPorPesagem.get(chave)||0)+1)});
- const cor=resultado>=0?'#176b36':'#9b1c1c';let h=`${comPendencia?`<div class="notice" style="border:2px solid #b45309;background:#fffbeb;color:#92400e;font-weight:700">⚠ ${pendentes.length} ANIMAIS DE ABATE AGUARDANDO CARCAÇA E VALOR DE VENDA. ${pendenciasPorPesagem.size} GRUPO(S). ${custoSemReferencia.length} ANIMAIS COM DIÁRIAS SEM BASE COMPLETA; ${semCompra.length} ANIMAIS SEM PREÇO DE COMPRA VÁLIDO — RESULTADO FINANCEIRO PARCIAL, NÃO DEFINITIVO.</div>`:''}<div class="notice"><b>RECEITA BRUTA DE LEILÕES NO PERÍODO:</b> ${money0(receitaLeilao)} — ${vendasLeilao.length} ANIMAIS VENDIDOS. VENDAS DE LEILÃO NÃO TÊM DESCONTO DE FUNRURAL.</div><div class="kpis"><div class="kpi"><span>VENDAS LÍQUIDAS</span><strong>${money0(liquido)}</strong></div><div class="kpi"><span>CUSTOS DE COMPRA</span><strong>${money0(compra)}</strong></div><div class="kpi"><span>CUSTOS DE DIÁRIAS</span><strong>${money0(diarias+acumulados)}</strong></div><div class="kpi"><span>PREJUÍZO TOTAL COM MORTES</span><strong style="color:#9b1c1c">${money0(mort)}</strong></div><div class="kpi"><span>RESULTADO ${comPendencia?'PARCIAL — PENDÊNCIAS':'APURADO'}</span><strong style="color:${cor}">${money0(resultado)}</strong></div></div>`;
+ const cor=resultado>=0?'#176b36':'#9b1c1c';let h=`${comPendencia?`<div class="notice" style="border:2px solid #b45309;background:#fffbeb;color:#92400e;font-weight:700">⚠ ${pendentes.length} ANIMAIS DE ABATE AGUARDANDO CARCAÇA E VALOR DE VENDA. ${pendenciasPorPesagem.size} GRUPO(S). ${custoSemReferencia.length} ANIMAIS COM DIÁRIAS SEM BASE COMPLETA; ${semCompra.length} ANIMAIS SEM PREÇO DE COMPRA VÁLIDO — RESULTADO FINANCEIRO PARCIAL, NÃO DEFINITIVO. CUSTOS ESTIMADOS NÃO FORAM VALIDADOS COMO REAIS. LANÇAMENTOS EM QUE CUSTO ATUAL = COMPRA + FRETE SÃO DESCONSIDERADOS COMO DIÁRIA E PERMANECEM PENDENTES.</div>`:''}<div class="notice"><b>RECEITA BRUTA DE LEILÕES NO PERÍODO:</b> ${money0(receitaLeilao)} — ${vendasLeilao.length} ANIMAIS VENDIDOS. VENDAS DE LEILÃO NÃO TÊM DESCONTO DE FUNRURAL.</div><div class="kpis"><div class="kpi"><span>VENDAS LÍQUIDAS</span><strong>${money0(liquido)}</strong></div><div class="kpi"><span>CUSTOS DE COMPRA</span><strong>${money0(compra)}</strong></div><div class="kpi"><span>CUSTOS DE DIÁRIAS</span><strong>${money0(diarias+acumulados)}</strong></div><div class="kpi"><span>PREJUÍZO TOTAL COM MORTES</span><strong style="color:#9b1c1c">${money0(mort)}</strong></div><div class="kpi"><span>RESULTADO ${comPendencia?'PARCIAL — PENDÊNCIAS':'APURADO'}</span><strong style="color:${cor}">${money0(resultado)}</strong></div></div>`;
  // RELATÓRIO DE VENDAS — todas as comercializações, inclusive leilões.
  // Agrupa por data, destino e tipo para permitir selecionar a operação correta.
  const vendasAgrupadas=new Map();
@@ -2981,7 +2957,7 @@ function renderFinanceiro(){
  let detalheMortes='';
  if(mortesDetalhe.length){
   detalheMortes='<div class="panel" style="margin-top:14px"><h2>CONFERÊNCIA INDIVIDUAL DAS MORTES NO PERÍODO</h2><div class="table-wrap"><table><thead><tr><th>Data</th><th>Brinco</th><th>Local</th><th>Compra</th><th>Diária atual</th><th>Acumulado</th><th>Custo total</th></tr></thead><tbody>';
-  mortesDetalhe.forEach(x=>{const total=Math.max(numFin(x.custoAnimal),numFin(x.compra)+numFin(x.custoAtual)+numFin(x.custoAcumulado));detalheMortes+=`<tr><td>${dataBR(x.saida)}</td><td><b>${x.brinco||'—'}</b></td><td>${x.localizacao||'—'}</td><td>${money0(x.compra)}</td><td>${money0(x.custoAtual)}</td><td>${money0(x.custoAcumulado)}</td><td><b>${money0(total)}</b></td></tr>`});
+  mortesDetalhe.forEach(x=>{const total=finMortesFechadas.get(String(x._dbid||'')+'|'+String(x.saida||''))??Math.max(numFin(x.custoAnimal),numFin(x.compra)+numFin(x.custoAtual)+numFin(x.custoAcumulado));detalheMortes+=`<tr><td>${dataBR(x.saida)}</td><td><b>${x.brinco||'—'}</b></td><td>${x.localizacao||'—'}</td><td>${money0(x.compra)}</td><td>${money0(x.custoAtual)}</td><td>${money0(x.custoAcumulado)}</td><td><b>${money0(total)}</b></td></tr>`});
   detalheMortes+=`<tr><td colspan="6"><b>TOTAL DE MORTES NO PERÍODO</b></td><td><b>${money0(mort)}</b></td></tr></tbody></table></div></div>`;
  }
  el.innerHTML=h+avisoAuditoria+detalheMortes;
@@ -3343,42 +3319,44 @@ async function renderDashboardEstoque(){
   }
   const entradasAtuais=new Map();
   (ativos.data||[]).forEach(x=>{const n=norm(x.localizacao),d=x.data_entrada;if(!entradasAtuais.has(n))entradasAtuais.set(n,[]);if(d)entradasAtuais.get(n).push(String(d));});
-  const vacAtuais=(()=>{const ult=new Map(),ativosPorId=new Map((ativos.data||[]).map(a=>[String(a.id),a]));for(const r of (vac.data||[])){const k=String(r.animal_id||''),a=ativosPorId.get(k);if(!a)continue;const registro={...r,localizacao:a.localizacao};const ant=ult.get(k);if(!ant||String(registro.data_vacinacao||'')>String(ant.data_vacinacao||''))ult.set(k,registro)}return [...ult.values()]})();
-  const reforcos=new Map();if(!vac.error)vacAtuais.filter(x=>norm(x.localizacao)!=='REPOSITORIO').forEach(x=>{const n=norm(x.localizacao);if(!reforcos.has(n))reforcos.set(n,[]);reforcos.get(n).push(x)});const refTop=$('v15Ref');if(refTop&&!vac.error){
-  const hojeIso=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
-  // Reforços são avisados desde a aplicação (21 dias antes), agrupados por LOCAL + DATA.
-  // Não reduzir uma localidade à data mais antiga: pode haver vários lotes com reforços distintos.
-  // Reforços vencidos continuam visíveis até uma nova vacinação registrada para o animal.
-  const lotesMap=new Map();
-  const inicioHoje=new Date(hojeIso+'T12:00:00');
-  // Reforços executados em 05/11/2026 nestas três localidades:
-  // a campanha anterior foi encerrada; não anunciar seus avisos antigos.
-  // Preservar todos os registros no banco e mostrar a próxima data da campanha nova.
-  const campanhasConcluidas=new Map([
-    ['PASTO A1','2026-11-05'],
-    ['PASTO A1 LD CONFINAMENTO','2026-11-05'],
-    ['VINHACA','2026-11-05']
-  ]);
-  vacAtuais
-    .filter(x=>{
-      const local=norm(x.localizacao);
-      if(local==='REPOSITORIO'||(mapa.get(local)||0)<=0||!x.data_prevista_reforco)return false;
-      const concluida=campanhasConcluidas.get(local);
-      return !concluida||String(x.data_vacinacao||'').slice(0,10)>=concluida;
-    })
-    .forEach(x=>{
-      const k=norm(x.localizacao),dt=String(x.data_prevista_reforco).slice(0,10);
-      const diaReforco=new Date(dt+'T12:00:00');
-      const diasAte=Math.round((diaReforco-inicioHoje)/86400000);
-      if(!Number.isFinite(diasAte)||diasAte>21)return;
-      const chave=k+'|'+dt;
-      if(!lotesMap.has(chave))lotesMap.set(chave,{local:k,data:dt,qtd:0});
+  // A view traz a última vacinação realizada por animal; a próxima aplicação
+  // registrada substitui o aviso anterior. SEM_AVISO não deve entrar na lista.
+  const vacAtuais=(()=>{
+    const ult=new Map(),ativosPorId=new Map((ativos.data||[]).map(a=>[String(a.id),a]));
+    for(const r of (vac.data||[])){
+      const k=String(r.animal_id||''),a=ativosPorId.get(k);
+      if(!a||!r.data_prevista_reforco)continue;
+      const registro={...r,localizacao:a.localizacao};
+      const ant=ult.get(k);
+      if(!ant||String(registro.data_vacinacao||'')>String(ant.data_vacinacao||''))ult.set(k,registro);
+    }
+    return [...ult.values()].filter(r=>{
+      const sit=String(r.situacao_reforco||'').toUpperCase();
+      return sit==='REFORÇO_PENDENTE'||sit==='REFORÇO_PRÓXIMO'||sit==='REFORÇO_HOJE'||sit==='REFORCO_PENDENTE'||sit==='REFORCO_PROXIMO'||sit==='REFORCO_HOJE';
+    });
+  })();
+  const reforcos=new Map();
+  if(!vac.error)vacAtuais.filter(x=>norm(x.localizacao)!=='REPOSITORIO').forEach(x=>{
+    const n=norm(x.localizacao);
+    if(!reforcos.has(n))reforcos.set(n,[]);
+    reforcos.get(n).push(x);
+  });
+  const refTop=$('v15Ref');
+  if(refTop){
+    const lotesMap=new Map();
+    if(!vac.error)vacAtuais.forEach(x=>{
+      const local=norm(x.localizacao),dt=String(x.data_prevista_reforco||'').slice(0,10);
+      if(local==='REPOSITORIO'||(mapa.get(local)||0)<=0||!/^\d{4}-\d{2}-\d{2}$/.test(dt))return;
+      const chave=local+'|'+dt;
+      if(!lotesMap.has(chave))lotesMap.set(chave,{local,data:dt,qtd:0,atrasado:dt<new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'})});
       lotesMap.get(chave).qtd++;
     });
-  const lista=[...lotesMap.values()].sort((a,b)=>a.data.localeCompare(b.data)||a.local.localeCompare(b.local));
-  refTop.innerHTML=lista.length?lista.map(x=>{const p=x.data.split('-');return `${x.local} — ${p[2]}/${p[1]}/${p[0]}`}).join('<br>'):'—';
-  const vis=document.getElementById('dashReforcosVisiveis');if(vis){vis.innerHTML=lista.length?lista.map(x=>{const p=x.data.split('-');return '<span class="reforco-chip">'+x.local+' <b>'+p[2]+'/'+p[1]+'/'+p[0]+'</b></span>'}).join(''):'SEM REFORÇOS PRÓXIMOS';}
-}
+    const lista=[...lotesMap.values()].sort((a,b)=>a.data.localeCompare(b.data)||a.local.localeCompare(b.local));
+    const fmt=x=>x.data.split('-').reverse().join('/');
+    refTop.innerHTML=vac.error?'NÃO FOI POSSÍVEL CONSULTAR':lista.length?lista.map(x=>`${x.local} — ${fmt(x)} (${x.qtd})${x.atrasado?' • ATRASADO':''}`).join('<br>'):'—';
+    const vis=document.getElementById('dashReforcosVisiveis');
+    if(vis)vis.innerHTML=vac.error?'NÃO FOI POSSÍVEL CONSULTAR':lista.length?lista.map(x=>'<span class="reforco-chip"'+(x.atrasado?' style="color:#b42318"':'')+'>'+x.local+' <b>'+fmt(x)+'</b> ('+x.qtd+')'+(x.atrasado?' • ATRASADO':'')+'</span>').join(''):'SEM REFORÇOS PENDENTES';
+  }
   const pastos=['CASINHA','DIRCE','ABAIXO CASINHA','AROEIRA ALTO','AROEIRA MANGUEIRA','BELEI BAIXO','BELEI ALTO','BARRACÃO','SEDE PIQUETE','MOMBAÇA','PIQUETEAMENTO ASFALTO','PIQUETEAMENTO BAIXO','PASTO A1','PASTO A2','PASTO B1','PASTO B2','SÃO GUILHERME ALTO','SÃO GUILHERME BAIXO','AÇUDE','BELA VISTA','BELA VISTA AÇUDE','PASTO A1 LD CONFINAMENTO'];
   const conf=['VINHAÇA','BAIA A1','BAIA A2','BAIA A3','BAIA A4','BAIA A5','BAIA B1','BAIA B2','BAIA B3','BAIA B4','BAIA B5','PASTO A1','PASTO A2','PASTO B2','PASTO B1','BARRACÃO','SEDE PIQUETE','PIQUETEAMENTO BAIXO','PIQUETEAMENTO ASFALTO','MOMBAÇA','CASINHA CARLINHOS','PASTO A1 LD CONFINAMENTO'];
   const arr=['ESPIRITO SANTO DO TURVO','TIMBURI','POSTO KAFE'];
@@ -5083,14 +5061,45 @@ async function iniciarSupabase(){
  if(sess.data.session) await entrarNoSistema();
  else document.getElementById('supaLogin').style.display='flex';
 }
-document.getElementById('supaEntrar').addEventListener('click',async()=>{
- const st=document.getElementById('supaStatus');st.textContent='CONECTANDO...';
- const q=await supa.auth.signInWithPassword({email:document.getElementById('supaEmail').value.trim(),password:document.getElementById('supaSenha').value});
- if(q.error){st.textContent='ERRO: '+q.error.message;return}
- st.textContent='LOGIN OK'; await entrarNoSistema();
-});
+// Login protegido: evita clique sem resposta e informa falhas de conexão/inicialização.
+(function configurarLoginSeguro(){
+ const botao=document.getElementById('supaEntrar');
+ const status=document.getElementById('supaStatus');
+ if(!botao||!status)return;
+ let ocupando=false;
+ async function executarLogin(){
+   if(ocupando)return;
+   ocupando=true;
+   botao.disabled=true;
+   status.textContent='CONECTANDO...';
+   try{
+     if(typeof supa==='undefined'||!supa||!supa.auth||typeof supa.auth.signInWithPassword!=='function'){
+       throw new Error('SERVIÇO DE AUTENTICAÇÃO NÃO INICIALIZADO. ATUALIZE A PÁGINA.');
+     }
+     const email=String(document.getElementById('supaEmail').value||'').trim();
+     const password=String(document.getElementById('supaSenha').value||'');
+     if(!email||!password)throw new Error('INFORME E-MAIL E SENHA.');
+     const q=await supa.auth.signInWithPassword({email,password});
+     if(q.error)throw q.error;
+     status.textContent='LOGIN OK. CARREGANDO SISTEMA...';
+     await entrarNoSistema();
+   }catch(e){
+     status.textContent='ERRO NO LOGIN: '+String(e&&e.message||e);
+     const tela=document.getElementById('supaLogin');
+     if(tela)tela.style.display='flex';
+   }finally{
+     ocupando=false;
+     botao.disabled=false;
+   }
+ }
+ botao.addEventListener('click',executarLogin);
+ ['supaEmail','supaSenha'].forEach(id=>{
+   const el=document.getElementById(id);
+   if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();executarLogin();}});
+ });
+})();
 document.getElementById('btnSair').addEventListener('click',async()=>{await supa.auth.signOut();location.reload()});
-iniciarSupabase();
+iniciarSupabase().catch(e=>{const st=document.getElementById('supaStatus');if(st)st.textContent='ERRO NA INICIALIZAÇÃO: '+String(e&&e.message||e);});
 
 
 /* ===== PESAGEM DE SAÍDA — FLUXO PRESERVADO ===== */
@@ -8241,64 +8250,93 @@ async function relLeilaoCarregarLotes(){
  const anterior=select.value;select.innerHTML='<option value="">CONSULTANDO LOTES...</option>';
  try{
   const [ap,vendas]=await Promise.all([
-   supa.from('leilao_apartes').select('data_aparte,peso_kg,status').order('data_aparte',{ascending:false}).limit(1000),
+   supa.from('leilao_apartes').select('data_aparte,peso_kg,status,lote_aparte').order('data_aparte',{ascending:false}).limit(1000),
    supa.from('animais').select('data_saida,valor_venda').eq('status','VENDA').eq('localizacao','LEILÃO').not('data_saida','is',null).order('data_saida',{ascending:false}).limit(1000)
   ]);
   if(ap.error)throw ap.error;if(vendas.error)throw vendas.error;
   const grupos=new Map();
-  for(const x of ap.data||[]){const k='APARTE|'+x.data_aparte;const v=grupos.get(k)||{data:x.data_aparte,qtd:0,tipo:'APARTE'};v.qtd++;grupos.set(k,v);}
+  for(const x of ap.data||[]){const nome=String(x.lote_aparte||'SEM LOTE').trim();const k='APARTE|'+x.data_aparte+'|'+encodeURIComponent(nome);const v=grupos.get(k)||{data:x.data_aparte,qtd:0,tipo:'APARTE',nome};v.qtd++;grupos.set(k,v);}
   for(const x of vendas.data||[]){const k='VENDA|'+x.data_saida;const v=grupos.get(k)||{data:x.data_saida,qtd:0,tipo:'VENDA'};v.qtd++;grupos.set(k,v);}
   const lista=[...grupos.entries()].sort((a,b)=>b[1].data.localeCompare(a[1].data)||a[1].tipo.localeCompare(b[1].tipo));
   select.innerHTML='';if(!lista.length){select.add(new Option('NENHUM LOTE REGISTRADO',''));return;}
-  for(const [key,v] of lista)select.add(new Option('LOTE '+v.data.split('-').reverse().join('/')+' · '+v.qtd+' ANIMAIS · '+(v.tipo==='APARTE'?'APARTADO (SEM VENDA)':'VENDIDO'),key));
+  for(const [key,v] of lista)select.add(new Option((v.tipo==='APARTE'?v.nome+' · ':'LOTE ')+v.data.split('-').reverse().join('/')+' · '+v.qtd+' ANIMAIS · '+(v.tipo==='APARTE'?((ap.data||[]).filter(x=>x.data_aparte===v.data&&String(x.lote_aparte||'SEM LOTE').trim()===v.nome).every(x=>x.status==='VENDIDO')?'VENDIDO':'APARTADO'):'VENDIDO'),key));
   select.value=lista.some(([k])=>k===anterior)?anterior:lista[0][0];await relLeilaoAtualConsultar();
  }catch(e){select.innerHTML='<option value="">ERRO AO BUSCAR LOTES</option>';document.getElementById('rel_leilao_atual_resultado').textContent=String(e.message||e);}
 }
-async function relLeilaoConsultarAparte(data){
- if(!document.getElementById('aparte-css-runtime-fix')){
-  const st=document.createElement('style');st.id='aparte-css-runtime-fix';st.textContent="\n#rel_leilao_atual_resultado{width:100%!important;min-width:0!important;max-width:100%!important;overflow:hidden!important;box-sizing:border-box!important}\n#rel_leilao_atual_resultado .aparte-sem-scroll{width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important;box-sizing:border-box!important}\n#rel_leilao_atual_resultado .aparte-tabela{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;table-layout:fixed!important;border-collapse:collapse!important;font-size:10px!important}\n#rel_leilao_atual_resultado .aparte-tabela thead,#rel_leilao_atual_resultado .aparte-tabela tbody{display:block!important;width:100%!important;min-width:0!important}\n#rel_leilao_atual_resultado .aparte-tabela tr{display:grid!important;grid-template-columns:3% 6% 14% 6% 8% 7% 7% 4% 6% 9% 10% 10% 10%!important;width:100%!important;min-width:0!important;max-width:100%!important;align-items:stretch}\n#rel_leilao_atual_resultado .aparte-tabela th,#rel_leilao_atual_resultado .aparte-tabela td{display:block!important;position:static!important;left:auto!important;right:auto!important;width:auto!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;padding:7px 2px!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important;overflow:hidden!important;text-overflow:clip!important;font-size:10px!important;line-height:1.25!important;text-align:center!important;border-bottom:1px solid #e5e9e9}\n#rel_leilao_atual_resultado .aparte-tabela th{font-size:9px!important;background:#edf1f3!important;font-weight:700!important}\n#rel_leilao_atual_resultado .aparte-tabela tbody tr:nth-child(even){background:#f7f9f9}\n#rel_leilao_atual_resultado .resumo-medias-aparte{display:flex!important;flex-wrap:wrap!important;gap:6px 24px!important;align-items:center}\n@media(max-width:1100px){#rel_leilao_atual_resultado .aparte-tabela th,#rel_leilao_atual_resultado .aparte-tabela td{font-size:8px!important;padding:5px 1px!important}}\n";document.head.appendChild(st);
- }
-
- const el=document.getElementById('rel_leilao_atual_resultado');el.textContent='CONSULTANDO LOTE APARTADO...';
+async function relLeilaoConsultarAparte(data,nomeLote){
+ const el=document.getElementById('rel_leilao_atual_resultado');if(!el)return;
+ el.textContent='CONSULTANDO LOTE...';
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const num=v=>v===null||v===undefined||v===''?null:Number(v);
  const fmt=(v,n=2)=>num(v)===null?'—':Number(v).toLocaleString('pt-BR',{minimumFractionDigits:n,maximumFractionDigits:n});
  const money=v=>num(v)===null?'—':Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
  const br=v=>v?String(v).slice(0,10).split('-').reverse().join('/'):'—';
  try{
-  const q=await supa.from('leilao_apartes').select('animal_id,brinco,peso_kg,localizacao_cadastro').eq('data_aparte',data).order('brinco');if(q.error)throw q.error;
+  const q=await supa.from('leilao_apartes').select('animal_id,brinco,peso_kg,localizacao_cadastro,status').eq('data_aparte',data).eq('lote_aparte',nomeLote).order('brinco');if(q.error)throw q.error;
   const lote=q.data||[];if(!lote.length){el.textContent='LOTE SEM ANIMAIS.';return;}
   const ids=lote.map(x=>x.animal_id);
-  const r=await supa.from('animais').select('id,brinco,localizacao,status,data_entrada,peso_entrada,preco_compra,custo_acumulado,custo_atual,valor_diaria,origem_compra,frete,comissao').in('id',ids);if(r.error)throw r.error;
+  const r=await supa.from('animais').select('id,brinco,localizacao,status,data_entrada,peso_entrada,preco_compra,custo_acumulado,custo_atual,valor_diaria,origem_compra,frete,comissao,valor_venda').in('id',ids);if(r.error)throw r.error;
   const map=new Map((r.data||[]).map(x=>[x.id,x]));
-  let nSemCompra=0,nSemGmd=0,totalPeso=0,totalCustoValido=0,qtdCustoValido=0,somaGmd=0,qtdGmd=0;
+  // Conferir diárias efetivamente fechadas e a última localidade antes da venda.
+  const mv=await supa.from('movimentacoes_animais').select('animal_id,origem,destino,data_movimentacao,custo_ciclo,acumulado_apos_ciclo').in('animal_id',ids).lte('data_movimentacao',data).order('data_movimentacao',{ascending:true});
+  if(mv.error)throw mv.error;
+  const movimentosPorAnimal=new Map();
+  for(const m of mv.data||[]){const k=String(m.animal_id);if(!movimentosPorAnimal.has(k))movimentosPorAnimal.set(k,[]);movimentosPorAnimal.get(k).push(m);}
+  const dc=await supa.from('nutri_custos_diarios').select('data_trato,localizacao,custo_diaria_cabeca,fechado').eq('fechado',true).gte('data_trato','2026-10-19').lt('data_trato',data).range(0,9999);
+  if(dc.error)throw dc.error;
+  const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();
+  const custosDia=new Map((dc.data||[]).filter(d=>d.custo_diaria_cabeca!==null).map(d=>[d.data_trato+'|'+norm(d.localizacao),Number(d.custo_diaria_cabeca)]));
+  // Custo atual: dias do ciclo atual x diária vigente da localidade de origem.
+  // Preserva o custo acumulado, sem tentar reconstruir ciclos já encerrados.
+  const diariaAtualPorLocal=new Map();
+  for(const d of dc.data||[]){
+    if(d.custo_diaria_cabeca===null)continue;
+    const chave=norm(d.localizacao),anterior=diariaAtualPorLocal.get(chave);
+    if(!anterior||d.data_trato>anterior.data)diariaAtualPorLocal.set(chave,{data:d.data_trato,valor:Number(d.custo_diaria_cabeca)});
+  }
+  const adicionarDias=(a,id)=>{
+    const ms=movimentosPorAnimal.get(String(id))||[];
+    const saida=ms.filter(m=>norm(m.destino)==='LEILAO').slice(-1)[0];
+    const anteriores=ms.filter(m=>m.data_movimentacao<data&&norm(m.destino)!=='REPOSITORIO');
+    const ultimo=anteriores.slice(-1)[0];
+    const candidatos=[a.localizacao_cadastro,saida?.origem,ultimo?.destino,ms[0]?.origem,(a.localizacao&&norm(a.localizacao)!=='LEILAO')?a.localizacao:null].filter(Boolean);
+    // Prioriza a localidade registrada no aparte; usa histórico apenas quando há diária válida.
+    const local=candidatos.find(c=>diariaAtualPorLocal.has(norm(c)))||candidatos[0]||null;
+    const dias=a.data_entrada?Math.max(0,Math.round((Date.parse(data+'T12:00:00Z')-Date.parse(a.data_entrada+'T12:00:00Z'))/86400000)):null;
+    const diariaBanco=num(a.valor_diaria);
+    const diariaReferencia=local?diariaAtualPorLocal.get(norm(local))?.valor:null;
+    const diaria=diariaBanco!==null&&diariaBanco>0?diariaBanco:(diariaReferencia??null);
+    return {valor:dias!==null&&diaria!==null?dias*diaria:null,dias,diaria,local};
+  };
+  let nSemCompra=0,nCustoPendente=0,totalPeso=0,somaGmd=0,qtdGmd=0,totalVenda=0,qtdVenda=0,totalLucro=0,qtdLucro=0,totalCustoValido=0,qtdCustoValido=0;
   const linhas=lote.map((x,i)=>{
-   const a=map.get(x.animal_id)||{};const peso=num(x.peso_kg)||0;totalPeso+=peso;
+   const a=map.get(x.animal_id)||{},peso=num(x.peso_kg)||0;totalPeso+=peso;
    const dias=a.data_entrada?Math.max(0,Math.round((Date.parse(data+'T12:00:00Z')-Date.parse(a.data_entrada+'T12:00:00Z'))/86400000)):null;
    const gmd=dias>0&&num(a.peso_entrada)>0?(peso-Number(a.peso_entrada))/dias:null;
-   if(gmd===null)nSemGmd++;else {somaGmd+=gmd;qtdGmd++;}if(!(num(a.preco_compra)>0))nSemCompra++;
-   const custo=(num(a.preco_compra)>0&&num(a.custo_acumulado)!==null&&num(a.custo_atual)!==null)?Number(a.preco_compra)+Number(a.custo_acumulado)+Number(a.custo_atual)+Number(a.frete||0)+Number(a.comissao||0):null;
-   if(custo!==null){totalCustoValido+=custo;qtdCustoValido++;}return '<tr><td>'+(i+1)+'</td><td><b>'+esc(x.brinco)+'</b></td><td>'+esc(a.localizacao||x.localizacao_cadastro||'—')+'</td><td>'+esc(a.status||'—')+'</td><td>'+br(a.data_entrada)+'</td><td>'+fmt(a.peso_entrada,0)+'</td><td><b>'+fmt(peso,0)+'</b></td><td>'+(dias===null?'—':dias)+'</td><td>'+fmt(gmd,3)+'</td><td>'+money(num(a.preco_compra)>0?a.preco_compra:null)+'</td><td>'+money(a.custo_acumulado)+'</td><td>'+money(a.custo_atual)+'</td><td>'+money(custo)+'</td></tr>';
+   if(gmd!==null){somaGmd+=gmd;qtdGmd++;}
+   const compraValida=num(a.preco_compra)>0;if(!compraValida)nSemCompra++;
+   const calculado=adicionarDias({...a,localizacao_cadastro:x.localizacao_cadastro},x.animal_id);
+   const custoAtualValido=calculado.valor!==null;
+   if(compraValida&&!custoAtualValido)nCustoPendente++;
+   const custo=compraValida&&custoAtualValido?Number(a.preco_compra)+Number(a.custo_acumulado||0)+calculado.valor+Number(a.frete||0)+Number(a.comissao||0):null;
+   if(custo!==null){totalCustoValido+=custo;qtdCustoValido++;}
+   const venda=num(a.valor_venda);if(venda!==null){totalVenda+=venda;qtdVenda++;}
+   const lucro=venda!==null&&custo!==null?venda-custo:null;
+   if(lucro!==null){totalLucro+=lucro;qtdLucro++;}
+   return '<tr>'+[(i+1),'<b>'+esc(x.brinco)+'</b>',esc(a.localizacao||x.localizacao_cadastro||'—'),esc(a.status||'—'),br(a.data_entrada),fmt(a.peso_entrada,0),'<b>'+fmt(peso,0)+'</b>',dias===null?'—':dias,fmt(gmd,3),money(compraValida?a.preco_compra:null),money(a.custo_acumulado),money(calculado.valor)+(calculado.valor!==null?'':(' <b style="color:#a13a16">'+(calculado.dias===null?'SEM DATA DE ENTRADA':'SEM DIÁRIA')+'</b>')),money(custo),money(venda),money(lucro)].map(v=>'<td>'+v+'</td>').join('')+'</tr>';
   }).join('');
-  const cards=[
-   ['ANIMAIS APARTADOS NO LOTE',String(lote.length)],
-   ['GMD MÉDIO (KG/DIA)',qtdGmd?fmt(somaGmd/qtdGmd,3):'—'],
-   ['ANIMAIS COM GMD VÁLIDO',qtdGmd+' / '+lote.length],
-   ['CUSTO MÉDIO FINAL*',qtdCustoValido?money(totalCustoValido/qtdCustoValido):'—'],
-   ['PESO TOTAL DO APARTE',fmt(totalPeso,0)+' KG'],
-   ['PESO MÉDIO DO APARTE',fmt(totalPeso/lote.length,2)+' KG'],
-   ['SEM PREÇO DE COMPRA — FORA DO LUCRO',String(nSemCompra)],
-   ['ANIMAIS COM CUSTO COMPLETO',qtdCustoValido+' / '+lote.length]
-  ];
-  const painel='<div class="notice"><b>FAZENDA NOVA ESPERANÇA — APARTE PARA LEILÃO — '+br(data)+' · '+lote.length+' ANIMAIS · NÃO VENDIDO</b></div>'+
-    '<div class="kpis" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:14px 0">'+cards.map(c=>'<div class="kpi" style="min-width:0"><span>'+c[0]+'</span><strong>'+c[1]+'</strong></div>').join('')+'</div>'+
-    '<div class="notice">APARTADO — SEM VENDA E SEM BAIXA DE ESTOQUE. GMD CALCULÁVEL: '+qtdGmd+' / '+lote.length+'. CUSTO MÉDIO CONSIDERA SOMENTE ANIMAIS COM PREÇO DE COMPRA E COMPONENTES DISPONÍVEIS.</div>';
-  el.innerHTML=painel+'<div class="aparte-sem-scroll"><table class="aparte-tabela"><thead><tr>'+['Nº','BRINCO','LOCALIDADE','STATUS','ENTRADA','PESO ENTRADA','PESO APARTE','DIAS','GMD','COMPRA','CUSTO ACUMULADO','CUSTO ATUAL','CUSTO TOTAL*'].map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+linhas+'</tbody></table></div><p style="font-size:11px">* Custo total apresentado apenas quando existem preço de compra e componentes de custo; não é lucro. GMD estimado com o peso do aparte, quando houver peso de entrada. Nenhuma venda foi lançada.</p>';
+  const vendido=qtdVenda===lote.length&&lote.every(x=>x.status==='VENDIDO');
+  const cards=[['ANIMAIS NO LOTE',String(lote.length)],['VALOR TOTAL DE VENDA',qtdVenda?money(totalVenda):'—'],['LUCRO APURADO*',qtdLucro?money(totalLucro):'—'],['ANIMAIS COM LUCRO',qtdLucro+' / '+lote.length],['COM COMPRA E CUSTO ATUAL PENDENTE',String(nCustoPendente)],['GMD MÉDIO (KG/DIA)',qtdGmd?fmt(somaGmd/qtdGmd,3):'—'],['ANIMAIS COM GMD VÁLIDO',qtdGmd+' / '+lote.length],['PESO TOTAL DO APARTE',fmt(totalPeso,0)+' KG'],['PESO MÉDIO DO APARTE',fmt(totalPeso/lote.length,2)+' KG'],['SEM PREÇO DE COMPRA — FORA DO LUCRO',String(nSemCompra)],['CUSTO MÉDIO COMPLETO*',qtdCustoValido?money(totalCustoValido/qtdCustoValido):'—']];
+  const painel='<div class="notice"><b>FAZENDA NOVA ESPERANÇA — '+esc(nomeLote)+' — '+br(data)+' · '+lote.length+' ANIMAIS · '+(vendido?'VENDIDO':'APARTADO')+'</b></div>'+
+   '<div class="kpis" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0">'+cards.map(c=>'<div class="kpi" style="min-width:0"><span>'+c[0]+'</span><strong>'+c[1]+'</strong></div>').join('')+'</div>'+
+   '<div class="notice">'+(vendido?'VENDA REGISTRADA NO SUPABASE.':'LOTE COM VENDA AINDA NÃO COMPLETA.')+' VALOR DE VENDA INFORMADO PARA '+qtdVenda+' / '+lote.length+' ANIMAIS. '+nSemCompra+' SEM PREÇO DE COMPRA VÁLIDO NÃO PARTICIPAM DO LUCRO. ATENÇÃO: '+nCustoPendente+' ANIMAIS COM COMPRA VÁLIDA ESTÃO SEM CUSTO ATUAL CALCULÁVEL (VERIFICAR DATA DE ENTRADA OU DIÁRIA). CUSTO ATUAL = DIAS DO CICLO × DIÁRIA VIGENTE. CONFIRA ANTES DE USAR COMO RESULTADO DEFINITIVO.</div>';
+  // Grade compacta: mantém as 15 colunas visíveis, sem barra de rolagem horizontal.
+  el.innerHTML='<style>#rel_leilao_atual_resultado .aparte-sem-scroll{width:100%;max-width:100%;overflow-x:hidden!important;overflow-y:visible!important}#rel_leilao_atual_resultado .aparte-tabela{display:table!important;width:100%!important;min-width:0!important;max-width:100%!important;table-layout:fixed!important;border-collapse:collapse!important;font-size:clamp(7px,.62vw,9px)!important}#rel_leilao_atual_resultado .aparte-tabela thead{display:table-header-group!important}#rel_leilao_atual_resultado .aparte-tabela tbody{display:table-row-group!important}#rel_leilao_atual_resultado .aparte-tabela tr{display:table-row!important}#rel_leilao_atual_resultado .aparte-tabela td,#rel_leilao_atual_resultado .aparte-tabela th{display:table-cell!important;position:static!important;min-width:0!important;width:auto!important;white-space:normal!important;overflow-wrap:anywhere!important;padding:4px 1px!important;text-align:center!important;font-size:inherit!important;letter-spacing:-.12px!important;line-height:1.2!important;border-bottom:1px solid #e3e7e9}#rel_leilao_atual_resultado .aparte-tabela th{font-size:7px!important;background:#edf1f3!important}#rel_leilao_atual_resultado .aparte-tabela th:nth-child(3),#rel_leilao_atual_resultado .aparte-tabela td:nth-child(3){width:9%}#rel_leilao_atual_resultado .aparte-tabela th:nth-child(1),#rel_leilao_atual_resultado .aparte-tabela td:nth-child(1){width:2.5%}</style>'+painel+'<div class="aparte-sem-scroll"><table class="aparte-tabela"><thead><tr>'+['Nº','BRINCO','LOCALIDADE','STATUS','ENTRADA','PESO ENTRADA','PESO APARTE','DIAS','GMD','COMPRA','CUSTO ACUM.','CUSTO ATUAL','CUSTO TOTAL*','VENDA','LUCRO*'].map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+linhas+'</tbody></table></div><p style="font-size:11px">* LUCRO = VENDA − (COMPRA + CUSTO ACUMULADO + CUSTO ATUAL + FRETE + COMISSÃO). Sem preço de compra válido, o lucro fica em branco. O custo atual é a quantidade de dias do ciclo multiplicada pela diária cadastrada ou pela última diária fechada da localidade de origem até a venda. Não substituir períodos sem dados por zero. Valores não são gravados no banco. Não altera os dados do banco. GMD calculado com peso do aparte quando houver peso de entrada.</p>';
  }catch(e){el.textContent='ERRO AO CONSULTAR LOTE: '+String(e.message||e);}
 }
 async function relLeilaoAtualConsultar(){
  const el=document.getElementById('rel_leilao_atual_resultado');if(!el)return;
- const sel=document.getElementById('rel_leilao_lote');if(!sel?.value){await relLeilaoCarregarLotes();return;} if(sel.value.startsWith('APARTE|'))return relLeilaoConsultarAparte(sel.value.slice(7)); const dataSelecionada=sel.value.slice(6),localSelecionado='LEILÃO';el.textContent='CONSULTANDO LOTE VENDIDO EM '+dataSelecionada+'...';
+ const sel=document.getElementById('rel_leilao_lote');if(!sel?.value){await relLeilaoCarregarLotes();return;} if(sel.value.startsWith('APARTE|')){const partes=sel.value.split('|');return relLeilaoConsultarAparte(partes[1],decodeURIComponent(partes.slice(2).join('|')||'SEM LOTE'));} const dataSelecionada=sel.value.slice(6),localSelecionado='LEILÃO';el.textContent='CONSULTANDO LOTE VENDIDO EM '+dataSelecionada+'...';
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const fmt=(v,n=2)=>Number(v).toLocaleString('pt-BR',{minimumFractionDigits:n,maximumFractionDigits:n});
  const moeda=v=>Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});

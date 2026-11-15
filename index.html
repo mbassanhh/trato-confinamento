@@ -1790,11 +1790,35 @@ body{background:#f4f8f7}
  <div class="dash-v15-card"><span>TOTAL ARRENDAMENTO</span><strong id="v15Arr">194</strong></div>
  <div class="dash-v15-card"><span>MORTES NO MÊS</span><strong id="v15Mortes">12</strong></div>
  <div class="dash-v15-card"><span>PRÓXIMOS REFORÇOS</span><strong id="v15Ref" style="font-size:15px;line-height:1.45;color:#c62828">—</strong></div>
-  <div class="dash-v15-card" id="dashAbatesPendentesCard" style="border-color:#e8c87e;background:#fffaf0"><span>PESAGENS A FINALIZAR</span><strong id="dashAbatesPendentesQtd">—</strong><div id="dashAbatesPendentesLista" style="font-size:11px;line-height:1.6;margin-top:7px"></div><button type="button" class="btn" style="margin-top:9px;font-size:11px" onclick="abrirPendenciasAbate()">VER / FINALIZAR</button></div>
+
 </div>
 
       <div class="dash-alertas-operacionais" aria-label="Avisos operacionais">
        <div class="dash-v15-card" style="border:1px solid #efc7a3;background:#fff9f3"><span>PRÓXIMOS REFORÇOS DE VACINAÇÃO</span><strong id="dashReforcosVisiveis" style="font-size:13px;line-height:1.5;color:#a53b20">CONSULTANDO...</strong></div>
+  <style id="abatesAvisoCompactoFinal">
+/* Aviso pequeno, com hierarquia idêntica à linha de reforços; não é um KPI. */
+#dashboard #dashAbatesPendentesCard{
+ min-height:0!important; padding:7px 12px!important; margin:0!important;
+ display:none; align-items:center!important; flex-wrap:wrap!important;
+ gap:5px 12px!important; border-radius:8px!important;
+ background:#fff9f3!important; box-shadow:none!important;
+}
+#dashboard #dashAbatesPendentesCard > span:first-child{
+ display:inline!important; margin:0!important; font-size:12px!important;
+ font-weight:500!important; letter-spacing:0!important; color:#275d54!important;
+}
+#dashboard #dashAbatesPendentesCard #dashAbatesPendentesLista{
+ display:inline!important; margin:0!important; font-size:12px!important;
+ font-weight:400!important; line-height:1.4!important; letter-spacing:0!important;
+ color:#a53b20!important;
+}
+#dashboard #dashAbatesPendentesCard > button{
+ display:inline!important; margin:0!important; padding:0!important;
+ font-size:11px!important; font-weight:500!important; line-height:1.4!important;
+ color:#a53b20!important; border:0!important; background:transparent!important;
+}
+</style>
+<div id="dashAbatesPendentesCard" class="dash-v15-card" style="display:none;border:1px solid #efc7a3;background:#fff9f3"><span>ABATES PENDENTES</span><strong id="dashAbatesPendentesLista" style="font-size:13px;line-height:1.5;color:#a53b20;font-weight:700"></strong><button type="button" style="border:0;background:transparent;color:#a53b20;font:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:0;margin-left:10px" onclick="abrirPendenciasAbate()">VER / FINALIZAR</button><span id="dashAbatesPendentesQtd" style="display:none"></span></div>
 
       </div>
       <div class="dash-visual-grid" aria-label="Distribuição dos animais por sistema">
@@ -2427,7 +2451,7 @@ function alternarOrdemPesagens(v){ordemPesagens=v;renderPesagens()}
 function renderPesagens(){const el=$('pesagensTable');if(!el)return;let gs=[...gruposAbate()];if(ordemPesagens==='ASC')gs.reverse();if(!gs.length){el.innerHTML='<div class="empty">Nenhuma pesagem cadastrada.</div>';return}let h='<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><label style="font-size:12px;font-weight:800">ORDENAR&nbsp;<select onchange="alternarOrdemPesagens(this.value)" style="padding:7px 10px;border:1px solid #d1d5db;border-radius:7px"><option value="DESC" '+(ordemPesagens==='DESC'?'selected':'')+'>MAIS RECENTE PRIMEIRO</option><option value="ASC" '+(ordemPesagens==='ASC'?'selected':'')+'>MAIS ANTIGA PRIMEIRO</option></select></label></div><div class="table-wrap"><table style="min-width:850px"><thead><tr><th>Data saída</th><th>Data entrada</th><th>Destino</th><th>Origem</th><th>Animais</th><th>Peso médio saída</th></tr></thead><tbody>';gs.forEach(g=>{const a=g.base,ls=g.indices.map(i=>animais[i]),pm=ls.reduce((s,x)=>s+(Number(x.ps)||0),0)/ls.length;h+=`<tr><td>${dataBR(a.saida)}</td><td>${dataBR(a.entrada)}</td><td>${a.destino||'—'}</td><td>${origemGrupo(g)}</td><td>${g.indices.length}</td><td>${pm.toFixed(2)} kg / ${((pm/2)/15).toFixed(2)} @</td></tr>`});el.innerHTML=h+'</tbody></table></div>'}
 function renderMediasInline(){let el=$('mediasInline');if(!el)return;const lista=pesagemAtualAnimais();if(!lista.length){el.innerHTML='<div class="empty">Nenhum animal lançado nesta pesagem.</div>';return}const avg=(k,a=lista)=>{let v=a.map(x=>Number(x[k])).filter(Number.isFinite);return v.length?v.reduce((s,n)=>s+n,0)/v.length:0};const cards=a=>`<div class="kpis"><div class="kpi"><span>ANIMAIS</span><strong>${a.length}</strong></div><div class="kpi"><span>PESO MÉDIO ENTRADA</span><strong>${avg('pe',a).toFixed(1)} kg / ${((avg('pe',a)/2)/15).toFixed(2)} @</strong></div><div class="kpi"><span>PESO MÉDIO SAÍDA</span><strong>${avg('ps',a).toFixed(1)} kg / ${((avg('ps',a)/2)/15).toFixed(2)} @</strong></div><div class="kpi"><span>GMD MÉDIO</span><strong>${avg('gmd',a).toFixed(3)}</strong></div><div class="kpi"><span>DIAS MÉDIOS</span><strong>${avg('dias',a).toFixed(1)}</strong></div><div class="kpi"><span>DIÁRIA MÉDIA</span><strong>${money(avg('diaria',a))}</strong></div><div class="kpi"><span>PREÇO COMPRA MÉDIO</span><strong>${money(avg('compra',a))}</strong></div><div class="kpi"><span>CUSTO MÉDIO ANIMAL</span><strong>${money(avg('custoAnimal',a))}</strong></div></div>`;let h='<h3>MÉDIA GERAL DA PESAGEM ATUAL</h3>'+cards(lista);let g={};lista.forEach(x=>{let o=(x.origem||'SEM ORIGEM').toUpperCase();(g[o]??=[]).push(x)});Object.entries(g).forEach(([o,a])=>h+=`<div style="margin-top:18px"><h3>ORIGEM: ${o}</h3>${cards(a)}</div>`);el.innerHTML=h}
 function origemAbate(x){return String(x.localizacao||x.origem||'SEM ORIGEM').trim().toUpperCase()}
-function grupoKey(x){return [x.saida||'',x._pesagem_id||''].join('|')}
+function grupoKey(x){return [x.saida||'',x._pesagem_id||'',origemAbate(x)].join('|')}
 function origemGrupo(g){
  const locais=g.indices.map(i=>origemAbate(animais[i]));
  const cont={};locais.forEach(l=>{cont[l]=(cont[l]||0)+1});
@@ -2440,7 +2464,7 @@ function gruposAbate(){
  animais.forEach((x,i)=>{
    /* ABATE: somente pesagens destinadas ao abate.
       Movimentação e comercialização ficam fora deste combo. */
-   if(!x._pesagem_id || !pesagensLiberadasAbate.has(String(x._pesagem_id))) return;
+   if(!x._pesagem_id || !(pesagensLiberadasAbate.has(String(x._pesagem_id)) || (x.status==='VENDA' && x.tipoEvento==='ABATE' && String(x.destino||'').toUpperCase().includes('FRIGORÍFICO')))) return;
    if(!x.saida || !Number.isFinite(Number(x.ps)) || Number(x.ps)<=0) return;
    const k=grupoKey(x);
    if(!m[k])m[k]={key:k,base:x,indices:[]};
@@ -2462,10 +2486,36 @@ function preencherGruposAbate(){
 }
 function grupoSelecionado(){const v=$('ab_grupo')?.value;if(!v)return null;return gruposAbate().find(g=>encodeURIComponent(g.key)===v)||null}
 let abatePreview=null;
-function mostrarResumoAbate(){const el=$('ab_grupoResumo'),g=grupoSelecionado();abatePreview=null;if(!el)return;if(!g){el.style.display='none';$('abateResultado').innerHTML='<div class="empty">Selecione uma pesagem/origem, informe os dados e clique em CARREGAR DADOS.</div>';return}const a=animais[g.indices[0]];el.style.display='block';el.innerHTML=`<b>${g.indices.length} animal(is)</b> neste grupo: <b>${grupoLabelCompleto(g)}</b>. Confira os dados da pesagem abaixo. Peso de carcaça e valor da arroba são necessários somente para calcular e salvar o abate.`;const lote=g.indices.map(i=>animais[i]);const somaCampo=k=>lote.reduce((t,z)=>t+(Number(z[k])||0),0);const mediaCampo=k=>lote.length?somaCampo(k)/lote.length:0;el.insertAdjacentHTML('beforeend',`<div class="kpis" style="margin-top:12px"><div class="kpi"><span>ANIMAIS</span><strong>${lote.length}</strong></div><div class="kpi"><span>PESO ENTRADA MÉDIO</span><strong>${mediaCampo('pe').toFixed(2)} kg</strong></div><div class="kpi"><span>PESO SAÍDA MÉDIO</span><strong>${mediaCampo('ps').toFixed(2)} kg</strong></div><div class="kpi"><span>DIAS MÉDIOS</span><strong>${mediaCampo('dias').toFixed(1)}</strong></div><div class="kpi"><span>DIÁRIA MÉDIA</span><strong>${money0(mediaCampo('diaria'))}</strong></div><div class="kpi"><span>CUSTO ATUAL TOTAL</span><strong>${money0(somaCampo('custoAtual'))}</strong></div><div class="kpi"><span>ACUMULADO TOTAL</span><strong>${money0(somaCampo('custoAcumulado'))}</strong></div><div class="kpi"><span>CUSTO TOTAL DO LOTE</span><strong>${money0(somaCampo('custoAnimal'))}</strong></div></div>`);el.innerHTML += `<div class="table-wrap" style="margin-top:10px"><table style="min-width:1000px"><thead><tr><th>BRINCO</th><th>ENTRADA</th><th>PESO ENTRADA</th><th>PESO SAÍDA</th><th>DIAS</th><th>DIÁRIA</th><th>PREÇO COMPRA</th><th>CUSTO ATUAL</th><th>ACUMULADO</th><th>CUSTO TOTAL</th></tr></thead><tbody>${g.indices.map(i=>{const z=animais[i];return `<tr><td><b>${z.brinco}</b></td><td>${dataBR(z.entrada)}</td><td>${Number(z.pe).toFixed(2)} kg</td><td>${Number(z.ps).toFixed(2)} kg</td><td>${z.dias}</td><td>${money0(z.diaria)}</td><td>${money0(z.compra??z.precoCompra??z.preco_compra)}</td><td>${money0(z.custoAtual)}</td><td>${money0(z.custoAcumulado)}</td><td>${money0(z.custoAnimal)}</td></tr>`}).join('')}</tbody></table></div><div class="hint">CONSULTA DA PESAGEM: DISPONÍVEL SEM INFORMAR CARCAÇA OU VALOR DA ARROBA. O FECHAMENTO DO ABATE CONTINUA EXIGINDO ESSES DADOS.</div>`;const q=g.indices.map(i=>animais[i]).find(x=>Number.isFinite(Number(x.pesoCarcacaArrobas))&&Number.isFinite(Number(x.valorArroba)));$('ab_carcaca').value=q?.pesoCarcacaArrobas??'';$('ab_valor').value=q?.valorArroba??'';const salvo=g.indices.some(i=>animais[i]?.abateSalvoEm);$('ab_carcaca').disabled=salvo;$('ab_valor').disabled=salvo;/* Mantém a listagem já montada acima; não apagar a tabela ao atualizar o aviso. */
+async function atualizarCustosAbate(g,lote){
+ const nome=(g.base?.localizacao||g.base?.origem||lote[0]?.localizacao||'').trim();
+ if(!nome)return;
+ try{
+  const {data,error}=await supa.from('nutri_custos_diarios').select('data_trato,custo_diaria_cabeca').eq('localizacao',nome).lte('data_trato',g.base?.saida||'2026-11-15').order('data_trato',{ascending:false}).limit(365);
+  if(error)throw error;
+  const validos=(data||[]).filter(r=>Number.isFinite(Number(r.custo_diaria_cabeca)));
+  if(!validos.length)return;
+  const ultima=validos[0], dataSaida=g.base?.saida||'',ultimoAntes=validos.find(r=>!dataSaida||r.data_trato<dataSaida)||ultima;
+  const custos=validos.filter(r=>!dataSaida||r.data_trato<dataSaida);
+  const soma=custos.reduce((v,r)=>v+Number(r.custo_diaria_cabeca),0);
+  const sel=$('ab_grupo');if(!sel||decodeURIComponent(sel.value)!==g.key)return;
+  const el=$('ab_grupoResumo');if(!el)return;
+  const kpis=el.querySelectorAll('.kpi');
+  if(kpis[4])kpis[4].querySelector('strong').textContent=money0(ultimoAntes.custo_diaria_cabeca);
+  /* Indicador parcial removido: não representa o custo completo do ciclo. */
+  const tabela=el.querySelector('table');if(tabela){
+   const cab=tabela.querySelectorAll('thead th');if(cab[5])cab[5].textContent='DIÁRIA ATUAL';/* Não substituir custo atual por custo parcial. */
+   for(const tr of tabela.querySelectorAll('tbody tr')){
+    const td=tr.querySelectorAll('td');if(td[5])td[5].textContent=money0(ultimoAntes.custo_diaria_cabeca);
+    /* Não substituir o custo atual por soma parcial. */
+    /* Preservar custo total original. */
+   }
+  }
+ }catch(e){console.warn('Custos do abate indisponíveis',e)}
+}
+function mostrarResumoAbate(){const el=$('ab_grupoResumo'),g=grupoSelecionado();abatePreview=null;if(!el)return;if(!g){el.style.display='none';$('abateResultado').innerHTML='<div class="empty">Selecione uma pesagem/origem, informe os dados e clique em CARREGAR DADOS.</div>';return}const a=animais[g.indices[0]];el.style.display='block';el.innerHTML=`<b>${g.indices.length} animal(is)</b> neste grupo: <b>${grupoLabelCompleto(g)}</b>. Confira os dados da pesagem abaixo. Peso de carcaça e valor da arroba são necessários somente para calcular e salvar o abate.`;const lote=g.indices.map(i=>animais[i]);atualizarCustosAbate(g,lote);const somaCampo=k=>lote.reduce((t,z)=>t+(Number(z[k])||0),0);const mediaCampo=k=>lote.length?somaCampo(k)/lote.length:0;el.insertAdjacentHTML('beforeend',`<div class="kpis" style="margin-top:12px"><div class="kpi"><span>ANIMAIS</span><strong>${lote.length}</strong></div><div class="kpi"><span>PESO ENTRADA MÉDIO</span><strong>${mediaCampo('pe').toFixed(2)} kg</strong></div><div class="kpi"><span>PESO SAÍDA MÉDIO</span><strong>${mediaCampo('ps').toFixed(2)} kg</strong></div><div class="kpi"><span>DIAS MÉDIOS</span><strong>${mediaCampo('dias').toFixed(1)}</strong></div><div class="kpi"><span>DIÁRIA MÉDIA</span><strong>${money0(mediaCampo('diaria'))}</strong></div><div class="kpi"><span>ACUMULADO TOTAL</span><strong>${money0(somaCampo('custoAcumulado'))}</strong></div></div>`);el.innerHTML += `<div class="table-wrap" style="margin-top:10px"><table style="min-width:1000px"><thead><tr><th>BRINCO</th><th>ENTRADA</th><th>PESO ENTRADA</th><th>PESO SAÍDA</th><th>DIAS</th><th>DIÁRIA</th><th>PREÇO COMPRA</th><th>CUSTO ATUAL</th><th>ACUMULADO</th><th>CUSTO TOTAL</th></tr></thead><tbody>${g.indices.map(i=>{const z=animais[i];return `<tr><td><b>${z.brinco}</b></td><td>${dataBR(z.entrada)}</td><td>${Number(z.pe).toFixed(2)} kg</td><td>${Number(z.ps).toFixed(2)} kg</td><td>${z.dias}</td><td>${money0(z.diaria)}</td><td>${money0(z.compra??z.precoCompra??z.preco_compra)}</td><td>${money0(z.custoAtual)}</td><td>${money0(z.custoAcumulado)}</td><td>${money0(z.custoAnimal)}</td></tr>`}).join('')}</tbody></table></div><div class="hint">CONSULTA DA PESAGEM: DISPONÍVEL SEM INFORMAR CARCAÇA OU VALOR DA ARROBA. O FECHAMENTO DO ABATE CONTINUA EXIGINDO ESSES DADOS.</div>`;const q=g.indices.map(i=>animais[i]).find(x=>Number.isFinite(Number(x.pesoCarcacaArrobas))&&Number.isFinite(Number(x.valorArroba)));$('ab_carcaca').value=q?.pesoCarcacaArrobas??'';$('ab_valor').value=q?.valorArroba??'';const salvo=g.indices.some(i=>animais[i]?.abateSalvoEm);$('ab_carcaca').disabled=salvo;$('ab_valor').disabled=salvo;/* Mantém a listagem já montada acima; não apagar a tabela ao atualizar o aviso. */
  const avisoGrupo=salvo?'ABATE JÁ SALVO — SOMENTE CONSULTA.':'PESAGEM DISPONÍVEL PARA CONFERÊNCIA ANTES DO ABATE.';
  el.insertAdjacentHTML('beforeend',`<div class="notice" style="margin-top:8px"><b>${avisoGrupo}</b></div>`);$('abateResultado').innerHTML=salvo?'<div class="notice"><b>ABATE JÁ SALVO — SOMENTE CONSULTA.</b></div>':'<div class="empty">Dados ainda não carregados para conferência.</div>'}
-function calcAbate(x,carcA,valA){const pesoCarcKg=carcA*15;const rend=x.ps>0?pesoCarcKg/x.ps:0;const rendPct=rend*100;const kgProd=(Number(x.ps)||0)-(Number(x.pe)||0);const arrobasProd=(kgProd*rend)/15;const gdc=rend*(Number(x.gmd)||0);const dias1=gdc>0?15/gdc:0;const apuradoBoi=arrobasProd*valA;const custoConfinamento=(Number(x.diaria)||0)*(Number(x.dias)||0);const apuradoConf=apuradoBoi-custoConfinamento;const custoArroba=arrobasProd>0?custoConfinamento/arrobasProd:0;const retorno=apuradoBoi>0?100-(custoConfinamento/apuradoBoi)*100:0;const apuradoAt=((Number(valA)||0)-custoArroba)*arrobasProd;const retornoMensal=Number(x.dias)>0?(retorno/Number(x.dias))*30:0;const liquido=carcA*valA;const funrural=liquido*0.00199998;const receber=liquido-funrural;const venda=carcA*valA;const resultado=venda-(Number(x.custoAnimal)||0);return{pesoCarcKg,rend,rendPct,kgProd,arrobasProd,gdc,dias1,apuradoBoi,apuradoConf,custoArroba,retorno,apuradoAt,retornoMensal,liquido,funrural,receber,venda,resultado}}
+function calcAbate(x,carcA,valA){const pesoCarcKg=carcA*15;const rend=x.ps>0?pesoCarcKg/x.ps:0;const rendPct=rend*100;const kgProd=(Number(x.ps)||0)-(Number(x.pe)||0);const arrobasProd=(kgProd*rend)/15;const gdc=rend*(Number(x.gmd)||0);const dias1=gdc>0?15/gdc:0;const apuradoBoi=arrobasProd*valA;const custoConfinamento=(Number(x.diaria)||0)*(Number(x.dias)||0);const apuradoConf=apuradoBoi-custoConfinamento;const custoArroba=arrobasProd>0?custoConfinamento/arrobasProd:0;const retorno=apuradoBoi>0?100-(custoConfinamento/apuradoBoi)*100:0;const apuradoAt=((Number(valA)||0)-custoArroba)*arrobasProd;const retornoMensal=Number(x.dias)>0?(retorno/Number(x.dias))*30:0;const liquido=carcA*valA;const funrural=liquido*0.00199998;const receber=liquido-funrural;const venda=carcA*valA;const compra=Number(x.compra);const custoAc=Number(x.custoAcumulado)||0;const custoAtual=Number(x.custoAtual)||0;const resultado=compra>0?venda-compra-custoAc-custoAtual:NaN;return{pesoCarcKg,rend,rendPct,kgProd,arrobasProd,gdc,dias1,apuradoBoi,apuradoConf,custoArroba,retorno,apuradoAt,retornoMensal,liquido,funrural,receber,venda,resultado}}
 function money0(v){return Number.isFinite(Number(v))?money(Number(v)):'—'}
 function carregarDadosAbate(){
  const g=grupoSelecionado(),ca=parseFloat($('ab_carcaca').value),va=parseFloat($('ab_valor').value);
@@ -2484,9 +2534,9 @@ function carregarDadosAbate(){
  }
  abatePreview={key:g.key,ca,va};renderResultadoAbate(g,ca,va);
 }
-function renderResultadoAbate(g,ca,va){const el=$('abateResultado');if(!el||!g)return;const a=animais[g.indices[0]];if(!Number.isFinite(Number(ca))||!Number.isFinite(Number(va))){el.innerHTML='<div class="empty">Informe os dados e clique em CARREGAR DADOS para conferir.</div>';return}ca=Number(ca);va=Number(va);const rs=g.indices.map(i=>({x:animais[i],r:calcAbate(animais[i],ca,va)})),n=rs.length;const sum=k=>rs.reduce((s,z)=>s+(Number(z.r[k])||0),0),avg=k=>n?sum(k)/n:0;const totalCarcKg=sum('pesoCarcKg'),totalPE=rs.reduce((s,z)=>s+(Number(z.x.pe)||0),0),totalPS=rs.reduce((s,z)=>s+(Number(z.x.ps)||0),0),rendPct=totalPS>0?(totalCarcKg/totalPS)*100:0,rend=rendPct/100,gmd=n?rs.reduce((s,z)=>s+(Number(z.x.gmd)||0),0)/n:0,pe=totalPE/n,ps=totalPS/n,kgProd=ps-pe,arr=(kgProd*rend)/15,gdc=rend*gmd,dias1=gdc>0?15/gdc:0,diaria=n?rs.reduce((s,z)=>s+(Number(z.x.diaria)||0),0)/n:0,diasL=n?rs.reduce((s,z)=>s+(Number(z.x.dias)||0),0)/n:0,custo=diaria*diasL,apurado=arr*va,apuradoConf=apurado-custo,custoArr=arr>0?custo/arr:0,ret=apurado>0?100-(custo/apurado)*100:0,apuradoProd=(va-custoArr)*arr,retMes=diasL>0?(ret/diasL)*30:0,totalArr=(totalPS-totalPE)*rend/15,totalL=sum('liquido'),totalF=sum('funrural'),totalR=sum('receber');let h=`<div id="dashOrigemImpressao"><div class="notice"><b>${n} animal(is)</b> na pesagem. Confira os dados abaixo antes de salvar.</div><h3 style="margin-top:22px">DASHBOARD DO LOTE — ORIGEM: ${origemAbate(a)} — SAÍDA: ${dataBR(a.saida)}</h3><div class="kpis"><div class="kpi"><span>DATA DE ENTRADA</span><strong>${dataBR(a.entrada)}</strong></div><div class="kpi"><span>QTD DE DIAS</span><strong>${diasL.toFixed(0)}</strong></div><div class="kpi"><span>VALOR DIÁRIA</span><strong>${money0(diaria)}</strong></div><div class="kpi"><span>GMD</span><strong>${gmd.toFixed(3)}</strong></div><div class="kpi"><span>PESO CARCAÇA (@)</span><strong>${ca.toFixed(2)} @</strong></div><div class="kpi"><span>PESO CARCAÇA (KG)</span><strong>${avg('pesoCarcKg').toFixed(2)} kg</strong></div><div class="kpi"><span>VALOR DA ARROBA</span><strong>${money0(va)}</strong></div><div class="kpi"><span>RENDIMENTO</span><strong>${rendPct.toFixed(2)}%</strong></div><div class="kpi"><span>PESO MÉDIO ENTRADA</span><strong>${pe.toFixed(2)} kg / ${((pe/2)/15).toFixed(2)} @</strong></div><div class="kpi"><span>PESO MÉDIO SAÍDA</span><strong>${ps.toFixed(2)} kg / ${((ps/2)/15).toFixed(2)} @</strong></div><div class="kpi"><span>KG PRODUZIDOS</span><strong>${kgProd.toFixed(2)} kg</strong></div><div class="kpi"><span>ARROBAS PRODUZIDAS</span><strong>${arr.toFixed(2)} @</strong></div><div class="kpi"><span>GDC</span><strong>${gdc.toFixed(3)}</strong></div><div class="kpi"><span>DIAS PARA PRODUZIR 1 @</span><strong>${dias1.toFixed(2)}</strong></div><div class="kpi"><span>APURADO EM @ BOI</span><strong>${money0(apurado)}</strong></div><div class="kpi"><span>APURADO NO CONFINAMENTO</span><strong>${money0(apuradoConf)}</strong></div><div class="kpi"><span>CUSTO DA @ PRODUZIDA</span><strong>${money0(custoArr)}</strong></div><div class="kpi"><span>RETORNO DO CAPITAL NO PERÍODO</span><strong>${ret.toFixed(2)}</strong></div><div class="kpi"><span>APURADO @ PRODUZIDA</span><strong>${money0(apuradoProd)}</strong></div><div class="kpi"><span>RETORNO DE CAPITAL MENSAL</span><strong>${retMes.toFixed(2)}</strong></div></div><h3 style="margin-top:22px">TOTAIS DA PESAGEM</h3><div class="kpis"><div class="kpi"><span>REGISTROS DE ANIMAIS</span><strong>${n}</strong></div><div class="kpi"><span>ARROBAS PRODUZIDAS TOTAL</span><strong>${totalArr.toFixed(2)} @</strong></div><div class="kpi"><span>LÍQUIDO</span><strong>${money0(totalL)}</strong></div><div class="kpi"><span>FUNRURAL</span><strong>${money0(totalF)}</strong></div><div class="kpi"><span>A RECEBER</span><strong>${money0(totalR)}</strong></div></div><h3 style="margin-top:22px">ANIMAIS DESTA PESAGEM (${n})</h3><div class="table-wrap"><table><thead><tr><th>Brinco</th><th>Peso entrada (kg / @)</th><th>Peso saída (kg / @)</th><th>GMD</th><th>Dias</th><th>Peso carcaça (kg)</th><th>Rendimento</th><th>Arrobas produzidas</th><th>Líquido</th><th>Funrural</th><th>A receber</th><th>Resultado</th></tr></thead><tbody>`;rs.forEach(z=>h+=`<tr><td>${z.x.brinco||'—'}</td><td>${Number(z.x.pe).toFixed(2)} kg / ${((Number(z.x.pe)/2)/15).toFixed(2)} @</td><td>${Number(z.x.ps).toFixed(2)} kg / ${((Number(z.x.ps)/2)/15).toFixed(2)} @</td><td>${Number(z.x.gmd).toFixed(3)}</td><td>${z.x.dias??'—'}</td><td>${z.r.pesoCarcKg.toFixed(2)}</td><td>${z.r.rendPct.toFixed(2)}%</td><td>${z.r.arrobasProd.toFixed(2)}</td><td>${money0(z.r.liquido)}</td><td>${money0(z.r.funrural)}</td><td>${money0(z.r.receber)}</td><td>${money0(z.r.resultado)}</td></tr>`);h+=`</tbody></table></div><div class="form-actions no-print"><button type="button" class="btn" onclick="imprimirDashAbate()">Imprimir dashboard</button>${g.indices.some(i=>animais[i]?.abateSalvoEm)?'<button type="button" class="btn primary" disabled style="opacity:.6;cursor:not-allowed">✅ ABATE JÁ SALVO</button>':'<button type="button" class="btn primary" onclick="salvarAbate()">Salvar abate</button>'}</div></div>`;h+=renderMediaGeralSaida(a.saida,g,ca,va);el.innerHTML=h}
+function renderResultadoAbate(g,ca,va){const el=$('abateResultado');if(!el||!g)return;const a=animais[g.indices[0]];if(!Number.isFinite(Number(ca))||!Number.isFinite(Number(va))){el.innerHTML='<div class="empty">Informe os dados e clique em CARREGAR DADOS para conferir.</div>';return}ca=Number(ca);va=Number(va);const rs=g.indices.map(i=>({x:animais[i],r:calcAbate(animais[i],ca,va)})),n=rs.length;const sum=k=>rs.reduce((s,z)=>s+(Number(z.r[k])||0),0),avg=k=>n?sum(k)/n:0;const totalCarcKg=sum('pesoCarcKg'),totalPE=rs.reduce((s,z)=>s+(Number(z.x.pe)||0),0),totalPS=rs.reduce((s,z)=>s+(Number(z.x.ps)||0),0),rendPct=totalPS>0?(totalCarcKg/totalPS)*100:0,rend=rendPct/100,gmd=n?rs.reduce((s,z)=>s+(Number(z.x.gmd)||0),0)/n:0,pe=totalPE/n,ps=totalPS/n,kgProd=ps-pe,arr=(kgProd*rend)/15,gdc=rend*gmd,dias1=gdc>0?15/gdc:0,diaria=n?rs.reduce((s,z)=>s+(Number(z.x.diaria)||0),0)/n:0,diasL=n?rs.reduce((s,z)=>s+(Number(z.x.dias)||0),0)/n:0,custo=diaria*diasL,apurado=arr*va,apuradoConf=apurado-custo,custoArr=arr>0?custo/arr:0,ret=apurado>0?100-(custo/apurado)*100:0,apuradoProd=(va-custoArr)*arr,retMes=diasL>0?(ret/diasL)*30:0,totalArr=(totalPS-totalPE)*rend/15,totalL=sum('liquido'),totalF=sum('funrural'),totalR=sum('receber');let h=`<div id="dashOrigemImpressao"><div class="notice"><b>${n} animal(is)</b> na pesagem. <b>${rs.filter(z=>!(Number(z.x.compra)>0)).length} sem preço de compra: excluídos do lucro, mas incluídos na receita.</b> Confira os dados abaixo antes de salvar.</div><h3 style="margin-top:22px">DASHBOARD DO LOTE — ORIGEM: ${origemAbate(a)} — SAÍDA: ${dataBR(a.saida)}</h3><div class="kpis"><div class="kpi"><span>DATA DE ENTRADA</span><strong>${dataBR(a.entrada)}</strong></div><div class="kpi"><span>QTD DE DIAS</span><strong>${diasL.toFixed(0)}</strong></div><div class="kpi"><span>VALOR DIÁRIA</span><strong>${money0(diaria)}</strong></div><div class="kpi"><span>GMD</span><strong>${gmd.toFixed(3)}</strong></div><div class="kpi"><span>PESO CARCAÇA (@)</span><strong>${ca.toFixed(2)} @</strong></div><div class="kpi"><span>PESO CARCAÇA (KG)</span><strong>${avg('pesoCarcKg').toFixed(2)} kg</strong></div><div class="kpi"><span>VALOR DA ARROBA</span><strong>${money0(va)}</strong></div><div class="kpi"><span>RENDIMENTO</span><strong>${rendPct.toFixed(2)}%</strong></div><div class="kpi"><span>PESO MÉDIO ENTRADA</span><strong>${pe.toFixed(2)} kg / ${((pe/2)/15).toFixed(2)} @</strong></div><div class="kpi"><span>PESO MÉDIO SAÍDA</span><strong>${ps.toFixed(2)} kg / ${((ps/2)/15).toFixed(2)} @</strong></div><div class="kpi"><span>KG PRODUZIDOS</span><strong>${kgProd.toFixed(2)} kg</strong></div><div class="kpi"><span>ARROBAS PRODUZIDAS</span><strong>${arr.toFixed(2)} @</strong></div><div class="kpi"><span>GDC</span><strong>${gdc.toFixed(3)}</strong></div><div class="kpi"><span>DIAS PARA PRODUZIR 1 @</span><strong>${dias1.toFixed(2)}</strong></div><div class="kpi"><span>APURADO EM @ BOI</span><strong>${money0(apurado)}</strong></div><div class="kpi"><span>APURADO NO CONFINAMENTO</span><strong>${money0(apuradoConf)}</strong></div><div class="kpi"><span>CUSTO DA @ PRODUZIDA</span><strong>${money0(custoArr)}</strong></div><div class="kpi"><span>RETORNO DO CAPITAL NO PERÍODO</span><strong>${ret.toFixed(2)}</strong></div><div class="kpi"><span>APURADO @ PRODUZIDA</span><strong>${money0(apuradoProd)}</strong></div><div class="kpi"><span>RETORNO DE CAPITAL MENSAL</span><strong>${retMes.toFixed(2)}</strong></div></div><h3 style="margin-top:22px">TOTAIS DA PESAGEM</h3><div class="kpis"><div class="kpi"><span>REGISTROS DE ANIMAIS</span><strong>${n}</strong></div><div class="kpi"><span>ARROBAS PRODUZIDAS TOTAL</span><strong>${totalArr.toFixed(2)} @</strong></div><div class="kpi"><span>LÍQUIDO</span><strong>${money0(totalL)}</strong></div><div class="kpi"><span>FUNRURAL</span><strong>${money0(totalF)}</strong></div><div class="kpi"><span>A RECEBER</span><strong>${money0(totalR)}</strong></div></div><h3 style="margin-top:22px">ANIMAIS DESTA PESAGEM (${n})</h3><div class="table-wrap"><table><thead><tr><th>Brinco</th><th>Peso entrada (kg / @)</th><th>Peso saída (kg / @)</th><th>GMD</th><th>Dias</th><th>Peso carcaça (kg)</th><th>Rendimento</th><th>Arrobas produzidas</th><th>Líquido</th><th>Funrural</th><th>A receber</th><th>Resultado</th></tr></thead><tbody>`;rs.forEach(z=>h+=`<tr><td>${z.x.brinco||'—'}</td><td>${Number(z.x.pe).toFixed(2)} kg / ${((Number(z.x.pe)/2)/15).toFixed(2)} @</td><td>${Number(z.x.ps).toFixed(2)} kg / ${((Number(z.x.ps)/2)/15).toFixed(2)} @</td><td>${Number(z.x.gmd).toFixed(3)}</td><td>${z.x.dias??'—'}</td><td>${z.r.pesoCarcKg.toFixed(2)}</td><td>${z.r.rendPct.toFixed(2)}%</td><td>${z.r.arrobasProd.toFixed(2)}</td><td>${money0(z.r.liquido)}</td><td>${money0(z.r.funrural)}</td><td>${money0(z.r.receber)}</td><td>${Number.isFinite(z.r.resultado)?money0(z.r.resultado):'SEM PREÇO DE COMPRA'}</td></tr>`);h+=`</tbody></table></div><div class="form-actions no-print"><button type="button" class="btn" onclick="imprimirDashAbate()">Imprimir dashboard</button>${g.indices.some(i=>animais[i]?.abateSalvoEm)?'<button type="button" class="btn primary" disabled style="opacity:.6;cursor:not-allowed">✅ ABATE JÁ SALVO</button>':'<button type="button" class="btn primary" onclick="salvarAbate()">Salvar abate</button>'}</div></div>`;h+=renderMediaGeralSaida(a.saida,g,ca,va);el.innerHTML=h}
 function renderMediaGeralSaida(saida,gAtual,caAtual,vaAtual){const rs=[];animais.forEach((x,i)=>{if(x.saida!==saida)return;const atual=gAtual?.indices.includes(i),ca=atual?Number(caAtual):Number(x.pesoCarcacaArrobas),va=atual?Number(vaAtual):Number(x.valorArroba);if(Number.isFinite(ca)&&Number.isFinite(va))rs.push({x,ca,va,r:calcAbate(x,ca,va)})});if(!rs.length)return '';const n=rs.length,avgX=k=>rs.reduce((s,z)=>s+(Number(z.x[k])||0),0)/n,avgR=k=>rs.reduce((s,z)=>s+(Number(z.r[k])||0),0)/n,totalPE=rs.reduce((s,z)=>s+(Number(z.x.pe)||0),0),totalPS=rs.reduce((s,z)=>s+(Number(z.x.ps)||0),0),totalCarc=rs.reduce((s,z)=>s+z.r.pesoCarcKg,0),pe=totalPE/n,ps=totalPS/n,rend=totalPS>0?totalCarc/totalPS:0,gmd=avgX('gmd'),dias=avgX('dias'),diaria=avgX('diaria'),ca=rs.reduce((s,z)=>s+z.ca,0)/n,va=rs.reduce((s,z)=>s+z.va,0)/n,kgProd=ps-pe,arr=kgProd*rend/15,gdc=rend*gmd,dias1=gdc>0?15/gdc:0,custo=diaria*dias,apurado=arr*va,apuradoConf=apurado-custo,custoArr=arr>0?custo/arr:0,ret=apurado>0?100-(custo/apurado)*100:0,apuradoProd=(va-custoArr)*arr,retMes=dias>0?ret/dias*30:0,totalArr=rs.reduce((s,z)=>s+z.r.arrobasProd,0),totalL=rs.reduce((s,z)=>s+z.r.liquido,0),totalF=rs.reduce((s,z)=>s+z.r.funrural,0),totalR=rs.reduce((s,z)=>s+z.r.receber,0);return `<div style="margin-top:28px;border-top:2px solid var(--line);padding-top:22px"><h3>MÉDIA GERAL DA SAÍDA DO DIA — ${dataBR(saida)}</h3><div class="notice"><b>${n} animal(is)</b> considerados nesta saída. A origem em conferência já entra na média.</div><div class="kpis"><div class="kpi"><span>QTD DE DIAS</span><strong>${dias.toFixed(0)}</strong></div><div class="kpi"><span>VALOR DIÁRIA</span><strong>${money0(diaria)}</strong></div><div class="kpi"><span>GMD</span><strong>${gmd.toFixed(3)}</strong></div><div class="kpi"><span>PESO CARCAÇA (@)</span><strong>${ca.toFixed(2)} @</strong></div><div class="kpi"><span>PESO CARCAÇA (KG)</span><strong>${avgR('pesoCarcKg').toFixed(2)} kg</strong></div><div class="kpi"><span>VALOR DA ARROBA</span><strong>${money0(va)}</strong></div><div class="kpi"><span>RENDIMENTO</span><strong>${(rend*100).toFixed(2)}%</strong></div><div class="kpi"><span>PESO MÉDIO ENTRADA</span><strong>${pe.toFixed(2)} kg / ${((pe/2)/15).toFixed(2)} @</strong></div><div class="kpi"><span>PESO MÉDIO SAÍDA</span><strong>${ps.toFixed(2)} kg / ${((ps/2)/15).toFixed(2)} @</strong></div><div class="kpi"><span>KG PRODUZIDOS</span><strong>${kgProd.toFixed(2)} kg</strong></div><div class="kpi"><span>ARROBAS PRODUZIDAS</span><strong>${arr.toFixed(2)} @</strong></div><div class="kpi"><span>GDC</span><strong>${gdc.toFixed(3)}</strong></div><div class="kpi"><span>DIAS PARA PRODUZIR 1 @</span><strong>${dias1.toFixed(2)}</strong></div><div class="kpi"><span>APURADO EM @ BOI</span><strong>${money0(apurado)}</strong></div><div class="kpi"><span>APURADO NO CONFINAMENTO</span><strong>${money0(apuradoConf)}</strong></div><div class="kpi"><span>CUSTO DA @ PRODUZIDA</span><strong>${money0(custoArr)}</strong></div><div class="kpi"><span>RETORNO DO CAPITAL NO PERÍODO</span><strong>${ret.toFixed(2)}</strong></div><div class="kpi"><span>APURADO @ PRODUZIDA</span><strong>${money0(apuradoProd)}</strong></div><div class="kpi"><span>RETORNO DE CAPITAL MENSAL</span><strong>${retMes.toFixed(2)}</strong></div></div><h3 style="margin-top:22px">TOTAIS DA SAÍDA DO DIA</h3><div class="kpis"><div class="kpi"><span>ANIMAIS</span><strong>${n}</strong></div><div class="kpi"><span>ARROBAS PRODUZIDAS TOTAL</span><strong>${totalArr.toFixed(2)} @</strong></div><div class="kpi"><span>LÍQUIDO</span><strong>${money0(totalL)}</strong></div><div class="kpi"><span>FUNRURAL</span><strong>${money0(totalF)}</strong></div><div class="kpi"><span>A RECEBER</span><strong>${money0(totalR)}</strong></div></div></div>`}
-function salvarAbate(){try{const g=grupoSelecionado();if(!g||!abatePreview||abatePreview.key!==g.key){toast('CARREGUE OS DADOS PARA CONFERÊNCIA ANTES DE SALVAR.');return}const ca=Number(abatePreview.ca),va=Number(abatePreview.va);g.indices.forEach(i=>{const x=animais[i],r=calcAbate(x,ca,va);Object.assign(x,{pesoCarcacaArrobas:ca,valorArroba:va,valorVenda:r.venda,resultado:r.resultado,pesoCarcacaKg:r.pesoCarcKg,rendimentoCarcaca:r.rendPct,arrobasProduzidas:r.arrobasProd,gdc:r.gdc,diasPorArroba:r.dias1,kgProduzidos:r.kgProd,custoArrobaProduzida:r.custoArroba,retornoCapitalPeriodo:r.retorno,apuradoArrobaProduzida:r.apuradoAt,retornoCapitalMensal:r.retornoMensal,apuradoArrobasBoi:r.apuradoBoi,apuradoConfinamento:r.apuradoConf,liquido:r.liquido,funrural:r.funrural,aReceber:r.receber,abateSalvoEm:new Date().toISOString()})});localStorage.setItem('pesagem_saida_etapa1_v2',JSON.stringify(animais));renderTable('animaisTable');renderPesagens();renderGraficos();renderResultadoAbate(g,ca,va);toast('ABATE SALVO E GRAVADO COM SUCESSO.')}catch(e){console.error(e);toast('ERRO AO SALVAR O ABATE: '+(e?.message||'VERIFIQUE OS DADOS.'))}}
+function salvarAbate(){try{const g=grupoSelecionado();if(!g||!abatePreview||abatePreview.key!==g.key){toast('CARREGUE OS DADOS PARA CONFERÊNCIA ANTES DE SALVAR.');return}const ca=Number(abatePreview.ca),va=Number(abatePreview.va);g.indices.forEach(i=>{const x=animais[i],r=calcAbate(x,ca,va);Object.assign(x,{pesoCarcacaArrobas:ca,valorArroba:va,valorVenda:r.venda,resultado:r.resultado,pesoCarcacaKg:r.pesoCarcKg,rendimentoCarcaca:r.rendPct,arrobasProduzidas:r.arrobasProd,gdc:r.gdc,diasPorArroba:r.dias1,kgProduzidos:r.kgProd,custoArrobaProduzida:r.custoArroba,retornoCapitalPeriodo:r.retorno,apuradoArrobaProduzida:r.apuradoAt,retornoCapitalMensal:r.retornoMensal,apuradoArrobasBoi:r.apuradoBoi,apuradoConfinamento:r.apuradoConf,liquido:r.liquido,funrural:r.funrural,aReceber:r.receber,abateSalvoEm:new Date().toISOString()})});localStorage.setItem('pesagem_saida_etapa1_v2',JSON.stringify(animais));renderTable('animaisTable');renderPesagens();renderGraficos();renderResultadoAbate(g,ca,va);toast('ATENÇÃO: RESULTADO SALVO SOMENTE NESTE NAVEGADOR. GRAVAÇÃO NO SUPABASE PENDENTE.')}catch(e){console.error(e);toast('ERRO AO SALVAR O ABATE: '+(e?.message||'VERIFIQUE OS DADOS.'))}}
 function imprimirDashAbate(){const area=$('dashOrigemImpressao');if(!area){toast('CARREGUE OS DADOS ANTES DE IMPRIMIR.');return}const w=window.open('','_blank');if(!w){toast('LIBERE A JANELA DE IMPRESSÃO NO NAVEGADOR.');return}w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Dashboard do Abate</title><style>body{font-family:Arial;color:#20262d;padding:20px}.notice{padding:10px;border-left:4px solid #315d4b;background:#f7f8f8}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.kpi{border:1px solid #dfe4e8;border-radius:8px;padding:12px}.kpi span{display:block;font-size:10px;color:#68727d}.kpi strong{display:block;font-size:17px;margin-top:5px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border-bottom:1px solid #ddd;padding:6px;text-align:left}.no-print{display:none}</style></head><body>${area.innerHTML}</body></html>`);w.document.close();setTimeout(()=>w.print(),250)}
 function graficoBarras(lista,campo,titulo,descricao,formatador){if(!lista.length)return `<div class="chart-box"><h3>${titulo}</h3><div class="empty">Sem dados suficientes.</div></div>`;const exib=lista.slice(0,10),vals=exib.map(x=>Number(x[campo])||0),max=Math.max(...vals,0.0001);return `<div class="chart-box"><h3>${titulo}</h3><p>${descricao}</p><div class="bars">${exib.map((x,i)=>{const v=vals[i]||0;return `<div class="bar-item"><div class="bar-value">${formatador(v)}</div><div class="bar" style="height:${Math.max(2,(v/max)*150)}px"></div><div class="bar-label">${x.label}</div></div>`}).join('')}</div></div>`}
 function dadosGraficos(){return gruposAbate().map(g=>{const a=g.base,ls=g.indices.map(i=>animais[i]),avg=k=>ls.reduce((s,x)=>s+(Number(x[k])||0),0)/ls.length;return{data:a.saida||'',label:(a.origem||'SEM ORIGEM')+' '+dataBR(a.saida),gmd:avg('gmd'),pesoSaida:avg('ps')}}).sort((a,b)=>String(b.data).localeCompare(String(a.data)))}
@@ -3195,30 +3245,35 @@ function projHTML(projs){
 
 // DASH: somente pesagens efetivamente gravadas e sem abate finalizado.
 async function atualizarPendenciasAbateDashboard(){
- const qtd=$('dashAbatesPendentesQtd'),lista=$('dashAbatesPendentesLista');if(!qtd||!lista)return;
+ const card=document.getElementById('dashAbatesPendentesCard'),qtd=document.getElementById('dashAbatesPendentesQtd'),lista=document.getElementById('dashAbatesPendentesLista');
+ if(!card||!qtd||!lista)return;
+ card.style.display='none';
  try{
   const hoje=new Date(),inicio=hoje.getFullYear()+'-'+String(hoje.getMonth()+1).padStart(2,'0')+'-01';
   const fim=new Date(hoje.getFullYear(),hoje.getMonth()+1,1).toISOString().slice(0,10);
-  const [p,a]=await Promise.all([
-   supa.from('pesagens').select('id,data_saida,observacoes').gte('data_saida',inicio).lt('data_saida',fim),
-   supa.from('abates').select('pesagem_id,carcaca_arrobas,valor_arroba')
-  ]);
-  if(p.error)throw p.error;if(a.error)throw a.error;
-  const completos=new Set((a.data||[]).filter(x=>Number(x.carcaca_arrobas)>0&&Number(x.valor_arroba)>0).map(x=>String(x.pesagem_id)));
-  const candidatos=(p.data||[]).filter(x=>!completos.has(String(x.id)));
-  let grupos=[];
-  for(const pes of candidatos){
-   const q=await supa.from('animais').select('id',{count:'exact',head:true}).eq('pesagem_id',pes.id).eq('status','VENDA');
-   if(q.error)throw q.error;
-   if((q.count||0)>0)grupos.push({id:pes.id,data:pes.data_saida,qtd:q.count});
+  const p=await supa.from('pesagens').select('id,data_saida').gte('data_saida',inicio).lt('data_saida',fim).limit(10000);
+  if(p.error)throw p.error;
+  const pesagens=p.data||[],ids=pesagens.map(x=>x.id),completos=new Set();
+  for(let k=0;k<ids.length;k+=100){
+   const a=await supa.from('abates').select('pesagem_id,carcaca_arrobas,carcaca_kg,valor_arroba').in('pesagem_id',ids.slice(k,k+100));
+   if(a.error)throw a.error;
+   for(const x of a.data||[])if((Number(x.carcaca_arrobas)>0||Number(x.carcaca_kg)>0)&&Number(x.valor_arroba)>0)completos.add(String(x.pesagem_id));
   }
-  const total=grupos.reduce((s,g)=>s+g.qtd,0);
-  qtd.textContent=String(total);
-  lista.textContent=total?`${total} ANIMAIS EM ${grupos.length} PESAGEM(NS) AGUARDANDO CARCAÇA E VALOR DE VENDA`:'NENHUMA PESAGEM DO MÊS AGUARDANDO FINALIZAÇÃO';
-  const fin=document.getElementById('dashFinGrafico');
-  if(fin){let aviso=document.getElementById('dashFinPendenciasAviso');if(!aviso){aviso=document.createElement('div');aviso.id='dashFinPendenciasAviso';aviso.style.cssText='border:1px solid #e5a943;border-radius:8px;padding:10px;margin-bottom:10px;font-size:11px;color:#8c4800;background:#fffaf3;font-weight:700';fin.parentElement.insertBefore(aviso,fin)}aviso.textContent=total?`⚠ ${total} ANIMAIS EM ${grupos.length} PESAGENS AGUARDANDO FINALIZAÇÃO — INFORMAR CARCAÇA E VALOR DE VENDA.`:'';aviso.style.display=total?'block':'none';}
- }catch(e){console.error('Pendências de abate:',e);qtd.textContent='—';lista.textContent='NÃO FOI POSSÍVEL CONFERIR PESAGENS: '+(e.message||e);}
+  const datasPendentes=new Set(pesagens.filter(x=>!completos.has(String(x.id))).map(x=>String(x.data_saida).slice(0,10)));
+  if(!datasPendentes.size){qtd.textContent='0';lista.textContent='';return;}
+  const datas=[...datasPendentes],v=await supa.from('animais').select('id,localizacao,data_saida').eq('status','VENDA').in('data_saida',datas).limit(10000);
+  if(v.error)throw v.error;
+  const pendentes=(v.data||[]).filter(x=>datasPendentes.has(String(x.data_saida).slice(0,10)));
+  const grupos=new Map();for(const x of pendentes){const key=String(x.data_saida).slice(0,10)+'|'+String(x.localizacao||'SEM LOCALIDADE').trim();grupos.set(key,(grupos.get(key)||0)+1);}
+  qtd.textContent=String(pendentes.length);
+  if(!pendentes.length)return;
+  const resumo=[...grupos].map(([key,n])=>key.split('|')[1]+': '+n).join(' · ');
+  lista.textContent=pendentes.length+' animais em '+grupos.size+' grupos · '+resumo;
+  card.style.display='flex';
+ }catch(e){console.error('Pendências de abate:',e);qtd.textContent='—';lista.textContent='';card.style.display='none';}
 }
+document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{if(typeof atualizarPendenciasAbateDashboard==='function')atualizarPendenciasAbateDashboard();},500)});
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&(/dashboard|painel|início/i).test(b.textContent||'')){setTimeout(()=>atualizarPendenciasAbateDashboard(),450)}},true);
 function abrirPendenciasAbate(){const b=[...document.querySelectorAll('.nav button')].find(x=>x.textContent.trim()==='Abate / Resultados');if(b)showPage('abate',b);else{document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$('abate')?.classList.add('active')}preencherGruposAbate();}
 
 async function renderDashboardEstoque(){
@@ -8459,13 +8514,38 @@ window.visaoAbateCarregar=async function(){
  box.textContent='Consultando pesagens e abates...';
  try{
  const p=await supa.from('pesagens').select('id,data_saida,destino,observacoes').eq('data_saida',dia).order('observacoes');if(p.error)throw p.error;
- const pesagens=p.data||[];if(!pesagens.length){box.innerHTML='<div class="empty">Nenhuma pesagem nesta data.</div>';return;}
+ // A data da saída dos animais é a referência primária da visão do abate.
+ // Inclui vendas lançadas diretamente no banco, ainda que falte o vínculo com pesagens.
+ const pesagens=p.data||[];
  const ids=pesagens.map(x=>x.id);
- const [a,b]=await Promise.all([
- supa.from('animais').select('id,pesagem_id,localizacao,data_entrada,categoria,categoria_animal,peso_entrada,peso_saida,qtd_dias,gmd,valor_diaria,preco_compra,custo_acumulado,custo_atual,valor_venda,resultado').in('pesagem_id',ids).eq('status','VENDA').limit(1000),
- supa.from('abates').select('pesagem_id,origem,data_abate,valor_arroba,carcaca_kg,carcaca_arrobas,rendimento_carcaca').in('pesagem_id',ids).limit(1000)
- ]);if(a.error)throw a.error;if(b.error)throw b.error;
- const animais=a.data||[],abates=b.data||[];
+ const campos='id,pesagem_id,localizacao,data_entrada,categoria,categoria_animal,peso_entrada,peso_saida,qtd_dias,gmd,valor_diaria,preco_compra,custo_acumulado,custo_atual,valor_venda,resultado,brinco';
+ const a=await supa.from('animais').select(campos).eq('data_saida',dia).eq('status','VENDA').not('peso_saida','is',null).limit(1000);
+ if(a.error)throw a.error;
+ const animais=a.data||[];
+ // Histórico de movimentações: identifica a entrada do último ciclo por animal.
+ const movPorAnimal=new Map();
+ if(animais.length){
+  const idsMov=animais.map(x=>x.id).filter(Boolean);
+  for(let k=0;k<idsMov.length;k+=100){
+   const mv=await supa.from('movimentacoes_animais').select('animal_id,destino,data_movimentacao').in('animal_id',idsMov.slice(k,k+100)).lte('data_movimentacao',dia).order('data_movimentacao',{ascending:false});
+   if(mv.error)throw mv.error;
+   for(const m of mv.data||[]){const id=String(m.animal_id);if(!movPorAnimal.has(id))movPorAnimal.set(id,[]);movPorAnimal.get(id).push(m);}
+  }
+ }
+ if(!animais.length){box.innerHTML='<div class="empty">Nenhuma pesagem de venda nesta data.</div>';return;}
+ const b=ids.length?await supa.from('abates').select('pesagem_id,origem,data_abate,valor_arroba,carcaca_kg,carcaca_arrobas,rendimento_carcaca').in('pesagem_id',ids).limit(1000):{data:[]};
+ if(b.error)throw b.error;
+ const abates=b.data||[];
+ // Fonte oficial de diária: histórico de custos de trato, por localidade e data.
+ // O custo do último ciclo é exibido apenas quando todos os dias estão disponíveis.
+ const diariosRes=await supa.from('nutri_custos_diarios').select('localizacao,data_trato,custo_diaria_cabeca').lte('data_trato',dia).order('data_trato',{ascending:false}).limit(10000);
+ if(diariosRes.error)throw diariosRes.error;
+ const diarios=(diariosRes.data||[]).filter(d=>d.localizacao&&n(d.custo_diaria_cabeca)!==null);
+ const diarioPorLocal=new Map();
+ for(const d of diarios){const key=String(d.localizacao).trim().toUpperCase();if(!diarioPorLocal.has(key))diarioPorLocal.set(key,[]);diarioPorLocal.get(key).push(d);}
+
+ // Suporte a vendas sem cabeçalho de pesagem, sem gravar nem duplicar registros.
+ for(const x of animais){if(!pesagens.some(y=>y.id===x.pesagem_id))pesagens.push({id:x.pesagem_id||'SEM_PESAGEM',data_saida:dia,destino:'',observacoes:''});}
  const abMap=new Map();for(const ab of abates){if(!abMap.has(ab.pesagem_id))abMap.set(ab.pesagem_id,ab);}
  const pMap=new Map(pesagens.map(x=>[x.id,x]));
  // Mesmo critério de média ponderada por animal da visão PARCIAL POR BAIA.
@@ -8481,14 +8561,14 @@ window.visaoAbateCarregar=async function(){
  }
  const parcialPorLocal=new Map();
  for(const local of locais){
-  const atuais=animais.filter(x=>String(x.localizacao||'').trim()===local);
-  const entradas=atuais.map(x=>x.data_entrada).filter(Boolean).sort();
-  const corte=entradas[0]||null;
-  const validos=historico.filter(x=>String(x.localizacao||'').trim()===local&&(!corte||(x.data_entrada&&x.data_entrada>=corte))).map(x=>{
+  // GMD parcial histórico: ganho total / dias totais dos animais vendidos com dados válidos.
+  // Não limitar pela entrada dos animais da venda atual.
+  const validos=historico.filter(x=>String(x.localizacao||'').trim().toUpperCase()===local.toUpperCase()).map(x=>{
    const pe=n(x.peso_entrada),ps=n(x.peso_saida),dias=n(x.qtd_dias);
-   return pe!==null&&pe>0&&ps!==null&&ps>0&&dias!==null&&dias>0?(ps-pe)/dias:null;
-  }).filter(x=>x!==null&&Number.isFinite(x));
-  parcialPorLocal.set(local,validos.length?validos.reduce((a,b)=>a+b,0)/validos.length:null);
+   return pe!==null&&pe>0&&ps!==null&&ps>0&&dias!==null&&dias>0?{ganho:ps-pe,dias}:null;
+  }).filter(Boolean);
+  const diasTotais=validos.reduce((t,x)=>t+x.dias,0);
+  parcialPorLocal.set(local,diasTotais>0?validos.reduce((t,x)=>t+x.ganho,0)/diasTotais:null);
  }
 
  const grupos=new Map();
@@ -8498,39 +8578,55 @@ window.visaoAbateCarregar=async function(){
  const pesoMedio=avg(animais,'peso_saida');const gmdValidos=animais.map(x=>{const pe=n(x.peso_entrada),ps=n(x.peso_saida),dias=n(x.qtd_dias);return pe!==null&&pe>0&&ps!==null&&ps>0&&dias!==null&&dias>0?(ps-pe)/dias:null;}).filter(v=>v!==null&&Number.isFinite(v));const gmdMedio=gmdValidos.length?gmdValidos.reduce((a,b)=>a+b,0)/gmdValidos.length:null;
  let html='<h3 style="margin:0 0 5px">GERAL — '+esc(dataBR)+'</h3><div class="hint">'+destino+'</div>';
  html+='<div class="va-kpis"><div class="va-kpi"><span>ANIMAIS</span><strong>'+animais.length+'</strong></div><div class="va-kpi"><span>PESO MÉDIO GERAL (@)</span><strong>'+fmt(pesoMedio===null?null:pesoMedio/30)+' @</strong></div><div class="va-kpi"><span>GMD MÉDIO GERAL</span><strong>'+fmt(gmdMedio,3)+' kg/dia</strong></div></div>';
- const heads=['LOCALIDADE','QTD','ENTRADA','SAÍDA','PESO SAÍDA @','CARCAÇA','RC %','DIAS','GMD','GDC','DIÁRIA','@ PRODUZIDAS','CST @PRODZ','APURADO CONF','GMD FINAL BAIA','VR COMPRA','CST ACUMULADO','VALOR DE VENDA','CUSTO CONF.','RESULTADO'];
+ const heads=['LOCALIDADE','QTD','ENTRADA','SAÍDA','PESO SAÍDA @','CARCAÇA','RC %','DIAS','GMD','GMD FINAL BAIA','GDC','DIÁRIA ATUAL','@ PRODUZIDAS','CST @PRODZ','APURADO CONF','VR COMPRA','CST ACUMULADO','VALOR DE VENDA','CUSTO CONF.','RESULTADO'];
  html+='<div class="va-scroll"><table><thead><tr>'+heads.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>';
  const mediaColunas=Array.from({length:20},()=>({soma:0,peso:0}));
  let custoArrobaNumerador=0,custoArrobaDenominador=0;
  for(const g of [...grupos.values()].sort((x,y)=>x.local.localeCompare(y.local,'pt-BR'))){
- const r=g.rows,ab=abMap.get(g.p.id),pe=avg(r,'peso_entrada'),ps=avg(r,'peso_saida'),dias=avg(r,'qtd_dias'),gmd=avg(r.filter(x=>n(x.peso_entrada)>0&&n(x.peso_saida)>0&&n(x.qtd_dias)>0).map(x=>({gmd:(n(x.peso_saida)-n(x.peso_entrada))/n(x.qtd_dias)})),'gmd'),diaria=avg(r,'valor_diaria');
+ const r=g.rows,ab=abMap.get(g.p.id),pe=avg(r,'peso_entrada'),ps=avg(r,'peso_saida'),dias=avg(r,'qtd_dias'),gmd=avg(r.filter(x=>n(x.peso_entrada)>0&&n(x.peso_saida)>0&&n(x.qtd_dias)>0).map(x=>({gmd:(n(x.peso_saida)-n(x.peso_entrada))/n(x.qtd_dias)})),'gmd');
+ const serie=diarioPorLocal.get(g.local)||[];
+ const diaria=serie.length?n(serie[0].custo_diaria_cabeca):null;
+ // Cálculo SEMPRE individual: acumulado do animal + dias do ciclo corrente x diária atual.
+ // A movimentação de entrada na baia prevalece sobre a entrada histórica no cadastro.
+ const custosCiclo=r.map(x=>{
+  const mov=(movPorAnimal.get(String(x.id))||[]).find(m=>String(m.destino||'').trim().toUpperCase()===g.local && m.data_movimentacao<=dia);
+  const entrada=mov?.data_movimentacao||x.data_entrada||(g.local==='BAIA B5'&&['CHUMBADO','ORELHADO','PRETO CHIFRE'].includes(String(x.brinco||'').toUpperCase())?'2026-10-14':null);
+  const dc=entrada?Math.max(0,Math.round((new Date(dia+'T12:00:00')-new Date(entrada+'T12:00:00'))/86400000)):null;
+  return dc===null||diaria===null?null:dc*diaria;
+ });
+ const custosValidos=custosCiclo.filter(v=>v!==null);
+ const custoUltimoCiclo=custosValidos.length===r.length?custosValidos.reduce((a,b)=>a+b,0)/r.length:null;
+ const cicloCompleto=custosValidos.length===r.length;
+
  // Os campos de carcaça são médias do registro de abate da pesagem, nunca um valor estimado.
  const carcKg=ab?(n(ab.carcaca_kg)??(n(ab.carcaca_arrobas)!==null?n(ab.carcaca_arrobas)*15:null)):null;
  const rc=carcKg!==null&&ps!==null&&ps>0?carcKg/ps:null;
  const gdc=rc!==null&&gmd!==null?gmd*rc:null;
  const arrobas=rc!==null&&ps!==null&&pe!==null?(ps-pe)*rc/15:null;
- const custoArroba=arrobas!==null&&arrobas!==0&&diaria!==null&&dias!==null?diaria*dias/arrobas:null;
+ const custoArroba=arrobas!==null&&arrobas!==0&&custoUltimoCiclo!==null?custoUltimoCiclo/arrobas:null;
  const precoArroba=ab?n(ab.valor_arroba):null;
- const apurado=arrobas!==null&&precoArroba!==null&&diaria!==null&&dias!==null?arrobas*precoArroba-diaria*dias:null;
+ const apurado=arrobas!==null&&precoArroba!==null&&custoUltimoCiclo!==null?arrobas*precoArroba-custoUltimoCiclo:null;
  // Valores financeiros exibidos POR CABEÇA, não totais por localidade.
  // Sem valor de venda cadastrado, mantém pendente; não inventa resultado.
  const totalVenda=r.every(x=>n(x.valor_venda)!==null&&n(x.valor_venda)>0)?avg(r,'valor_venda'):null;
- const totalCompra=r.every(x=>n(x.preco_compra)!==null)?avg(r,'preco_compra'):null;
+ const totalCompra=r.every(x=>n(x.preco_compra)!==null&&n(x.preco_compra)>0)?avg(r,'preco_compra'):null;
  const totalAcum=r.every(x=>n(x.custo_acumulado)!==null)?avg(r,'custo_acumulado'):null;
- const totalConf=r.every(x=>n(x.custo_atual)!==null)?avg(r,'custo_atual'):null;
+ const totalConf=cicloCompleto?custoUltimoCiclo:null;
  const resultado=totalVenda!==null&&totalCompra!==null&&totalAcum!==null&&totalConf!==null?totalVenda-totalCompra-totalAcum-totalConf:null;
  const cells=[esc(g.local),String(r.length),fmt(pe),fmt(ps),fmt(ps===null?null:ps/30),fmt(carcKg===null?null:carcKg/15),(rc===null?'<span class="va-pendente">—</span>':fmt(rc*100)+'%'),fmt(dias,0),fmt(gmd,3),fmt(gdc,3),reais(diaria),fmt(arrobas),reais(custoArroba),reais(apurado),fmt(parcialPorLocal.get(g.local)??null,3),reais(totalCompra),reais(totalAcum),reais(totalVenda),reais(totalConf),reais(resultado)];
+ [cells[9],cells[10],cells[11],cells[12],cells[13],cells[14]]=[cells[14],cells[9],cells[10],cells[11],cells[12],cells[13]];
  const valores=[null,r.length,pe,ps,ps===null?null:ps/30,carcKg===null?null:carcKg/15,rc===null?null:rc*100,dias,gmd,gdc,diaria,arrobas,custoArroba,apurado,parcialPorLocal.get(g.local)??null,totalCompra,totalAcum,totalVenda,totalConf,resultado];
+ [valores[9],valores[10],valores[11],valores[12],valores[13],valores[14]]=[valores[14],valores[9],valores[10],valores[11],valores[12],valores[13]];
  // Médias por cabeça ponderadas pela quantidade de animais da localidade.
  valores.forEach((v,i)=>{if(i<2||i===12||v===null||!Number.isFinite(v))return;mediaColunas[i].soma+=v*r.length;mediaColunas[i].peso+=r.length;});
- if(arrobas!==null&&arrobas>0&&diaria!==null&&dias!==null){custoArrobaNumerador+=diaria*dias*r.length;custoArrobaDenominador+=arrobas*r.length;}
+ if(arrobas!==null&&arrobas>0&&custoUltimoCiclo!==null){custoArrobaNumerador+=custoUltimoCiclo*r.length;custoArrobaDenominador+=arrobas*r.length;}
  html+='<tr>'+cells.map(c=>'<td>'+c+'</td>').join('')+'</tr>';
  }
  const media=i=>mediaColunas[i].peso?mediaColunas[i].soma/mediaColunas[i].peso:null;
  const custoArrobaGeral=custoArrobaDenominador>0?custoArrobaNumerador/custoArrobaDenominador:null;
- const footer=[ '<b>MÉDIA PONDERADA GERAL</b>', '<b>'+animais.length+'</b>',fmt(media(2)),fmt(media(3)),fmt(media(4)),fmt(media(5)),media(6)===null?'—':fmt(media(6))+'%',fmt(media(7),1),fmt(media(8),3),fmt(media(9),3),reais(media(10)),fmt(media(11)),reais(custoArrobaGeral),reais(media(13)),fmt(media(14),3),reais(media(15)),reais(media(16)),reais(media(17)),reais(media(18)),reais(media(19)) ];
+ const footer=[ '<b>MÉDIA PONDERADA GERAL</b>', '<b>'+animais.length+'</b>',fmt(media(2)),fmt(media(3)),fmt(media(4)),fmt(media(5)),media(6)===null?'—':fmt(media(6))+'%',fmt(media(7),1),fmt(media(8),3),fmt(media(9),3),fmt(media(10),3),reais(media(11)),fmt(media(12)),reais(custoArrobaGeral),reais(media(14)),reais(media(15)),reais(media(16)),reais(media(17)),reais(media(18)),reais(media(19)) ];
  html+='<tr class="va-total" style="font-weight:900;background:#eaf0ec">'+footer.map(v=>'<td>'+v+'</td>').join('')+'</tr>';
- html+='</tbody></table></div><div class="hint style="margin-top:10px">— = informação não cadastrada ou cálculo dependente de informação pendente. Valores médios por cabeça em todas as colunas, inclusive compra, acumulado, venda, custo e resultado; QTD representa a quantidade de animais. Os dados são consultados diretamente no banco, sem alteração dos lançamentos.</div>';
+ html+='</tbody></table></div><div class="hint" style="margin-top:10px">— = informação não cadastrada ou cálculo dependente de informação pendente. Valores médios por cabeça em todas as colunas, inclusive compra, acumulado, venda, custo e resultado; QTD representa a quantidade de animais. Os dados são consultados diretamente no banco, sem alteração dos lançamentos.</div>';
  box.innerHTML=html;
  }catch(e){box.textContent='Não foi possível carregar a visão do abate: '+String(e.message||e);console.error('Visão do abate:',e);}
 };

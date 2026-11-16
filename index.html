@@ -1954,7 +1954,7 @@ body{background:#f4f8f7}
 <div class="field"><label>Sexo</label><input id="cp_sexo"></div>
 <div class="field"><label>Valor de compra por animal (R$) *</label><input id="cp_valor" type="number" min="0" step="0.01"></div>
 <div class="field"><label>Comissão por animal (R$)</label><input id="cp_comissao" type="number" min="0" step="0.01"></div>
-<div class="field"><label>Tipo de frete</label><select id="cp_tipo" onchange="comprasFreteAlternar()"><option value="TERCEIROS">TERCEIROS</option><option value="PROPRIO">PRÓPRIO</option></select></div>
+<div class="field"><label>Tipo de frete</label><select id="cp_tipo" onchange="comprasFreteAlternar()"><option value="TERCEIRIZADO">TERCEIRIZADO</option><option value="PROPRIO">PRÓPRIO</option></select></div>
 <div class="field"><label>Frete por animal (R$)</label><input id="cp_frete" type="number" min="0" step="0.01" oninput="comprasCalcularFaturamento()"></div>
 <div class="field" id="cp_box_caminhao" style="display:none"><label>Caminhão próprio *</label><select id="cp_caminhao"><option value="">SELECIONE</option><option value="6">MB1620</option><option value="7">MB1621</option></select></div>
 <div class="field" id="cp_box_faturamento" style="display:none"><label>Faturamento do frete próprio (R$) — automático</label><input id="cp_faturamento" type="number" min="0" step="0.01" readonly style="background:#f4f6f6"></div>
@@ -9154,7 +9154,7 @@ async function comprasSalvar(){
  for(const id of ['local','data','chegada','quantidade','origem','sexo','valor','comissao','frete','caminhao','faturamento','categoria','idade','marca']){
    const campo=el(id);if(campo)campo.value='';
  }
- if(el('tipo'))el('tipo').value='TERCEIROS';
+ if(el('tipo'))el('tipo').value='TERCEIRIZADO';
  comprasFreteAlternar();
  await comprasCarregar();
  }catch(e){alert('NÃO FOI POSSÍVEL SALVAR: '+(e.message||e));}finally{btn.disabled=false;}

@@ -8680,6 +8680,9 @@ window.visaoAbateCarregar=async function(){
  html+='<div class="va-scroll"><table><thead><tr>'+heads.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>';
  const mediaColunas=Array.from({length:20},()=>({soma:0,peso:0}));
  let custoArrobaNumerador=0,custoArrobaDenominador=0;
+ // Painel financeiro do abate: somatório por cabeça, nunca média apresentada como total.
+ const financeiroAbate={qtd:0,completo:0,venda:0,compra:0,acumulado:0,confinamento:0,resultado:0};
+
  for(const g of [...grupos.values()].sort((x,y)=>x.local.localeCompare(y.local,'pt-BR'))){
  const r=g.rows,ab=abMap.get(g.p.id),pe=avg(r,'peso_entrada'),ps=avg(r,'peso_saida'),dias=avg(r,'qtd_dias'),gmd=avg(r.filter(x=>n(x.peso_entrada)>0&&n(x.peso_saida)>0&&n(x.qtd_dias)>0).map(x=>({gmd:(n(x.peso_saida)-n(x.peso_entrada))/n(x.qtd_dias)})),'gmd');
  const serie=diarioPorLocal.get(g.local)||[];
@@ -8711,6 +8714,16 @@ window.visaoAbateCarregar=async function(){
  const totalAcum=r.every(x=>n(x.custo_acumulado)!==null)?avg(r,'custo_acumulado'):null;
  const totalConf=cicloCompleto?custoUltimoCiclo:null;
  const resultado=totalVenda!==null&&totalCompra!==null&&totalAcum!==null&&totalConf!==null?totalVenda-totalCompra-totalAcum-totalConf:null;
+ // Só entram no resultado os animais com os quatro componentes disponíveis.
+ financeiroAbate.qtd+=r.length;
+ if(totalVenda!==null&&totalCompra!==null&&totalAcum!==null&&totalConf!==null){
+  financeiroAbate.completo+=r.length;
+  financeiroAbate.venda+=totalVenda*r.length;
+  financeiroAbate.compra+=totalCompra*r.length;
+  financeiroAbate.acumulado+=totalAcum*r.length;
+  financeiroAbate.confinamento+=totalConf*r.length;
+  financeiroAbate.resultado+=resultado*r.length;
+ }
  const cells=[esc(g.local),String(r.length),fmt(pe),fmt(ps),fmt(ps===null?null:ps/30),fmt(carcKg===null?null:carcKg/15),(rc===null?'<span class="va-pendente">—</span>':fmt(rc*100)+'%'),fmt(dias,0),fmt(gmd,3),fmt(gdc,3),reais(diaria),fmt(arrobas),reais(custoArroba),reais(apurado),fmt(parcialPorLocal.get(g.local)??null,3),reais(totalCompra),reais(totalAcum),reais(totalVenda),reais(totalConf),reais(resultado)];
  [cells[9],cells[10],cells[11],cells[12],cells[13],cells[14]]=[cells[14],cells[9],cells[10],cells[11],cells[12],cells[13]];
  const valores=[null,r.length,pe,ps,ps===null?null:ps/30,carcKg===null?null:carcKg/15,rc===null?null:rc*100,dias,gmd,gdc,diaria,arrobas,custoArroba,apurado,parcialPorLocal.get(g.local)??null,totalCompra,totalAcum,totalVenda,totalConf,resultado];
@@ -8724,7 +8737,18 @@ window.visaoAbateCarregar=async function(){
  const custoArrobaGeral=custoArrobaDenominador>0?custoArrobaNumerador/custoArrobaDenominador:null;
  const footer=[ '<b>MÉDIA PONDERADA GERAL</b>', '<b>'+animais.length+'</b>',fmt(media(2)),fmt(media(3)),fmt(media(4)),fmt(media(5)),media(6)===null?'—':fmt(media(6))+'%',fmt(media(7),1),fmt(media(8),3),fmt(media(9),3),fmt(media(10),3),reais(media(11)),fmt(media(12)),reais(custoArrobaGeral),reais(media(14)),reais(media(15)),reais(media(16)),reais(media(17)),reais(media(18)),reais(media(19)) ];
  html+='<tr class="va-total" style="font-weight:900;background:#eaf0ec">'+footer.map(v=>'<td>'+v+'</td>').join('')+'</tr>';
- html+='</tbody></table></div><div class="hint" style="margin-top:10px">— = informação não cadastrada ou cálculo dependente de informação pendente. Valores médios por cabeça em todas as colunas, inclusive compra, acumulado, venda, custo e resultado; QTD representa a quantidade de animais. Os dados são consultados diretamente no banco, sem alteração dos lançamentos.</div>';
+ html+='</tbody></table></div>';
+ const fin=financeiroAbate,finCompleto=fin.completo===fin.qtd;
+ const painelFin='<div style="margin:15px 0 6px;font-weight:800;font-size:14px">RESULTADO FINANCEIRO DO ABATE — '+fin.qtd+' ANIMAIS</div>'+
+ '<div class="va-kpis" style="flex-wrap:wrap">'+
+ '<div class="va-kpi"><span>FATURAMENTO TOTAL</span><strong>'+reais(fin.completo?fin.venda:null)+'</strong></div>'+
+ '<div class="va-kpi"><span>COMPRA TOTAL</span><strong>'+reais(fin.completo?fin.compra:null)+'</strong></div>'+
+ '<div class="va-kpi"><span>CUSTO ACUMULADO TOTAL</span><strong>'+reais(fin.completo?fin.acumulado:null)+'</strong></div>'+
+ '<div class="va-kpi"><span>CUSTO CONFINAMENTO TOTAL</span><strong>'+reais(fin.completo?fin.confinamento:null)+'</strong></div>'+
+ '<div class="va-kpi" style="border-color:'+(fin.resultado>=0?'#9ec5ad':'#dfb3ae')+'"><span>RESULTADO TOTAL</span><strong style="color:'+(fin.resultado>=0?'#086548':'#a52c28')+'">'+reais(fin.completo?fin.resultado:null)+'</strong></div>'+
+ '</div><div class="hint" style="margin:0 0 10px">Resultado = venda − compra − custo acumulado − custo de confinamento. '+fin.completo+' de '+fin.qtd+' animais com cálculo financeiro completo.'+(finCompleto?'':' Valores parciais: existem informações pendentes.')+'</div>';
+ html+=painelFin;
+ html+='<div class="hint"  style="margin-top:10px">— = informação não cadastrada ou cálculo dependente de informação pendente. Valores médios por cabeça em todas as colunas, inclusive compra, acumulado, venda, custo e resultado; QTD representa a quantidade de animais. Os dados são consultados diretamente no banco, sem alteração dos lançamentos.</div>';
  box.innerHTML=html;
  }catch(e){box.textContent='Não foi possível carregar a visão do abate: '+String(e.message||e);console.error('Visão do abate:',e);}
 };
@@ -8902,16 +8926,27 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
     const receita=(nutriCache.itens||[]).filter(x=>String(x.versao_id)===String(versao.id));
     const somaReceita=receita.reduce((a,i)=>a+Number(i.batida_kg??i.quantidade_mn??0),0);
     if(!receita.length||!(somaReceita>0))throw Error('DIETA SEM INGREDIENTES PARA GERAR A FICHA.');
+    // Cargas futuras: usar a previsão ATUAL da grade, já redistribuída após
+    // os realizados. Nunca reutilizar os percentuais antigos das cargas salvas.
     const bruto=[0,0,0,0];
+    const cargaSalva=new Set(cargas.map(c=>Number(c.carga)));
     for(const r of trs){
       if(r.querySelector('[data-tr-dieta]')?.checked===false)continue;
       const cel=[...r.querySelectorAll('td[data-prev]')];
       for(let j=0;j<4;j++){
-        const v=Number(cel[j]?.dataset.prev);
+        if(cargaSalva.has(j+1))continue;
+        // O texto da célula é a previsão redistribuída que o tratador vê;
+        // dataset.prev pode manter a previsão original, anterior aos desvios.
+        const texto=String(cel[j]?.textContent||'').trim().replace(/\./g,'').replace(',','.');
+        const v=texto==='—'||texto==='-'||texto===''?0:Number(texto);
         if(!Number.isFinite(v)||v<0)throw Error('PREVISÃO INVÁLIDA NA FICHA: '+r.dataset.local);
         bruto[j]+=v;
       }
     }
+    const pendenteOficial=rows.reduce((a,r)=>a+r.saldo,0);
+    const pendenteCargas=bruto.reduce((a,b)=>a+b,0);
+    if(Math.abs(pendenteOficial-pendenteCargas)>1.01)
+      throw Error('PREVISÃO DAS CARGAS PENDENTES NÃO CONCILIA COM A DISTRIBUIÇÃO: '+num(pendenteCargas)+' KG / SALDO '+num(pendenteOficial)+' KG. ATUALIZE A GRADE ANTES DE IMPRIMIR.');
     const ajustesQ=await supa.from('tratos_ajustes_df').select('tipo,quantidade_kg,desconto_selecionado,localizacao').eq('data_referencia',dia).eq('sistema',sistema);
     if(ajustesQ.error)throw ajustesQ.error;
     const nota2DiaQ=await supa.from('tratos_ajustes_df').select('tipo,quantidade_kg,desconto_selecionado,localizacao').eq('data_referencia',trDiaAnteriorNota2(dia)).eq('sistema',sistema).eq('tipo','DESCONTO_NOTA_2');
@@ -8925,7 +8960,7 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
       if(marcados.has(nome)&&r.querySelector('[data-tr-dieta]')?.checked!==false)nota2+=Number(r.querySelectorAll('td[data-prev]')[0]?.dataset.prev||0);
     }
     // Nota 2 é abatida do trato 1; a sobra remanescente passa às cargas seguintes.
-    const liquido=trAbaterCargasSemNegativo(bruto,sobra); // Nota 2 já abatida da grade
+    const liquido=bruto.slice(); // saldo atual da grade já inclui Nota 2 e sobra; não descontar novamente
     for(let j=0;j<4;j++){
       if(cargas.some(c=>Number(c.carga)===j+1))continue;
       for(const item of receita){

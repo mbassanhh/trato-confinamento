@@ -1793,7 +1793,7 @@ body{background:#f4f8f7}
     </div>
   </section>
 
-<section id="tratosCadastro" class="page admin-only"><div class="panel"><div class="section-head"><div><h2>DISTRIBUIÇÃO DIÁRIA DE TRATOS</h2><p>LANÇAMENTO TRATO A TRATO — PADRÃO DA PLANILHA</p></div><span class="tag">ETAPA 20 — CARREGAMENTO E CONFERÊNCIA</span></div><div class="grid" style="margin-bottom:6px"><div class="field"><label>DATA DA DISTRIBUIÇÃO</label><input id="tr_data" type="date" onchange="trSelecionarDataDistribuicao()"></div></div><div class="notice">CURRAIS DO CONFINAMENTO E SEMI: CONFIGURAÇÃO DO MANEJO EXISTENTE. TOTAL DO DIA ANTERIOR: SUPABASE. PREVISÕES POR TRATO: PERCENTUAIS DO MANEJO (20/30/30/20 OU CONFIGURADO); CONFINAMENTO ESPECIAL: DOIS TRATOS CONFORME MANEJO. SEMICONFINAMENTO: UM TRATO, 100% NO TRATO 1. APENAS REAL É EDITÁVEL.</div><button type="button" onclick="trAbrirConfiguracaoTratos()" style="margin:8px;padding:8px 14px;border-radius:7px">⚙ CONFIGURAÇÃO DE TRATOS</button><div id="tr_db_aviso" class="notice">AGUARDANDO CONSULTA AO BANCO.</div><div id="tr_resumo_previsoes" aria-live="polite" style="margin:10px 0 12px"></div><div class="table-wrap"><table class="tratos-compacta" style="width:100%;min-width:0;font-size:10px;table-layout:fixed"><thead><tr><th>COM DIETA</th><th>CURRAL</th><th>DIAS</th><th>TOTAL</th><th>BOIS</th><th>TRATO 1</th><th>REAL</th><th>TRATO 2</th><th>REAL</th><th>TRATO 3</th><th>REAL</th><th>TRATO 4</th><th>REAL</th><th>SALDO PENDENTE</th><th>REALIZADO</th><th>DESVIO</th><th>DESVIO %</th></tr></thead><tbody id="tr_grade_body"></tbody><tfoot id="tr_grade_total"></tfoot></table></div><div class="form-actions"><button class="btn primary" onclick="tratosSalvarDistribuicao()">SALVAR DISTRIBUIÇÃO</button></div><div class="notice">REAL POR TRATO: GRAVADO NO SUPABASE POR DATA E LOCALIDADE. LANÇAMENTOS PARCIAIS SÃO PRESERVADOS. SALDO DO DIA É REDISTRIBUÍDO ENTRE OS TRATOS RESTANTES. DADOS JÁ SALVOS FICAM BLOQUEADOS.</div></div><div class="panel" id="tr_carga_painel"><div class="section-head"><div><h2>CARREGAMENTO — INGREDIENTES E CONFERÊNCIA</h2><p>DESVIOS POR INGREDIENTE, GERAL E DIFERENÇA CARREGADO × DISTRIBUÍDO</p></div></div>
+<section id="tratosCadastro" class="page admin-only"><div class="panel"><div class="section-head"><div><h2>DISTRIBUIÇÃO DIÁRIA DE TRATOS</h2><p>LANÇAMENTO TRATO A TRATO — PADRÃO DA PLANILHA</p></div><span class="tag">ETAPA 20 — CARREGAMENTO E CONFERÊNCIA</span></div><div class="grid" style="margin-bottom:6px"><div class="field"><label>DATA DA DISTRIBUIÇÃO</label><input id="tr_data" type="date" onchange="trSelecionarDataDistribuicao()"></div></div><div class="notice">CURRAIS DO CONFINAMENTO E SEMI: CONFIGURAÇÃO DO MANEJO EXISTENTE. TOTAL DO DIA ANTERIOR: SUPABASE. PREVISÕES POR TRATO: PERCENTUAIS DO MANEJO (20/30/30/20 OU CONFIGURADO); CONFINAMENTO ESPECIAL: DOIS TRATOS CONFORME MANEJO. SEMICONFINAMENTO: UM TRATO, 100% NO TRATO 1. APENAS REAL É EDITÁVEL.</div><button type="button" onclick="trAbrirConfiguracaoTratos()" style="margin:8px;padding:8px 14px;border-radius:7px">⚙ CONFIGURAÇÃO DE TRATOS</button><div id="tr_db_aviso" class="notice">AGUARDANDO CONSULTA AO BANCO.</div><div id="tr_resumo_previsoes" aria-live="polite" style="margin:10px 0 12px"></div><div class="table-wrap"><table class="tratos-compacta" style="width:100%;min-width:0;font-size:10px;table-layout:fixed"><thead><tr><th>COM DIETA</th><th>CURRAL</th><th>DIAS</th><th>TOTAL</th><th>BOIS</th><th>TRATO 1</th><th>REAL</th><th>TRATO 2</th><th>REAL</th><th>TRATO 3</th><th>REAL</th><th>TRATO 4</th><th>REAL</th><th title="SALDO APÓS DESCONTO DA NOTA 2 NO PRIMEIRO TRATO">SALDO PENDENTE*</th><th>REALIZADO</th><th>DESVIO</th><th>DESVIO %</th></tr></thead><tbody id="tr_grade_body"></tbody><tfoot id="tr_grade_total"></tfoot></table></div><div class="form-actions"><button class="btn primary" onclick="tratosSalvarDistribuicao()">SALVAR DISTRIBUIÇÃO</button></div><div class="notice">REAL POR TRATO: GRAVADO NO SUPABASE POR DATA E LOCALIDADE. LANÇAMENTOS PARCIAIS SÃO PRESERVADOS. SALDO DO DIA É REDISTRIBUÍDO ENTRE OS TRATOS RESTANTES. DADOS JÁ SALVOS FICAM BLOQUEADOS.</div></div><div class="panel" id="tr_carga_painel"><div class="section-head"><div><h2>CARREGAMENTO — INGREDIENTES E CONFERÊNCIA</h2><p>DESVIOS POR INGREDIENTE, GERAL E DIFERENÇA CARREGADO × DISTRIBUÍDO</p></div></div>
 <div class="grid tr-carga-cabecalho" style="margin-bottom:10px"><div class="field"><label>DATA DO CARREGAMENTO — SELECIONE O DIA A LANÇAR</label><input id="tr_carga_data" type="date" onchange="trCargaRender()"></div><div class="field"><label>SISTEMA</label><select id="tr_carga_sistema" onchange="trCargaRender()"><option value="CONFINAMENTO">CONFINAMENTO</option><option value="SEMI">SEMICONFINAMENTO</option></select></div><div class="field"><label>CARREGAMENTO / TRATO</label><select id="tr_carga_num" onchange="trCargaRender()"><option value="1">1º CARREGAMENTO / TRATO 1</option><option value="2">2º CARREGAMENTO / TRATO 2</option><option value="3">3º CARREGAMENTO / TRATO 3</option><option value="4">4º CARREGAMENTO / TRATO 4</option></select></div></div>
 <div class="notice" id="tr_carga_aviso">SELECIONE A DATA E A CARGA. O PREVISTO POR INGREDIENTE USA A DIETA ATIVA COMO REFERÊNCIA; INFORME A QUANTIDADE REAL CARREGADA.</div>
 <div class="notice" id="tr_carga_data_destaque" style="font-size:15px;font-weight:800;border:2px solid #64748b;padding:12px;margin:10px 0">CONFIRMANDO DATA DO CARREGAMENTO...</div><input id="tr_carga_total_previsto" type="hidden" value="0"><input id="tr_carga_bruto" type="hidden" value="0"><input id="tr_carga_sobra" type="hidden" value="0"><span id="tr_carga_sobra_origem" hidden></span><div class="notice" id="tr_carga_conciliacao"></div><div id="tr_carga_itens"></div><div id="tr_carga_resumo"></div>
@@ -2777,34 +2777,42 @@ async function renderArrobaProduzida(){
       'PIQUETEAMENTO BAIXO':{qtd:14,arrobas:79.52,data:'2026-11-09'},
       'MOMBAÇA':{qtd:1,arrobas:5.64,data:'2026-11-09'}
     };
-    const linhas=registros.map(a=>{
-      const animais=arrobaAnimaisCache.filter(x=>x.pesagem_id===a.pesagem_id);
-      const locs=[...new Set(animais.map(x=>String(x.localizacao||'').trim()).filter(Boolean))];
-      const origem=String(a.origem||locs[0]||'NÃO IDENTIFICADA').trim();
-      const ref=mes==='2026-11'?referenciasNovembro[origem.toUpperCase()]:null;
-      const rc=Number(a.rendimento_carcaca),carcaca=Number(a.carcaca_arrobas);
-      const validos=animais.filter(x=>Number(x.peso_entrada)>0&&Number(x.peso_saida)>0);
-      const arrobasIndividuais=(rc>0&&carcaca>0)?validos.map(x=>carcaca-Number(x.peso_entrada)*rc/15):[];
-      const arrobasCalculadas=arrobasIndividuais.reduce((v,n)=>v+n,0);
-      const mediaEntrada=validos.length?validos.reduce((v,x)=>v+Number(x.peso_entrada),0)/validos.length:null;
-      const divergencias=[];
-      if(locs.length!==1||origem.toUpperCase()!==String(locs[0]||'').toUpperCase())divergencias.push('LOCALIDADE DIVERGENTE');
-      if(animais.some(x=>x.data_saida&&x.data_saida!==a.data_abate))divergencias.push('DATA DO ABATE DIFERENTE DA SAÍDA');
-      if(validos.length!==animais.length)divergencias.push('PESO DE ENTRADA/SAÍDA AUSENTE EM '+(animais.length-validos.length)+' ANIMAL(IS)');
-      if(!(rc>0&&carcaca>0))divergencias.push('RENDIMENTO/CARCAÇA AUSENTE');
-      if(ref){
-        if(animais.length!==ref.qtd)divergencias.push('QUANTIDADE DIVERGENTE');
-        if(a.data_abate!==ref.data)divergencias.push('DATA DIFERENTE DA REFERÊNCIA');
-        if(validos.length===animais.length&&Math.abs(arrobasCalculadas-ref.arrobas)>0.15)divergencias.push('ARROBAS DIVERGENTES DA REFERÊNCIA');
+    // Uma pesagem pode conter animais de várias localidades. Agrupar por
+    // pesagem + localidade impede atribuir todo o abate à primeira baia.
+    const linhas=registros.flatMap(a=>{
+      const vinculados=arrobaAnimaisCache.filter(x=>x.pesagem_id===a.pesagem_id);
+      const porLocal=new Map();
+      for(const animal of vinculados){
+        const local=String(animal.localizacao||'NÃO IDENTIFICADA').trim().toUpperCase();
+        if(!porLocal.has(local))porLocal.set(local,[]);
+        porLocal.get(local).push(animal);
       }
-      if(mes==='2026-11'&&origem.toUpperCase()==='BELEI ALTO')divergencias.push('BELEI ALTO CONFIRMADO: FALTAM PESOS DE ENTRADA PARA TOTAL DO LOTE');
-      return {a,animais,validos,origem,ref,arrobasCalculadas,mediaEntrada,divergencias};
+      if(!porLocal.size)porLocal.set(String(a.origem||'NÃO IDENTIFICADA').trim().toUpperCase(),[]);
+      return [...porLocal.entries()].map(([origem,animais])=>{
+        const ref=mes==='2026-11'?referenciasNovembro[origem]:null;
+        const rc=Number(a.rendimento_carcaca),carcaca=Number(a.carcaca_arrobas);
+        const validos=animais.filter(x=>Number(x.peso_entrada)>0&&Number(x.peso_saida)>0);
+        const arrobasIndividuais=(rc>0&&carcaca>0)?validos.map(x=>carcaca-Number(x.peso_entrada)*rc/15):[];
+        const arrobasCalculadas=arrobasIndividuais.reduce((v,n)=>v+n,0);
+        const mediaEntrada=validos.length?validos.reduce((v,x)=>v+Number(x.peso_entrada),0)/validos.length:null;
+        const divergencias=[];
+        if(animais.some(x=>x.data_saida&&x.data_saida!==a.data_abate))divergencias.push('DATA DO ABATE DIFERENTE DA SAÍDA');
+        if(validos.length!==animais.length)divergencias.push('PESO DE ENTRADA/SAÍDA AUSENTE EM '+(animais.length-validos.length)+' ANIMAL(IS)');
+        if(!(rc>0&&carcaca>0))divergencias.push('RENDIMENTO/CARCAÇA AUSENTE');
+        if(ref){
+          if(animais.length!==ref.qtd)divergencias.push('QUANTIDADE DIVERGENTE');
+          if(a.data_abate!==ref.data)divergencias.push('DATA DIFERENTE DA REFERÊNCIA');
+          if(validos.length===animais.length&&Math.abs(arrobasCalculadas-ref.arrobas)>0.15)divergencias.push('ARROBAS DIVERGENTES DA REFERÊNCIA');
+        }
+        if(mes==='2026-11'&&origem==='BELEI ALTO')divergencias.push('BELEI ALTO CONFIRMADO: FALTAM PESOS DE ENTRADA PARA TOTAL DO LOTE');
+        return {a,animais,validos,origem,ref,arrobasCalculadas,mediaEntrada,divergencias};
+      });
     });
     const qtd=linhas.reduce((n,x)=>n+x.animais.length,0);
     const qtdValidos=linhas.reduce((n,x)=>n+x.validos.length,0);
     const totalCalculado=linhas.reduce((n,x)=>n+x.arrobasCalculadas,0);
     const pendentes=linhas.filter(x=>x.divergencias.length).length;
-    let h='<div class="notice"><b>ARROBA PRODUZIDA — SOMENTE ABATES:</b> calculada por animal vinculado à pesagem, com carcaça e rendimento registrados no abate. Não inclui vendas comerciais ou leilões. Quando faltam pesos, o total é PARCIAL, nunca extrapolado para os animais sem informação.</div>';
+    let h='<div class="notice"><b>ARROBA PRODUZIDA — SOMENTE ABATES:</b> calculada por animal vinculado à pesagem e separada por localidade, com carcaça e rendimento registrados no abate. Não inclui vendas comerciais ou leilões. Quando faltam pesos, o total é PARCIAL, nunca extrapolado para os animais sem informação.</div>';
     h+=`<div class="kpis"><div class="kpi"><span>ANIMAIS ABATIDOS VINCULADOS</span><strong>${qtd}</strong></div><div class="kpi"><span>COM PESOS INFORMADOS</span><strong>${qtdValidos}</strong></div><div class="kpi"><span>ARROBAS CALCULADAS (PARCIAL)</span><strong>${fmt(totalCalculado)} @</strong></div><div class="kpi"><span>LOTES PENDENTES</span><strong>${pendentes}</strong></div></div>`;
     if(mes==='2026-11')h+='<div class="notice"><b>REFERÊNCIA INFORMADA:</b> cinco lotes = 48 animais / 218,38 @. BELEI ALTO foi confirmado como sexto lote (12 animais), mas não possui pesos completos para apuração. A referência é exibida para conferência, não substitui o banco. CASINHA: peso médio informado 364,71 kg; banco registra média diferente — exige conciliação do peso de entrada.</div>';
     h+='<div class="table-wrap"><table style="min-width:1120px"><thead><tr><th>Data no banco</th><th>Localidade</th><th>Animais</th><th>Com pesos</th><th>@ calculadas com pesos disponíveis</th><th>@ referência do lote</th></tr></thead><tbody>';
@@ -6192,15 +6200,34 @@ function trCalc(){
   const realizados=active.filter(i=>r.v[i]!=='');const pendentes=active.filter(i=>r.v[i]==='');
   const realizado=realizados.reduce((a,i)=>a+trN(r.v[i]),0);
   const saldo=totalPrev===null?null:Math.max(0,totalPrev-realizado);
-  // Previsões fixas por trato: NÃO redistribuir quando houver Nota 2,
-  // zero já salvo ou qualquer outro trato realizado.
-  // A grade, a impressão e o tratador devem usar o mesmo valor base.
-  pendentes.forEach(i=>{const td=tr.querySelectorAll('[data-prev]')[i];if(td){const v=td.dataset.prev;td.textContent=v===''?'—':trFmt(Number(v));td.dataset.ajustado=v;}});
-  realizados.forEach(i=>{const td=tr.querySelectorAll('[data-prev]')[i];if(td){td.textContent='—';td.title='TRATO JÁ REALIZADO NESTA DATA';td.dataset.ajustado='';}});
+  // O TOTAL é bruto; o saldo considera a NOTA 2, que zera somente o 1º trato.
+  const bruto=tr.dataset.total===''?null:Number(tr.dataset.total);
+  const descontoNota2=(bruto!==null&&totalPrev!==null)?Math.max(0,bruto-totalPrev):0;
+  const celSaldo=tr.querySelector('[data-c="ajuste"]');
+  if(celSaldo)celSaldo.title=descontoNota2>0?'TOTAL BRUTO: '+trFmt(bruto)+' KG | DESCONTO NOTA 2: '+trFmt(descontoNota2)+' KG | PREVISÃO LÍQUIDA: '+trFmt(totalPrev)+' KG | REALIZADO: '+trFmt(realizado)+' KG':'SALDO = TOTAL PREVISTO - REALIZADO';
+  // Conciliação operacional: PREVISTO LÍQUIDO = REALIZADO + SALDO.
+  // O previsto original permanece em data-prev; somente os tratos PENDENTES
+  // são redistribuídos proporcionalmente, com o último absorvendo arredondamento.
+  // Tratos executados (inclusive zero) nunca são alterados.
+  const celulas=[...tr.querySelectorAll('td[data-prev]')];
+  const pendentesComPeso=pendentes.filter(i=>Number(r.p[i])>0);
+  const pesoPendente=pendentesComPeso.reduce((a,i)=>a+Number(r.p[i]),0);
+  let saldoDistribuir=saldo===null?0:saldo;
+  const previstosAjustados=[0,0,0,0];
+  pendentesComPeso.forEach((i,pos)=>{
+   const ultimo=pos===pendentesComPeso.length-1;
+   const valor=ultimo?saldoDistribuir:Math.min(saldoDistribuir,Math.round(saldo*Number(r.p[i])/pesoPendente));
+   previstosAjustados[i]=valor;saldoDistribuir-=valor;
+  });
+  // Se não existir trato pendente com percentual, sinalizar em vez de ocultar kg.
+  if(saldoDistribuir>0&&pendentes.length){const i=pendentes[pendentes.length-1];previstosAjustados[i]+=saldoDistribuir;saldoDistribuir=0;}
+  pendentes.forEach(i=>{const td=celulas[i];if(td){const valor=previstosAjustados[i];td.textContent=trFmt(valor);td.dataset.ajustado=String(valor);td.title='PREVISÃO AJUSTADA PELO SALDO | ORIGINAL: '+trFmt(Number(r.p[i]))+' KG';}});
+  realizados.forEach(i=>{const td=celulas[i];if(td){td.textContent='—';td.title='TRATO JÁ REALIZADO NESTA DATA';td.dataset.ajustado='0';}});
+  if(saldoDistribuir>0&&!pendentes.length&&saldo!==null&&saldo>0){tr.title='ATENÇÃO: SOBRA DE '+trFmt(saldo)+' KG SEM TRATO PENDENTE';}
   const set=(k,v)=>{const el=tr.querySelector('[data-c="'+k+'"]');if(el)el.textContent=v};
   const historico=trData()<trHojeISO();
   const complete=(pendentes.length===0&&active.length>0);
-  set('ajuste',saldo===null?'—':(complete?'0 KG':trFmt(saldo)+' KG'));
+  set('ajuste',saldo===null?'—':(complete?'0 KG':trFmt(saldo)+' KG'+(descontoNota2>0?' (N2 −'+trFmt(descontoNota2)+')':'')));
   set('realizado',realizados.length?trFmt(realizado):'—');
   const des=totalPrev===null||!complete?null:realizado-totalPrev;
   set('desvio',des===null?'PARCIAL':trFmt(des));
@@ -6253,6 +6280,8 @@ function trCalc(){
    +'<div style="padding:8px 10px;margin-top:6px;font-weight:800;font-size:13px;border-left:3px solid #28634b;background:#eef5f0">TOTAL GERAL PREVISTO: '+trFmt(c.total+m.total)+' KG</div>';
  }
  // Totais por sistema para conciliar diretamente com os carregamentos.
+ // * Saldo pendente desconta Nota 2 exclusivamente do primeiro trato.
+
  const subtotais={CONFINAMENTO:0,SEMI:0};
  rows.forEach(row=>{if(row.querySelector('[data-tr-dieta]')?.checked===false)return;const sis=trNormNome(row.dataset.sistema);if(Object.prototype.hasOwnProperty.call(subtotais,sis)&&row.dataset.total!=='')subtotais[sis]+=Number(row.dataset.total)||0;});
  let painel=document.getElementById('tr_totais_por_sistema');
@@ -6296,7 +6325,7 @@ window.trFichaSnapshot=async function(sistema,dia){
  trCalc();
  const rows=[...document.querySelectorAll('#tr_grade_body tr')].filter(tr=>trNormNome(tr.dataset.sistema)===trNormNome(sistema)&&tr.dataset.total!==''&&tr.querySelector('[data-tr-dieta]')?.checked!==false);
  if(!rows.length)throw Error('NENHUM CURRAL COM PREVISÃO PARA '+sistema+' EM '+dia);
- return rows.map(tr=>({local:tr.dataset.local,total:Number(tr.dataset.total),bois:trN(tr.children[4]?.textContent),tratos:[...tr.querySelectorAll('td[data-prev]')].map(td=>Number(td.dataset.prev)||0)}));
+ return rows.map(tr=>({local:tr.dataset.local,total:Number(tr.dataset.total),bois:trN(tr.children[4]?.textContent),tratos:[...tr.querySelectorAll('td[data-prev]')].map(td=>Number(td.dataset.ajustado!==undefined?td.dataset.ajustado:td.dataset.prev)||0)}));
 };
 
 function trAbrirJanelaImpressao(){
@@ -8815,9 +8844,33 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
     const inputs=[...r.querySelectorAll('input[data-f="v"]')];
     const previstos=[...r.querySelectorAll('td[data-prev]')];
     if(previstos.length!==4)throw Error('PREVISÃO INCOMPLETA: '+r.dataset.local);
-    return {local:r.dataset.local,total:Number(r.dataset.total),bois:Number(r.children[4]?.textContent||0),
-      previsto:previstos.map(x=>{const visivel=x.textContent.trim();return visivel||'—';}),
-      realizado:inputs.map(x=>x.value.trim()===''?'—':num(x.value.trim()))};
+    const realizado=inputs.map(x=>x.value.trim()===''?null:Number(x.value));
+    const bruto=Number(r.dataset.total);
+    const realSomado=realizado.reduce((a,v)=>a+Number(v||0),0);
+    // Recalcular a distribuição pendente a partir da previsão líquida ORIGINAL
+    // e dos realizados; não confiar em dataset.ajustado (pode estar obsoleto).
+    const previstoLiquido=previstos.reduce((a,x)=>a+Number(x.dataset.prev||0),0);
+    const saldoEsperado=Math.max(0,previstoLiquido-realSomado);
+    const pendente=[0,0,0,0];
+    const indices=inputs.map((x,i)=>({x,i})).filter(({x,i})=>realizado[i]===null&&!x.disabled);
+    const comPeso=indices.filter(({i})=>Number(previstos[i].dataset.prev||0)>0);
+    const destinos=comPeso.length?comPeso:indices;
+    const somaPeso=destinos.reduce((a,{i})=>a+Math.max(0,Number(previstos[i].dataset.prev||0)),0);
+    let restante=saldoEsperado;
+    destinos.forEach(({i},pos)=>{
+      const ultimo=pos===destinos.length-1;
+      const peso=Math.max(0,Number(previstos[i].dataset.prev||0));
+      const valor=ultimo?restante:Math.min(restante,Math.round(saldoEsperado*(somaPeso>0?peso/somaPeso:1/destinos.length)));
+      pendente[i]=valor;restante-=valor;
+    });
+    const saldo=pendente.reduce((a,b)=>a+b,0);
+    if(saldoEsperado>0&&!destinos.length)throw Error('SEM TRATO PENDENTE PARA '+r.dataset.local+' (FALTAM '+saldoEsperado+' KG).');
+    if(Math.abs(previstoLiquido-realSomado-saldo)>0.51)throw Error('FICHA BLOQUEADA: SALDO INCONSISTENTE EM '+r.dataset.local+' (PREV. LÍQUIDO '+previstoLiquido+' / REAL '+realSomado+' / FALTANTE '+saldo+')');
+    return {local:r.dataset.local,total:bruto,bois:Number(r.children[4]?.textContent||0),
+      previsto:previstos.map((x,i)=>realizado[i]!==null?'—':num(pendente[i])),
+      realizado:realizado.map(v=>v===null?'—':num(v)),
+      bruto,liquido:previstoLiquido,realSomado,saldo,nota2:Math.max(0,bruto-previstoLiquido),
+      pendente};
   });
   if(typeof supa==='undefined')throw Error('SEM CONEXÃO COM SUPABASE.');
   const cq=await supa.from('tratos_carregamentos').select('id,carga,previsto_kg,carregado_kg').eq('data_trato',dia).eq('sistema',sistema);
@@ -8890,28 +8943,25 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
   html+='<h2>DISTRIBUIÇÃO '+esc(sistema)+'</h2><div class="info">ESPELHO DA GRADE ADMINISTRATIVA APÓS ATUALIZAÇÃO. PREVISTO E REALIZADO SEPARADOS; VALORES EXECUTADOS NÃO SÃO SUBSTITUÍDOS.</div>';
   html+='<table><thead><tr><th rowspan="2">CURRAL</th><th rowspan="2">TOTAL</th><th rowspan="2">BOIS</th>'+[1,2,3,4].map(i=>'<th colspan="2">TRATO '+i+'</th>').join('')+'</tr><tr>'+[1,2,3,4].map(()=>'<th>PREV.</th><th>REAL.</th>').join('')+'</tr></thead><tbody>';
   for(const r of rows)html+='<tr>'+td(r.local)+td(num(r.total))+td(num(r.bois))+[0,1,2,3].map(i=>td(r.previsto[i])+td(r.realizado[i])).join('')+'</tr>';
-  // Totais conferidos diretamente nas mesmas células da grade que alimentam a ficha.
+  // A ficha deve refletir a mesma previsão PENDENTE da grade, não a original.
+  // Previsto dos tratos executados fica em branco; realizado é preservado.
   const totaisPrev=[0,0,0,0],totaisReal=[0,0,0,0],temReal=[false,false,false,false];
-  for(const r of trs){
-    const prevs=[...r.querySelectorAll('td[data-prev]')];
-    const reais=[...r.querySelectorAll('input[data-f="v"]')];
-    for(let i=0;i<4;i++){
-      const bruto=String(prevs[i]?.dataset.prev??prevs[i]?.textContent??'').trim();
-      const valor=Number(bruto.replace(/\./g,'').replace(',','.'));
-      // dataset.prev é numérico com ponto decimal: usá-lo prioritariamente.
-      const numerico=prevs[i]?.dataset.prev!==undefined?Number(prevs[i].dataset.prev):valor;
-      if(!Number.isFinite(numerico))throw Error('PREVISÃO INVÁLIDA EM '+r.dataset.local+' TRATO '+(i+1));
-      totaisPrev[i]+=numerico;
-      const rv=String(reais[i]?.value??'').trim();
-      if(rv!==''){
-        const nr=Number(rv.replace(',','.'));
-        if(!Number.isFinite(nr))throw Error('REALIZADO INVÁLIDO EM '+r.dataset.local+' TRATO '+(i+1));
-        totaisReal[i]+=nr;temReal[i]=true;
-      }
+  for(const r of rows)for(let i=0;i<4;i++){
+    totaisPrev[i]+=r.pendente[i];
+    if(r.realizado[i]!=='—'){
+      const v=Number(String(r.realizado[i]).replace(/\./g,'').replace(',','.'));
+      totaisReal[i]+=v;temReal[i]=true;
     }
   }
-  html+='<tr class="total">'+td('TOTAL POR TRATO')+td(num(totaisPrev.reduce((a,b)=>a+b,0)))+td('—')+[0,1,2,3].map(i=>td(num(totaisPrev[i]))+td(temReal[i]?num(totaisReal[i]):'—')).join('')+'</tr>';
-  html+='</tbody></table><div class="pagebreak"></div>'+cab+'<h2>CARREGAMENTO '+esc(sistema)+' — TOTAL POR INGREDIENTE E TOTAL GERAL</h2><div class="info">PREVISÃO DE INGREDIENTES PELA DIETA ATIVA; REALIZADO CONFORME REGISTROS SALVOS NO SUPABASE.</div>';
+  const totalBruto=rows.reduce((a,r)=>a+r.bruto,0);
+  const totalNota2=rows.reduce((a,r)=>a+r.nota2,0);
+  const totalLiquido=rows.reduce((a,r)=>a+r.liquido,0);
+  const totalReal=rows.reduce((a,r)=>a+r.realSomado,0);
+  const totalSaldo=rows.reduce((a,r)=>a+r.saldo,0);
+  if(Math.abs(totalLiquido-totalReal-totalSaldo)>0.51)throw Error('FICHA BLOQUEADA: TOTAIS NÃO CONCILIADOS');
+  html+='<tr class="total">'+td('TOTAL POR TRATO')+td(num(totalBruto))+td('—')+[0,1,2,3].map(i=>td(num(totaisPrev[i]))+td(temReal[i]?num(totaisReal[i]):'—')).join('')+'</tr>';
+  html+='</tbody></table><div class="info"><strong>CONCILIAÇÃO DO DIA:</strong> TOTAL BRUTO '+num(totalBruto)+' KG − NOTA 2 '+num(totalNota2)+' KG = PREVISTO LÍQUIDO '+num(totalLiquido)+' KG = REALIZADO '+num(totalReal)+' KG + FALTANTE '+num(totalSaldo)+' KG. PREV. POR TRATO EXIBE SOMENTE O QUE AINDA FALTA DISTRIBUIR.</div>';
+  html+='<div class="pagebreak"></div>'+cab+'<h2>CARREGAMENTO '+esc(sistema)+' — TOTAL POR INGREDIENTE E TOTAL GERAL</h2><div class="info">PREVISÃO DE INGREDIENTES PELA DIETA ATIVA; REALIZADO CONFORME REGISTROS SALVOS NO SUPABASE.</div>';
   html+='<table><thead><tr><th rowspan="2">INGREDIENTE</th>'+'<th colspan="2">TOTAL INGREDIENTE</th>'+[1,2,3,4].map(i=>'<th colspan="2">CARGA '+i+'</th>').join('')+'</tr><tr>'+'<th>PREV.</th><th>REAL.</th>'+[1,2,3,4].map(()=>'<th>PREV.</th><th>REAL.</th>').join('')+'</tr></thead><tbody>';
   // Ordem operacional da ficha, com torta imediatamente após polpa.
   const ordem=['FARELO DE ARROZ','POLPA CITRICA','TORTA GORDA DE ALGODAO','NUCLEO','UREIA','MILHO','AGUA','SILAGEM'];

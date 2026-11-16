@@ -3504,7 +3504,7 @@ ${gm!==null?`<div><span style="color:#315d4b;font-weight:800">GMD REAL DAS SAÍD
 <div><span style="color:#315d4b;font-weight:800">DIÁRIA ATUAL:</span> <strong>${Number.isFinite(custoValor)?custoValor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—'}</strong></div>
 <div><span style="color:#315d4b;font-weight:800">CONSUMO MN/CAB:</span> <strong>${Number.isFinite(consumoValor)?consumoValor.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' kg':'—'}</strong></div>
 <div><span style="color:#315d4b;font-weight:800">INÍCIO DO PERÍODO:</span> <strong>${inicioCiclo.get(nome)?inicioCiclo.get(nome).split('-').reverse().join('/'):'—'}</strong></div>
-<div><span style="color:#315d4b;font-weight:800">JÁ SAÍRAM NO PERÍODO:</span> <strong>${(vendidosPor.get(nome)||[]).length}</strong></div>
+
 <div><span style="color:#315d4b;font-weight:800">PROJEÇÃO POR PRAZO ESTIMADO (NÃO É PESAGEM):</span> ${projHTML(projs)}</div>
 </div>`}
    else{
@@ -3526,7 +3526,7 @@ ${gm!==null?`<div><span style="color:#315d4b;font-weight:800">GMD REAL DAS SAÍD
     <div><span style="color:#315d4b;font-weight:800">DIÁRIA ATUAL:</span> <strong>${Number.isFinite(custo)?custo.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'—'}</strong></div>
     <div><span style="color:#315d4b;font-weight:800">CONSUMO MN/CAB:</span> <strong>${Number.isFinite(consumo)?consumo.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' kg':'—'}</strong></div>
     <div><span style="color:#315d4b;font-weight:800">INÍCIO DO PERÍODO:</span> <strong>${inicioCiclo.get(nome)?inicioCiclo.get(nome).split('-').reverse().join('/'):'—'}</strong></div>
-<div><span style="color:#315d4b;font-weight:800">JÁ SAÍRAM NO PERÍODO:</span> <strong>${(vendidosPor.get(nome)||[]).length}</strong></div>
+
     </div>`;
     const rs=reforcos.get(nome)||[];
     if(rs.length){const p=rs.slice().sort((a,b)=>String(a.data_prevista_reforco).localeCompare(String(b.data_prevista_reforco)))[0];const alerta=String(p.situacao_reforco||'')!=='SEM_AVISO';extra+=`<div style="margin-top:7px;font-size:10px;color:#b42318;font-weight:900">REFORÇO: ${String(p.data_prevista_reforco||'').split('-').reverse().join('/')}${alerta?' • '+String(p.situacao_reforco||'').replaceAll('_',' '):''}</div>`}

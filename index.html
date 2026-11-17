@@ -2031,7 +2031,7 @@ body{background:#f4f8f7}
   </section>
 
 <div id="peso_estimado" class="page"><div class="panel"><div class="section-head"><div><h2>PESO ESTIMADO POR CURRAL</h2><p>VISÃO INFORMATIVA • ANIMAIS ATIVOS • GANHO DE PESO CONFORME PARÂMETROS ZOOTÉCNICOS DO SISTEMA</p></div><button class="btn" onclick="carregarVisaoPesoEstimado()">ATUALIZAR</button></div><div id="peso_estimado_resumo"></div><div id="peso_estimado_tabela" style="width:100%;max-width:100%;overflow-x:hidden;margin-top:14px">CARREGANDO...</div><p style="font-size:11px;color:#667085;margin-top:10px">PESO ESTIMADO NÃO É PESAGEM REAL. %PV MS CALCULADO COM A ÚLTIMA MS DISTRIBUÍDA REGISTRADA E O PESO VIVO ESTIMADO. O %PV MS UTILIZA O ÚLTIMO VALOR SALVO NO HISTÓRICO. NÃO ALTERA O BANCO.</p></div></div>
-<section id="animais" class="page"><div class="panel"><div class="section-head"><div><h2>Animais por Localidade</h2><p>Selecione uma localidade para ver rapidamente os animais ativos.</p></div><span class="tag">ESTOQUE ATUAL</span></div><div class="consulta-animal"><div class="field"><label>LOCALIDADE</label><select id="filtroLocalidadeAnimais" onchange="renderAnimaisLocalidade()"><option value="">TODAS AS LOCALIDADES</option></select></div></div><div id="animaisLocalidadeResumo" style="margin-top:12px"></div><div id="animaisLocalidadeTable" style="margin-top:12px"></div></div><div class="panel"><div class="section-head"><div><h2>Consulta individual</h2><p>Informe o BRINCO/SB para visualizar o histórico completo do animal.</p></div><span class="tag">FICHA DO ANIMAL</span></div><div class="consulta-animal"><div class="field"><label>BRINCO / SB</label><input id="consultaBrinco" placeholder="Digite o número do animal"></div><button class="btn primary" type="button" onclick="consultarAnimal()">Buscar animal</button><button class="btn" type="button" onclick="limparConsultaAnimal()">Limpar</button></div><div id="fichaAnimal" style="margin-top:18px"></div></div><div class="panel"><h2>Animais Negociados</h2><p>Todos os animais negociados salvos no sistema.</p><div id="animaisTable"></div></div></section>
+<section id="animais" class="page"><div class="panel"><div class="section-head"><div><h2>Consulta individual</h2><p>Informe o BRINCO/SB para conferir os dados do animal.</p></div><span class="tag">CONSULTA</span></div><div class="consulta-animal"><div class="field"><label>BRINCO / SB</label><input id="consultaBrinco" placeholder="Digite o número do animal" onkeydown="if(event.key==='Enter'){event.preventDefault();consultarAnimal()}"></div><button class="btn primary" type="button" onclick="consultarAnimal()">CARREGAR ANIMAL</button><button class="btn" type="button" onclick="limparConsultaAnimal()">Limpar</button></div><div id="fichaAnimal" style="margin-top:18px"></div></div><div class="panel"><div class="section-head"><div><h2>Animais por Localidade</h2><p>Selecione uma localidade para ver rapidamente os animais ativos.</p></div><span class="tag">ESTOQUE ATUAL</span></div><div class="consulta-animal"><div class="field"><label>LOCALIDADE</label><select id="filtroLocalidadeAnimais" onchange="renderAnimaisLocalidade()"><option value="">TODAS AS LOCALIDADES</option></select></div></div><div id="animaisLocalidadeResumo" style="margin-top:12px"></div><div id="animaisLocalidadeTable" style="margin-top:12px"></div></div><div class="panel"><h2>Animais Negociados</h2><p>Todos os animais negociados salvos no sistema.</p><div id="animaisTable"></div></div></section>
   <section id="pesagemIntermediaria" class="page">
 <div class="section-head"><div><h2>PESAGEM INTERMEDIÁRIA</h2><p>Relatórios históricos por baia/localidade e data da pesagem.</p></div></div>
 <div class="card" style="padding:20px;max-width:1200px">
@@ -2052,8 +2052,7 @@ body{background:#f4f8f7}
       <div class="ps-local-info"><span aria-hidden="true">ⓘ</span><span>Animal do repositório: vinculado à localidade informada.<br>Animal ativo: reposição automática com prioridade para SB.</span></div>
     </div>
     <div class="grid">
-      <div class="field"><label>Brinco / SB *</label><input id="ps_brinco" autocomplete="off" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter'){event.preventDefault();buscarAnimalPesagemSaida()}"></div>
-      <div class="field" style="display:flex;align-items:end"><button class="btn primary" type="button" onclick="buscarAnimalPesagemSaida()">CARREGAR ANIMAL</button></div>
+      <div class="field"><label>Brinco / SB *</label><input id="ps_brinco" autocomplete="off" oninput="this.value=this.value.toUpperCase()" onchange="if(this.value.trim())buscarAnimalPesagemSaida()" onkeydown="if(event.key==='Enter'){event.preventDefault();buscarAnimalPesagemSaida()}"></div>
       <div class="field"><label>Data de saída *</label><input id="ps_data_saida" type="date"></div>
       <div class="field"><label>Peso de saída (kg) *</label><input id="ps_peso_saida" type="number" min="0.1" step="0.1" oninput="atualizarPreviaPesoSaida()"></div>
     </div>
@@ -2601,21 +2600,32 @@ $('ab_grupo')?.addEventListener('change',mostrarResumoAbate);
 
 async function consultarAnimal(){
   const q=String($('consultaBrinco')?.value||'').trim().toUpperCase();
-  const box=$('fichaAnimal'); if(!box)return;
-  if(!q){box.innerHTML='<div class="empty">Informe o BRINCO/SB.</div>';return}
-  box.innerHTML='<div class="empty">CONSULTANDO HISTÓRICO NO BANCO...</div>';
+  const box=$('fichaAnimal');if(!box)return;
+  if(!q){box.innerHTML='<div class="empty">INFORME O BRINCO/SB.</div>';return}
+  box.innerHTML='<div class="notice">CONSULTANDO ANIMAL...</div>';
   try{
-    const resp=await supa.from('animais').select('*').ilike('brinco',q).order('data_saida',{ascending:false});
-    if(resp.error) throw resp.error;
-    const hist=(resp.data||[]).map(dbToAnimal);
-    if(!hist.length){box.innerHTML='<div class="empty">Animal não encontrado.</div>';return}
-    const atual=hist[0];
-    box.innerHTML=`<div class="ficha-topo"><div><div class="ficha-ident">ANIMAL ${atual.brinco||q}</div><div class="ficha-meta">${hist.length} ciclo(s)/evento(s) encontrado(s) • CONSULTA SUPABASE</div></div>${statusHTML(atual.status)}</div>`+
-      tabelaAnimais(hist,false);
-  }catch(e){
-    console.error(e);
-    box.innerHTML='<div class="empty">ERRO AO CONSULTAR O BANCO: '+String(e?.message||e)+'</div>';
-  }
+    if(!supa)throw new Error('SEM CONEXÃO COM O BANCO.');
+    const resp=await supa.from('animais')
+      .select('brinco,localizacao,origem,data_entrada,peso_entrada,custo_acumulado,preco_compra,status,data_saida')
+      .ilike('brinco',q).limit(50);
+    if(resp.error)throw resp.error;
+    const lista=resp.data||[];
+    const ativos=lista.filter(x=>String(x.status||'').toUpperCase()==='ATIVO');
+    if(ativos.length>1){box.innerHTML='<div class="notice">EXISTE MAIS DE UM ANIMAL ATIVO COM ESTE BRINCO. CONFIRA O CADASTRO.</div>';return}
+    const x=ativos[0]||lista.sort((a,b)=>String(b.data_saida||'').localeCompare(String(a.data_saida||'')))[0];
+    if(!x){box.innerHTML='<div class="empty">ANIMAL NÃO ENCONTRADO.</div>';return}
+    const esc=v=>String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const dinheiro=v=>v===null||v===undefined||v===''?'—':Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+    const peso=x.peso_entrada===null||x.peso_entrada===undefined||x.peso_entrada===''?'—':Number(x.peso_entrada).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' KG';
+    box.innerHTML='<div class="notice" style="border-left:4px solid #315d4b;padding:14px 18px">'+
+      '<b>CONFIRA O ANIMAL</b><div style="margin-top:14px;line-height:1.8">'+
+      'BRINCO/SB: <b>'+esc(x.brinco||q)+'</b> &nbsp; | &nbsp; '+
+      'LOCALIDADE: <b>'+esc(x.localizacao||x.origem)+'</b> &nbsp; | &nbsp; '+
+      'DATA ENTRADA: <b>'+esc(x.data_entrada?dataBR(x.data_entrada):'—')+'</b> &nbsp; | &nbsp; '+
+      'PESO ENTRADA: <b>'+esc(peso)+'</b> &nbsp; | &nbsp; '+
+      'ACUMULADO: <b>'+esc(dinheiro(x.custo_acumulado))+'</b> &nbsp; | &nbsp; '+
+      'COMPRA: <b>'+esc(dinheiro(x.preco_compra))+'</b></div></div>';
+  }catch(e){console.error(e);box.innerHTML='<div class="empty">ERRO AO CONSULTAR ANIMAL: '+String(e?.message||e).replace(/[<>]/g,'')+'</div>'}
 }
 function prepararFiltroLocalidadesAnimais(){
  const sel=$('filtroLocalidadeAnimais');if(!sel)return;
@@ -6652,7 +6662,7 @@ async function trHistoricoCarregar(){
       const indicadores=[
         ['DESVIO CARREGAMENTO %',g=>g.temCarga?pct(g.c-g.p,g.p):'—'],
         ['DESVIO DISTRIBUIÇÃO %',g=>g.temCarga&&g.temDist?pct(g.d-g.p,g.p):'—'],
-        ['DIFERENÇA CARREGADO × DISTRIBUÍDO %',g=>{if(!g.temCarga||!g.temDist||g.d<=0)return '—';const ajuste=ajustesDFResumo.get(g.data+'|'+g.sis)||{sobra:0,nota2:0};const final=trSobraFinalDF(ajustesDFResumo,g.data,g.sis);const df=trCalcularDFUnico(g.c,g.d,ajuste.sobra,ajuste.nota2,final);return pct(df.diferenca,df.carregadoAjustado)}]
+        ['DIFERENÇA CARREGADO × DISTRIBUÍDO %',g=>{if(!g.temCarga||!g.temDist||g.d<=0)return '—';const ajuste=ajustesDFResumo.get(g.data+'|'+g.sis)||{sobra:0,nota2:0};const final=trSobraFinalDF(ajustesDFResumo,g.data,g.sis);const df=trCalcularDFUnico(g.c,g.d,ajuste.sobra,ajuste.nota2,final);return pct(df.diferenca,g.d)}]
       ];
       const linhas=indicadores.map(([nome,calc])=>[
         esc(nome),...datas.map(d=>calc(mapa.get(d)))
@@ -6685,11 +6695,11 @@ async function trHistoricoCarregar(){
       // Sem registro de ajuste, o comparativo histórico permanece bruto e é identificado como tal.
       const sobra=a?a.sobra:0,nota2=a?a.nota2:0;
       const {carregadoAjustado,distribuidoAjustado,diferenca,percentual:dfPercentual}=trCalcularDFUnico(g.c,g.d,sobra,nota2,trSobraFinalDF(ajustes,d,sis));
-      const percentual=dfPercentual===null?'—':pct(diferenca,carregadoAjustado);
+      const percentual=dfPercentual===null?'—':pct(diferenca,g.d);
       const titulo='CARREGADO '+fmt(g.c)+' KG; SOBRA RECEBIDA '+fmt(sobra)+' KG; TOTAL DISPONÍVEL '+fmt(carregadoAjustado)+' KG; DISTRIBUÍDO '+fmt(g.d)+' KG; SOBRA FINAL TRANSFERIDA '+fmt(trSobraFinalDF(ajustes,d,sis))+' KG; NOTA 2 INFORMATIVA '+fmt(nota2)+' KG (SEM NOVO DESCONTO); DF '+fmt(diferenca)+' KG'+(a?' (AJUSTADO)':' (SEM AJUSTES REGISTRADOS)');
       return '<td title="'+esc(titulo)+'">'+percentual+(a?'':' <small>*</small>')+'</td>';
     }).join('')+'</tr>').join('');
-    painel.innerHTML='<div class="hist-painel-simples"><h3>DF — CARREGADO × DISTRIBUÍDO POR SISTEMA</h3><p style="font-size:12px">DIAS NAS COLUNAS • SISTEMAS NAS LINHAS • VERDE &lt;1%; AMARELO 1–&lt;2%; LARANJA 2–&lt;3%; VERMELHO ≥3%.</p><div class="notice">DF = CARREGAMENTO REALIZADO + SOBRA RECEBIDA − DISTRIBUIÇÃO REALIZADA − SOBRA TRANSFERIDA AO DIA SEGUINTE. NOTA 2 NÃO É DESCONTADA NOVAMENTE. DF % SOBRE O TOTAL DISPONÍVEL. * SEM AJUSTES REGISTRADOS: COMPARAÇÃO BRUTA, NÃO VALIDADA. — = DADOS INCOMPLETOS. PASSE O CURSOR PARA VER OS KG.</div><div class="table-wrap hist-scroll"><table class="hist-table"><thead><tr><th>SISTEMA</th>'+datasDF.map(d=>'<th>'+esc(dataCtrl(d))+'</th>').join('')+'</tr></thead><tbody>'+linhasDF+'</tbody></table></div></div>';
+    painel.innerHTML='<div class="hist-painel-simples"><h3>DF — CARREGADO × DISTRIBUÍDO POR SISTEMA</h3><p style="font-size:12px">DIAS NAS COLUNAS • SISTEMAS NAS LINHAS • VERDE &lt;1%; AMARELO 1–&lt;2%; LARANJA 2–&lt;3%; VERMELHO ≥3%.</p><div class="notice">DF = CARREGAMENTO REALIZADO + SOBRA RECEBIDA − DISTRIBUIÇÃO REALIZADA − SOBRA TRANSFERIDA AO DIA SEGUINTE. NOTA 2 NÃO É DESCONTADA NOVAMENTE. DF % SOBRE O TOTAL DISTRIBUÍDO, IGUAL À CONFERÊNCIA DIÁRIA. * SEM AJUSTES REGISTRADOS: COMPARAÇÃO BRUTA, NÃO VALIDADA. — = DADOS INCOMPLETOS. PASSE O CURSOR PARA VER OS KG.</div><div class="table-wrap hist-scroll"><table class="hist-table"><thead><tr><th>SISTEMA</th>'+datasDF.map(d=>'<th>'+esc(dataCtrl(d))+'</th>').join('')+'</tr></thead><tbody>'+linhasDF+'</tbody></table></div></div>';
   }
   resumo.innerHTML=sistemas.map(sis=>{
     const dados=porSistema(sis);
@@ -6697,7 +6707,7 @@ async function trHistoricoCarregar(){
       const desvioCarga=g.temCarga?g.c-g.p:null;
       const desvioDist=g.temCarga&&g.temDist?g.d-g.p:null;
       const ajusteDF=ajustesDFResumo.get(g.data+'|'+g.sis)||{sobra:0,nota2:0};const dfTabela=trCalcularDFUnico(g.c,g.d,ajusteDF.sobra,ajusteDF.nota2,trSobraFinalDF(ajustesDFResumo,g.data,g.sis));const difCargaDist=g.temCarga&&g.temDist&&g.d>0?dfTabela.diferenca:null;
-      return [esc(dataCtrl(g.data)),g.temCarga?fmt(g.p):'—',g.temCarga?fmt(g.c):'—',g.temDist?fmt(g.d):'—',desvioCarga===null?'—':fmt(desvioCarga),desvioCarga===null?'—':pct(desvioCarga,g.p),desvioDist===null?'—':fmt(desvioDist),desvioDist===null?'—':pct(desvioDist,g.p),difCargaDist===null?'—':fmt(difCargaDist),difCargaDist===null?'—':pct(difCargaDist,dfTabela.carregadoAjustado)];
+      return [esc(dataCtrl(g.data)),g.temCarga?fmt(g.p):'—',g.temCarga?fmt(g.c):'—',g.temDist?fmt(g.d):'—',desvioCarga===null?'—':fmt(desvioCarga),desvioCarga===null?'—':pct(desvioCarga,g.p),desvioDist===null?'—':fmt(desvioDist),desvioDist===null?'—':pct(desvioDist,g.p),difCargaDist===null?'—':fmt(difCargaDist),difCargaDist===null?'—':pct(difCargaDist,g.d)];
     });
     return '<div style="margin:20px 0 28px"><h3 style="border-bottom:2px solid #888;padding-bottom:7px">'+nomeSistema(sis)+'</h3>'+
       '<p style="font-size:12px;margin:6px 0 10px">CONSOLIDADO DIÁRIO — PREVISTO, CARREGADO, DISTRIBUÍDO E DESVIOS</p>'+

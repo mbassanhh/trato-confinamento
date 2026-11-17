@@ -9109,15 +9109,25 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
     return (ia<0?99:ia)-(ib<0?99:ib)||a.nome.localeCompare(b.nome,'pt-BR');
   });
   if(linhas.some(x=>!x.nome||/^INSUMO\s+\d+$/i.test(x.nome)))throw Error('FICHA BLOQUEADA: INGREDIENTE SEM NOME CADASTRADO.');
+  // Arredondamento exclusivo da ficha de carregamento: fração <= 0,5 desce; > 0,5 sobe.
+  // Não modifica os valores usados no cálculo nem os registros no Supabase.
+  const inteiroCarga=v=>{
+    if(v===null||v===undefined||v==='')return '—';
+    const n=Number(v);
+    if(!Number.isFinite(n))return '—';
+    const abs=Math.abs(n);
+    const arredondado=Math.floor(abs)+(abs-Math.floor(abs)>0.5+1e-9?1:0);
+    return (n<0?-arredondado:arredondado).toLocaleString('pt-BR',{maximumFractionDigits:0});
+  };
   for(const r of linhas){
     const totalPrev=r.prev.reduce((a,v)=>a+Number(v||0),0);
     const totalReal=r.real.reduce((a,v)=>a+Number(v||0),0);
     const algumReal=r.real.some(v=>v!==null&&v!==undefined&&v!=='');
-    html+='<tr>'+td(r.nome)+td(num(totalPrev))+td(algumReal?num(totalReal):'—')+[0,1,2,3].map(i=>td(num(r.prev[i]))+td(r.real[i]===null||r.real[i]===undefined?'—':num(r.real[i]))).join('')+'</tr>';
+    html+='<tr>'+td(r.nome)+td(inteiroCarga(totalPrev))+td(algumReal?num(totalReal):'—')+[0,1,2,3].map(i=>td(inteiroCarga(r.prev[i]))+td(r.real[i]===null||r.real[i]===undefined?'—':num(r.real[i]))).join('')+'</tr>';
   }
   const totalGeralPrev=linhas.reduce((a,r)=>a+r.prev.reduce((x,v)=>x+Number(v||0),0),0);
   const totalGeralReal=linhas.reduce((a,r)=>a+r.real.reduce((x,v)=>x+Number(v||0),0),0);
-  html+='<tr class="total">'+td('TOTAL GERAL')+td(num(totalGeralPrev))+td(cargas.length?num(totalGeralReal):'—')+[0,1,2,3].map(i=>td(num(linhas.reduce((a,r)=>a+Number(r.prev[i]||0),0)))+td(cargas.some(c=>Number(c.carga)===i+1)?num(linhas.reduce((a,r)=>a+Number(r.real[i]||0),0)):'—')).join('')+'</tr>';
+  html+='<tr class="total">'+td('TOTAL GERAL')+td(inteiroCarga(totalGeralPrev))+td(cargas.length?num(totalGeralReal):'—')+[0,1,2,3].map(i=>td(inteiroCarga(linhas.reduce((a,r)=>a+Number(r.prev[i]||0),0)))+td(cargas.some(c=>Number(c.carga)===i+1)?num(linhas.reduce((a,r)=>a+Number(r.real[i]||0),0)):'—')).join('')+'</tr>';
   html+='</tbody></table>';
   html+='<p><button onclick="window.print()">IMPRIMIR / SALVAR PDF</button></p></body></html>';
   // Controle de completude: a impressão deve conter TODOS os currais da grade.

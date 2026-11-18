@@ -2501,7 +2501,7 @@ async function abrirHistoricoCocho(imprimir=false){
  await consultarHistoricoCocho();
  if(imprimir)setTimeout(imprimirFichaCocho,200);
 }
-function showPage(id,btn){const anterior=document.querySelector('.page.active')?.id;document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');if(id==='lote'&&anterior!=='lote')limparNovaPesagem();if(id==='cocho')carregarModuloCocho();if(id==='relatorios')relLeilaoCarregar();renderAll();if(id==='dashboard'&&typeof window.carregarGraficoFinanceiroOficial==='function')window.carregarGraficoFinanceiroOficial();else if(id==='financeiro'&&typeof atualizarFinanceiro==='function')atualizarFinanceiro()}
+function showPage(id,btn){const anterior=document.querySelector('.page.active')?.id;document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');if(id==='lote'&&anterior!=='lote')limparNovaPesagem();if(id==='cocho')carregarModuloCocho();if(id==='relatorios')relLeilaoCarregar();renderAll();if(id==='abate'){atualizarListaAbateAoAbrir();}if(id==='dashboard'&&typeof window.carregarGraficoFinanceiroOficial==='function')window.carregarGraficoFinanceiroOficial();else if(id==='financeiro'&&typeof atualizarFinanceiro==='function')atualizarFinanceiro()}
 function pad(n){return String(n).padStart(2,'0')}
 function dias(){let e=$('l_entrada').value,s=$('l_saida').value;if(!e||!s)return '';let a=new Date(e+'T00:00:00'),b=new Date(s+'T00:00:00');return Math.max(0,Math.round((b-a)/86400000))}
 function calc(){let d=dias();$('a_dias').value=d===''?'':d;let pe=parseFloat($('a_pe').value),ps=parseFloat($('a_ps').value),g=(isFinite(pe)&&isFinite(ps)&&d>0)?(ps-pe)/d:'';$('a_gmd').value=g===''?'':g.toFixed(3);let diaria=parseFloat($('l_diaria').value)||0,atual=d===''?'':diaria*d,compra=parseFloat($('l_compra').value)||0,acum=parseFloat($('a_acum').value);if(!isFinite(acum))acum=parseFloat($('l_acum').value)||0;custo=atual===''?'':compra+atual+acum;$('a_atual').value=atual===''?'':atual.toFixed(2);$('a_acum').value=acum===''?'':acum.toFixed(2);$('a_custo').value=custo===''?'':custo.toFixed(2)}
@@ -2527,6 +2527,25 @@ let pesagensLiberadasAbate=new Set();
 function alternarOrdemPesagens(v){ordemPesagens=v;renderPesagens()}
 function renderPesagens(){const el=$('pesagensTable');if(!el)return;let gs=[...gruposAbate()];if(ordemPesagens==='ASC')gs.reverse();if(!gs.length){el.innerHTML='<div class="empty">Nenhuma pesagem cadastrada.</div>';return}let h='<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><label style="font-size:12px;font-weight:800">ORDENAR&nbsp;<select onchange="alternarOrdemPesagens(this.value)" style="padding:7px 10px;border:1px solid #d1d5db;border-radius:7px"><option value="DESC" '+(ordemPesagens==='DESC'?'selected':'')+'>MAIS RECENTE PRIMEIRO</option><option value="ASC" '+(ordemPesagens==='ASC'?'selected':'')+'>MAIS ANTIGA PRIMEIRO</option></select></label></div><div class="table-wrap"><table style="min-width:850px"><thead><tr><th>Data saída</th><th>Data entrada</th><th>Destino</th><th>Origem</th><th>Animais</th><th>Peso médio saída</th></tr></thead><tbody>';gs.forEach(g=>{const a=g.base,ls=g.indices.map(i=>animais[i]),pm=ls.reduce((s,x)=>s+(Number(x.ps)||0),0)/ls.length;h+=`<tr><td>${dataBR(a.saida)}</td><td>${dataBR(a.entrada)}</td><td>${a.destino||'—'}</td><td>${origemGrupo(g)}</td><td>${g.indices.length}</td><td>${pm.toFixed(2)} kg / ${((pm/2)/15).toFixed(2)} @</td></tr>`});el.innerHTML=h+'</tbody></table></div>'}
 function renderMediasInline(){let el=$('mediasInline');if(!el)return;const lista=pesagemAtualAnimais();if(!lista.length){el.innerHTML='<div class="empty">Nenhum animal lançado nesta pesagem.</div>';return}const avg=(k,a=lista)=>{let v=a.map(x=>Number(x[k])).filter(Number.isFinite);return v.length?v.reduce((s,n)=>s+n,0)/v.length:0};const cards=a=>`<div class="kpis"><div class="kpi"><span>ANIMAIS</span><strong>${a.length}</strong></div><div class="kpi"><span>PESO MÉDIO ENTRADA</span><strong>${avg('pe',a).toFixed(1)} kg / ${((avg('pe',a)/2)/15).toFixed(2)} @</strong></div><div class="kpi"><span>PESO MÉDIO SAÍDA</span><strong>${avg('ps',a).toFixed(1)} kg / ${((avg('ps',a)/2)/15).toFixed(2)} @</strong></div><div class="kpi"><span>GMD MÉDIO</span><strong>${avg('gmd',a).toFixed(3)}</strong></div><div class="kpi"><span>DIAS MÉDIOS</span><strong>${avg('dias',a).toFixed(1)}</strong></div><div class="kpi"><span>DIÁRIA MÉDIA</span><strong>${money(avg('diaria',a))}</strong></div><div class="kpi"><span>PREÇO COMPRA MÉDIO</span><strong>${money(avg('compra',a))}</strong></div><div class="kpi"><span>CUSTO MÉDIO ANIMAL</span><strong>${money(avg('custoAnimal',a))}</strong></div></div>`;let h='<h3>MÉDIA GERAL DA PESAGEM ATUAL</h3>'+cards(lista);let g={};lista.forEach(x=>{let o=(x.origem||'SEM ORIGEM').toUpperCase();(g[o]??=[]).push(x)});Object.entries(g).forEach(([o,a])=>h+=`<div style="margin-top:18px"><h3>ORIGEM: ${o}</h3>${cards(a)}</div>`);el.innerHTML=h}
+/* Atualiza pesagens de abate diretamente do banco ao abrir a tela.
+   Inclui pré-vendas registradas em outro dispositivo, sem duplicar registros. */
+let abateAtualizacaoEmAndamento=false;
+async function atualizarListaAbateAoAbrir(){
+ if(abateAtualizacaoEmAndamento)return;
+ abateAtualizacaoEmAndamento=true;
+ const sel=$('ab_grupo');
+ const valorAnterior=sel?.value||'';
+ try{
+  await carregarSupabase();
+  if(document.querySelector('.page.active')?.id==='abate'){
+   preencherGruposAbate();
+   if(valorAnterior && [...(sel?.options||[])].some(o=>o.value===valorAnterior)){
+    sel.value=valorAnterior;mostrarResumoAbate();
+   }
+  }
+ }catch(e){console.error('Falha ao atualizar pesagens de abate:',e);toast('NÃO FOI POSSÍVEL ATUALIZAR AS PESAGENS. VERIFIQUE A CONEXÃO.');}
+ finally{abateAtualizacaoEmAndamento=false;}
+}
 function origemAbate(x){return String(x.localizacao||x.origem||'SEM ORIGEM').trim().toUpperCase()}
 function grupoKey(x){return [x.saida||'',x._pesagem_id||'',origemAbate(x)].join('|')}
 function origemGrupo(g){
@@ -4037,6 +4056,8 @@ async function carregarSupabase(){
      if(mesmoEvento.length===1) ls=animais.filter(x=>x._pesagem_id===b.pesagem_id);
    }
    for(const x of ls){
+     /* Pré-venda: carcaça e arroba NULL significam abate ainda pendente. */
+     if(b.carcaca_arrobas==null || b.valor_arroba==null)continue;
      const ca=Number(b.carcaca_arrobas), va=Number(b.valor_arroba);
      const r=calcAbate(x,ca,va);
      Object.assign(x,{pesoCarcacaArrobas:ca,valorArroba:va,
@@ -8731,16 +8752,18 @@ window.visaoAbateCarregar=async function(){
  // Sem valor de venda cadastrado, mantém pendente; não inventa resultado.
  const totalVenda=r.every(x=>n(x.valor_venda)!==null&&n(x.valor_venda)>0)?avg(r,'valor_venda'):null;
  const totalCompra=r.every(x=>n(x.preco_compra)!==null&&n(x.preco_compra)>0)?avg(r,'preco_compra'):null;
- const totalAcum=r.every(x=>n(x.custo_acumulado)!==null)?avg(r,'custo_acumulado'):null;
+ // Acumulado médio por cabeça: ausência de histórico em um animal não oculta os valores já registrados nos demais.
+ const totalAcum=r.length?r.reduce((s,x)=>s+(n(x.custo_acumulado)??0),0)/r.length:null;
  const totalConf=cicloCompleto?custoUltimoCiclo:null;
  const resultado=totalVenda!==null&&totalCompra!==null&&totalAcum!==null&&totalConf!==null?totalVenda-totalCompra-totalAcum-totalConf:null;
  // Só entram no resultado os animais com os quatro componentes disponíveis.
  financeiroAbate.qtd+=r.length;
+ // Custos registrados são exibidos mesmo enquanto o preço de venda está pendente.
+ financeiroAbate.acumulado+=r.reduce((s,x)=>s+(n(x.custo_acumulado)??0),0);
  if(totalVenda!==null&&totalCompra!==null&&totalAcum!==null&&totalConf!==null){
   financeiroAbate.completo+=r.length;
   financeiroAbate.venda+=totalVenda*r.length;
   financeiroAbate.compra+=totalCompra*r.length;
-  financeiroAbate.acumulado+=totalAcum*r.length;
   financeiroAbate.confinamento+=totalConf*r.length;
   financeiroAbate.resultado+=resultado*r.length;
  }
@@ -8763,7 +8786,7 @@ window.visaoAbateCarregar=async function(){
  '<div class="va-kpis" style="flex-wrap:wrap">'+
  '<div class="va-kpi"><span>FATURAMENTO TOTAL</span><strong>'+reais(fin.completo?fin.venda:null)+'</strong></div>'+
  '<div class="va-kpi"><span>COMPRA TOTAL</span><strong>'+reais(fin.completo?fin.compra:null)+'</strong></div>'+
- '<div class="va-kpi"><span>CUSTO ACUMULADO TOTAL</span><strong>'+reais(fin.completo?fin.acumulado:null)+'</strong></div>'+
+ '<div class="va-kpi"><span>CUSTO ACUMULADO TOTAL</span><strong>'+reais(fin.acumulado)+'</strong></div>'+
  '<div class="va-kpi"><span>CUSTO CONFINAMENTO TOTAL</span><strong>'+reais(fin.completo?fin.confinamento:null)+'</strong></div>'+
  '<div class="va-kpi" style="border-color:'+(fin.resultado>=0?'#9ec5ad':'#dfb3ae')+'"><span>RESULTADO TOTAL</span><strong style="color:'+(fin.resultado>=0?'#086548':'#a52c28')+'">'+reais(fin.completo?fin.resultado:null)+'</strong></div>'+
  '</div><div class="hint" style="margin:0 0 10px">Resultado = venda − compra − custo acumulado − custo de confinamento. '+fin.completo+' de '+fin.qtd+' animais com cálculo financeiro completo.'+(finCompleto?'':' Valores parciais: existem informações pendentes.')+'</div>';

@@ -353,6 +353,27 @@ body.acesso-tratador #tratadorInicio{padding-top:30px}
 #cp_lista .cp-st-ok{background:#e9f4ee;color:#347357}
 #cp_lista .cp-faltam{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
 </style>
+<style id="compras-documentos-nf-gta">
+/* Exclusivamente a tabela Compras do Mês. Sem rolagem horizontal. */
+#cp_lista .cp-sem-rolagem{overflow-x:hidden!important;overflow-y:visible!important;width:100%!important}
+#cp_lista .cp-sem-rolagem table{width:100%!important;min-width:0!important;table-layout:fixed!important;font-size:clamp(9px,.72vw,11px)!important}
+#cp_lista .cp-sem-rolagem th,#cp_lista .cp-sem-rolagem td{padding:7px 2px!important;min-width:0!important;box-sizing:border-box!important;vertical-align:middle!important;overflow-wrap:normal!important}
+#cp_lista .cp-sem-rolagem th:nth-child(1){width:9%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(2){width:15%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(3){width:7%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(4){width:10%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(5){width:8%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(6){width:9%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(7){width:10%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(8){width:8%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(9){width:9%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(10){width:3%!important}
+#cp_lista .cp-sem-rolagem th:nth-child(11),#cp_lista .cp-sem-rolagem th:nth-child(12){width:6%!important;text-align:center!important}
+#cp_lista .cp-sem-rolagem td:nth-child(11),#cp_lista .cp-sem-rolagem td:nth-child(12){text-align:center!important}
+#cp_lista select.cp-doc{display:block!important;appearance:none!important;-webkit-appearance:none!important;width:100%!important;min-width:0!important;max-width:none!important;box-sizing:border-box!important;height:28px!important;padding:2px 1px!important;text-align:center!important;text-align-last:center!important;font-family:Arial,Helvetica,sans-serif!important;font-size:clamp(8px,.60vw,10px)!important;font-weight:800!important;letter-spacing:-.2px!important;border-radius:5px!important;cursor:pointer!important}
+#cp_lista select.cp-doc-pendente{background:#fce7e5!important;color:#b92d21!important;border:1px solid #e9b7b1!important}
+#cp_lista select.cp-doc-ok{background:#e3f3e7!important;color:#24753c!important;border:1px solid #b5ddbf!important}
+</style>
 <style id="visao-abate-estilos">
 #visaoAbate .va-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0 18px}
 #visaoAbate .va-kpi{padding:13px;border:1px solid #dfe4e8;border-radius:9px;background:#f8faf9}
@@ -419,6 +440,7 @@ function trDiaAnteriorNota2(dia){return String(dia).slice(0,10);} // Nota 2 sele
 // Fechamento idempotente: usa exclusivamente insumos, tratos e lotações da data.
 // Sobras de vagão: custo médio histórico por kg de MS; nunca cria carregamento.
 
+function trNota2OrigemDia(d){const x=new Date(String(d)+'T12:00:00Z');x.setUTCDate(x.getUTCDate()-1);return x.toISOString().slice(0,10);}
 async function nutriGravarDiariasHistoricas(dia){
  const [tr,lc,sl,cur,h,ja]=await Promise.all([
   supa.from('tratos_realizados').select('localizacao,sistema,trato_1,trato_2,trato_3,trato_4').eq('data_trato',dia),
@@ -4381,7 +4403,7 @@ async function tgHomCarregarFicha(){
     .select('tipo,localizacao,quantidade_kg,desconto_selecionado')
     .eq('data_referencia',dia).eq('sistema',tgSistema);
   if(ajustesQ.error)throw Error('AJUSTES OFICIAIS NÃO DISPONÍVEIS: '+ajustesQ.error.message);
-  const nota2Q=await supa.from('tratos_ajustes_df').select('tipo,localizacao,quantidade_kg,desconto_selecionado').eq('data_referencia',dia).eq('sistema',tgSistema).eq('tipo','DESCONTO_NOTA_2');
+  const nota2Q=await supa.from('tratos_ajustes_df').select('tipo,localizacao,quantidade_kg,desconto_selecionado').eq('data_referencia',trNota2OrigemDia(dia)).eq('sistema',tgSistema).eq('tipo','DESCONTO_NOTA_2');
   if(nota2Q.error)throw nota2Q.error;
   const ajustes=[...(ajustesQ.data||[]).filter(a=>a.tipo!=='DESCONTO_NOTA_2'),...(nota2Q.data||[])];
   const sobra=tgSistema==='CONFINAMENTO'?ajustes.filter(a=>a.tipo==='SOBRA_VAGAO').reduce((v,a)=>v+Number(a.quantidade_kg||0),0):0;
@@ -5908,7 +5930,7 @@ async function tratosRender(){
   try{
    const ajustes=await supa.from('tratos_ajustes_df')
     .select('localizacao,sistema,tipo,desconto_selecionado,trato_numero')
-    .eq('data_referencia',data).eq('tipo','DESCONTO_NOTA_2').eq('desconto_selecionado',true);
+    .eq('data_referencia',trNota2OrigemDia(data)).eq('tipo','DESCONTO_NOTA_2').eq('desconto_selecionado',true);
    if(ajustes.error)throw ajustes.error;
    const canon=n=>String(n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim().replace(/\s+/g,' ').replace(/^([AB][1-5])$/,'BAIA $1');
    const pendentes=[];
@@ -6074,7 +6096,7 @@ async function tratosRender(){
  const nota2Selecionados=new Set();
  try{
   const q=await supa.from('tratos_ajustes_df').select('localizacao')
-   .eq('data_referencia',data).eq('sistema','CONFINAMENTO')
+   .eq('data_referencia',trNota2OrigemDia(data)).eq('sistema','CONFINAMENTO')
    .eq('tipo','DESCONTO_NOTA_2').eq('desconto_selecionado',true);
   if(q.error)throw q.error;
   for(const a of q.data||[])nota2Selecionados.add(trNormNome(a.localizacao));
@@ -6149,7 +6171,7 @@ async function tratosRender(){
  // independentemente de a grade ter sido restaurada do rascunho local.
  try{
   const n2=await supa.from('tratos_ajustes_df')
-   .select('localizacao').eq('data_referencia',data).eq('sistema','CONFINAMENTO')
+   .select('localizacao').eq('data_referencia',trNota2OrigemDia(data)).eq('sistema','CONFINAMENTO')
    .eq('tipo','DESCONTO_NOTA_2').eq('desconto_selecionado',true);
   if(n2.error)throw n2.error;
   const normN2=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim().replace(/\s+/g,' ').replace(/^([AB][1-5])$/,'BAIA $1');
@@ -7043,7 +7065,7 @@ async function trCargaRender(){
     .select('tipo,quantidade_kg,localizacao,desconto_selecionado')
     .eq('data_referencia',data).eq('sistema',sistema);
   if(ajustesQ.error)throw ajustesQ.error;
-  const nota2Q=await supa.from('tratos_ajustes_df').select('tipo,localizacao,quantidade_kg,desconto_selecionado').eq('data_referencia',data).eq('sistema',sistema).eq('tipo','DESCONTO_NOTA_2');
+  const nota2Q=await supa.from('tratos_ajustes_df').select('tipo,localizacao,quantidade_kg,desconto_selecionado').eq('data_referencia',trNota2OrigemDia(data)).eq('sistema',sistema).eq('tipo','DESCONTO_NOTA_2');
   if(nota2Q.error)throw nota2Q.error;
   const ajustesConfirmados=[...(ajustesQ.data||[]).filter(a=>a.tipo!=='DESCONTO_NOTA_2'),...(nota2Q.data||[])];
   // A sobra de D+1 é o saldo que foi transferido ao final de D.
@@ -7542,7 +7564,7 @@ async function trImprimirPrevisaoConferida(){
     .select('tipo,quantidade_kg,localizacao,desconto_selecionado')
     .eq('data_referencia',dia).eq('sistema',sistema);
   if(ajusteQ.error)throw ajusteQ.error;
-  const nota2FichaQ=await supa.from('tratos_ajustes_df').select('tipo,quantidade_kg,localizacao,desconto_selecionado').eq('data_referencia',dia).eq('sistema',sistema).eq('tipo','DESCONTO_NOTA_2');
+  const nota2FichaQ=await supa.from('tratos_ajustes_df').select('tipo,quantidade_kg,localizacao,desconto_selecionado').eq('data_referencia',trNota2OrigemDia(dia)).eq('sistema',sistema).eq('tipo','DESCONTO_NOTA_2');
   if(nota2FichaQ.error)throw nota2FichaQ.error;
   const marcadosFicha=sistema==='CONFINAMENTO'
     ?(nota2FichaQ.data||[]).filter(a=>a.tipo==='DESCONTO_NOTA_2'&&a.desconto_selecionado===true&&a.localizacao):[];
@@ -8794,7 +8816,7 @@ window.visaoAbateImprimir=function(){
  async function montar(){
   const grade=document.getElementById('tr_grade_body');
   if(!grade||busy||!grade.querySelector('tr[data-local]')||typeof supa==='undefined'||typeof trData!=='function')return;
-  const dia=trData(),diaOrigem=dia,rows=[...grade.querySelectorAll('tr[data-local]')].filter(r=>norm(r.dataset.sistema)==='CONFINAMENTO');
+  const dia=trData(),diaOrigem=trNota2OrigemDia(dia),rows=[...grade.querySelectorAll('tr[data-local]')].filter(r=>norm(r.dataset.sistema)==='CONFINAMENTO');
   if(!rows.length||rows.every(r=>r.dataset.nota2Dia===dia))return;
   busy=true;const seq=++token;
   try{
@@ -8921,10 +8943,10 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
   // Seleção explícita de Nota 2 DO DIA DA FICHA: nunca consultar o dia anterior.
   const nota2Q=await supa.from('tratos_ajustes_df')
     .select('localizacao,desconto_selecionado,quantidade_kg')
-    .eq('data_referencia',dia)
+    .eq('data_referencia',trNota2OrigemDia(dia))
     .eq('sistema',sistema).eq('tipo','DESCONTO_NOTA_2');
   if(nota2Q.error)throw nota2Q.error;
-  const notasDiaQ=await supa.from('leituras_cocho').select('curral_id,nota').eq('data_leitura',dia).eq('nota',2);
+  const notasDiaQ=await supa.from('leituras_cocho').select('curral_id,nota').eq('data_leitura',trNota2OrigemDia(dia)).eq('nota',2);
   if(notasDiaQ.error)throw notasDiaQ.error;
   const curraisNotaQ=await supa.from('currais').select('id,codigo');
   if(curraisNotaQ.error)throw curraisNotaQ.error;
@@ -9369,6 +9391,19 @@ async function comprasDefinirProcessamento(id, seraProcessada, campo){
  }catch(e){toast('ERRO AO ATUALIZAR: '+(e.message||e));campo.disabled=false;await comprasCarregar();}
 }
 
+async function comprasDefinirDocumento(id,tipo,valor,campo){
+ if(!id||!campo||!['nf_recebida','gta_recebida'].includes(tipo))return;
+ campo.disabled=true;
+ try{
+  const r=await supa.from('entradas_lotes').update({[tipo]:valor==='OK'}).eq('id',id).select('id').single();
+  if(r.error)throw r.error;
+  campo.className='cp-doc '+(valor==='OK'?'cp-doc-ok':'cp-doc-pendente');
+  toast((tipo==='nf_recebida'?'NF':'GTA')+' ATUALIZADA.');
+ }catch(e){
+  campo.value=valor==='OK'?'PENDENTE':'OK';
+  toast('ERRO AO SALVAR DOCUMENTO: '+(e.message||e));
+ }finally{campo.disabled=false;}
+}
 async function comprasCarregar(){
  const box=document.getElementById('cp_lista');if(!box)return;
  const mesEl=document.getElementById('cp_mes');
@@ -9380,7 +9415,7 @@ async function comprasCarregar(){
  box.textContent='CARREGANDO COMPRAS...';
  try{
   const r=await supa.from('entradas_lotes')
-   .select('id,data_compra,origem_compra,localizacao,quantidade_animais,valor_compra,frete,comissao,status_processamento')
+   .select('id,data_compra,origem_compra,localizacao,quantidade_animais,valor_compra,frete,comissao,status_processamento,nf_recebida,gta_recebida')
    .gte('data_compra',inicio).lt('data_compra',fim)
    .order('data_compra',{ascending:false}).order('criado_em',{ascending:false});
   if(r.error)throw r.error;
@@ -9411,10 +9446,11 @@ async function comprasCarregar(){
    const status=semProcesso?'SEM PROCESSAMENTO':!valido?'QTD PENDENTE':feitos===0?'NÃO PROCESSADO':feitos<q?'PARCIALMENTE PROCESSADO':'PROCESSADO';
    const statusClasse=semProcesso?'cp-st-muted':status==='PROCESSADO'?'cp-st-ok':status==='PARCIALMENTE PROCESSADO'?'cp-st-partial':'cp-st-pending';
    const selecao='<select class="cp-processar" aria-label="SERÁ PROCESSADA?" title="DEFINIR SE ESTA COMPRA SERÁ PROCESSADA" onchange="comprasDefinirProcessamento(this.dataset.id,this.value,this)" data-id="'+esc(x.id)+'"><option value="SIM"'+(!semProcesso?' selected':'')+'>SIM</option><option value="NAO"'+(semProcesso?' selected':'')+'>NÃO</option></select>';
-   return '<tr><td>'+esc((x.data_compra||'').split('-').reverse().join('/'))+'</td><td>'+esc(x.origem_compra||'—')+'</td><td style="text-align:right">'+(valido?q:'—')+'</td><td style="text-align:right">'+money(unit)+'</td><td style="text-align:right">'+money(frete)+'</td><td style="text-align:right">'+money(comissao)+'</td><td style="text-align:right;font-weight:600">'+(valido?money(total/100):'PENDENTE QTD')+'</td><td>'+selecao+'</td><td style="font-weight:600">'+status+'</td><td style="text-align:right;font-weight:600">'+faltam+'</td></tr>';
+   const doc=(tipo,recebido,rotulo)=>'<select class="cp-doc '+(recebido?'cp-doc-ok':'cp-doc-pendente')+'" aria-label="'+rotulo+' RECEBIDA" title="'+rotulo+' — CONTROLE DE RECEBIMENTO" data-id="'+esc(x.id)+'" onchange="comprasDefinirDocumento(this.dataset.id,\''+tipo+'\',this.value,this)"><option value="PENDENTE"'+(!recebido?' selected':'')+'>PENDENTE</option><option value="OK"'+(recebido?' selected':'')+'>OK</option></select>';
+   return '<tr><td>'+esc((x.data_compra||'').split('-').reverse().join('/'))+'</td><td>'+esc(x.origem_compra||'—')+'</td><td style="text-align:right">'+(valido?q:'—')+'</td><td style="text-align:right">'+money(unit)+'</td><td style="text-align:right">'+money(frete)+'</td><td style="text-align:right">'+money(comissao)+'</td><td style="text-align:right;font-weight:600">'+(valido?money(total/100):'PENDENTE QTD')+'</td><td>'+selecao+'</td><td style="font-weight:600">'+status+'</td><td style="text-align:right;font-weight:600">'+faltam+'</td><td>'+doc('nf_recebida',x.nf_recebida,'NF')+'</td><td>'+doc('gta_recebida',x.gta_recebida,'GTA')+'</td></tr>';
   }).join('');
   const pendencia=semQuantidade?'<div class="notice" style="margin-top:8px">'+semQuantidade+' compra(s) sem quantidade cadastrada. O total abaixo é parcial; os valores dessas compras não foram estimados.</div>':'';
-  box.innerHTML='<div class="table-wrap cp-sem-rolagem"><table><thead><tr><th>DATA DA COMPRA</th><th>ORIGEM</th><th style="text-align:right">QTD ANIMAIS</th><th style="text-align:right">VALOR UNIT.</th><th style="text-align:right">FRETE/CAB</th><th style="text-align:right">COMISSÃO/CAB</th><th style="text-align:right">VALOR TOTAL</th><th>PROCESSAR?</th><th>STATUS</th><th style="text-align:right">FALTAM</th></tr></thead><tbody>'+(linhas||'<tr><td colspan="10" style="text-align:center">NENHUMA COMPRA NESTE MÊS.</td></tr>')+'</tbody><tfoot><tr style="font-weight:700"><td colspan="2">'+(semQuantidade?'TOTAL PARCIAL DO MÊS':'TOTAL DO MÊS')+'</td><td style="text-align:right">'+animais+'</td><td style="text-align:right" title="SOMA DOS VALORES DE COMPRA MULTIPLICADOS PELA QUANTIDADE">'+money(compraCentavos/100)+'</td><td style="text-align:right" title="FRETE TOTAL: FRETE POR CABEÇA VEZES QUANTIDADE">'+money(freteCentavos/100)+'</td><td style="text-align:right" title="COMISSÃO TOTAL: COMISSÃO POR CABEÇA VEZES QUANTIDADE">'+money(comissaoCentavos/100)+'</td><td style="text-align:right">'+money(totalCentavos/100)+'</td><td></td><td></td><td></td></tr></tfoot></table></div>'+pendencia;
+  box.innerHTML='<div class="table-wrap cp-sem-rolagem"><table><thead><tr><th>DATA DA COMPRA</th><th>ORIGEM</th><th style="text-align:right">QTD ANIMAIS</th><th style="text-align:right">VALOR UNIT.</th><th style="text-align:right">FRETE/CAB</th><th style="text-align:right">COMISSÃO/CAB</th><th style="text-align:right">VALOR TOTAL</th><th>PROCESSAR?</th><th>STATUS</th><th style="text-align:right">FALTAM</th><th scope="col">NF</th><th scope="col">GTA</th></tr></thead><tbody>'+(linhas||'<tr><td colspan="12" style="text-align:center">NENHUMA COMPRA NESTE MÊS.</td></tr>')+'</tbody><tfoot><tr style="font-weight:700"><td colspan="2">'+(semQuantidade?'TOTAL PARCIAL DO MÊS':'TOTAL DO MÊS')+'</td><td style="text-align:right">'+animais+'</td><td style="text-align:right" title="SOMA DOS VALORES DE COMPRA MULTIPLICADOS PELA QUANTIDADE">'+money(compraCentavos/100)+'</td><td style="text-align:right" title="FRETE TOTAL: FRETE POR CABEÇA VEZES QUANTIDADE">'+money(freteCentavos/100)+'</td><td style="text-align:right" title="COMISSÃO TOTAL: COMISSÃO POR CABEÇA VEZES QUANTIDADE">'+money(comissaoCentavos/100)+'</td><td style="text-align:right">'+money(totalCentavos/100)+'</td><td></td><td></td><td></td><td></td><td></td></tr></tfoot></table></div>'+pendencia;
  }catch(e){box.textContent='ERRO NA CONSULTA: '+(e.message||e);}
 }
 </script>

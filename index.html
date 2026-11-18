@@ -2564,30 +2564,10 @@ function preencherGruposAbate(){
 function grupoSelecionado(){const v=$('ab_grupo')?.value;if(!v)return null;return gruposAbate().find(g=>encodeURIComponent(g.key)===v)||null}
 let abatePreview=null;
 async function atualizarCustosAbate(g,lote){
- const nome=(g.base?.localizacao||g.base?.origem||lote[0]?.localizacao||'').trim();
- if(!nome)return;
- try{
-  const {data,error}=await supa.from('nutri_custos_diarios').select('data_trato,custo_diaria_cabeca').eq('localizacao',nome).lte('data_trato',g.base?.saida||'2026-11-15').order('data_trato',{ascending:false}).limit(365);
-  if(error)throw error;
-  const validos=(data||[]).filter(r=>Number.isFinite(Number(r.custo_diaria_cabeca)));
-  if(!validos.length)return;
-  const ultima=validos[0], dataSaida=g.base?.saida||'',ultimoAntes=validos.find(r=>!dataSaida||r.data_trato<dataSaida)||ultima;
-  const custos=validos.filter(r=>!dataSaida||r.data_trato<dataSaida);
-  const soma=custos.reduce((v,r)=>v+Number(r.custo_diaria_cabeca),0);
-  const sel=$('ab_grupo');if(!sel||decodeURIComponent(sel.value)!==g.key)return;
-  const el=$('ab_grupoResumo');if(!el)return;
-  const kpis=el.querySelectorAll('.kpi');
-  if(kpis[4])kpis[4].querySelector('strong').textContent=money0(ultimoAntes.custo_diaria_cabeca);
-  /* Indicador parcial removido: não representa o custo completo do ciclo. */
-  const tabela=el.querySelector('table');if(tabela){
-   const cab=tabela.querySelectorAll('thead th');if(cab[5])cab[5].textContent='DIÁRIA ATUAL';/* Não substituir custo atual por custo parcial. */
-   for(const tr of tabela.querySelectorAll('tbody tr')){
-    const td=tr.querySelectorAll('td');if(td[5])td[5].textContent=money0(ultimoAntes.custo_diaria_cabeca);
-    /* Não substituir o custo atual por soma parcial. */
-    /* Preservar custo total original. */
-   }
-  }
- }catch(e){console.warn('Custos do abate indisponíveis',e)}
+ // A diária do abate pertence à pesagem: valor_diaria de cada animal.
+ // Não substituir pela última diária de nutri_custos_diarios.
+ // Os KPIs e a tabela são montados por mostrarResumoAbate com os dados da pesagem.
+ return;
 }
 function mostrarResumoAbate(){const el=$('ab_grupoResumo'),g=grupoSelecionado();abatePreview=null;if(!el)return;if(!g){el.style.display='none';$('abateResultado').innerHTML='<div class="empty">Selecione uma pesagem/origem, informe os dados e clique em CARREGAR DADOS.</div>';return}const a=animais[g.indices[0]];el.style.display='block';el.innerHTML=`<b>${g.indices.length} animal(is)</b> neste grupo: <b>${grupoLabelCompleto(g)}</b>. Confira os dados da pesagem abaixo. Peso de carcaça e valor da arroba são necessários somente para calcular e salvar o abate.`;const lote=g.indices.map(i=>animais[i]);atualizarCustosAbate(g,lote);const somaCampo=k=>lote.reduce((t,z)=>t+(Number(z[k])||0),0);const mediaCampo=k=>lote.length?somaCampo(k)/lote.length:0;el.insertAdjacentHTML('beforeend',`<div class="kpis" style="margin-top:12px"><div class="kpi"><span>ANIMAIS</span><strong>${lote.length}</strong></div><div class="kpi"><span>PESO ENTRADA MÉDIO</span><strong>${mediaCampo('pe').toFixed(2)} kg</strong></div><div class="kpi"><span>PESO SAÍDA MÉDIO</span><strong>${mediaCampo('ps').toFixed(2)} kg</strong></div><div class="kpi"><span>DIAS MÉDIOS</span><strong>${mediaCampo('dias').toFixed(1)}</strong></div><div class="kpi"><span>DIÁRIA MÉDIA</span><strong>${money0(mediaCampo('diaria'))}</strong></div><div class="kpi"><span>ACUMULADO TOTAL</span><strong>${money0(somaCampo('custoAcumulado'))}</strong></div></div>`);el.innerHTML += `<div class="table-wrap" style="margin-top:10px"><table style="min-width:1000px"><thead><tr><th>BRINCO</th><th>ENTRADA</th><th>PESO ENTRADA</th><th>PESO SAÍDA</th><th>DIAS</th><th>DIÁRIA</th><th>PREÇO COMPRA</th><th>CUSTO ATUAL</th><th>ACUMULADO</th><th>CUSTO TOTAL</th></tr></thead><tbody>${g.indices.map(i=>{const z=animais[i];return `<tr><td><b>${z.brinco}</b></td><td>${dataBR(z.entrada)}</td><td>${Number(z.pe).toFixed(2)} kg</td><td>${Number(z.ps).toFixed(2)} kg</td><td>${z.dias}</td><td>${money0(z.diaria)}</td><td>${money0(z.compra??z.precoCompra??z.preco_compra)}</td><td>${money0(z.custoAtual)}</td><td>${money0(z.custoAcumulado)}</td><td>${money0(z.custoAnimal)}</td></tr>`}).join('')}</tbody></table></div><div class="hint">CONSULTA DA PESAGEM: DISPONÍVEL SEM INFORMAR CARCAÇA OU VALOR DA ARROBA. O FECHAMENTO DO ABATE CONTINUA EXIGINDO ESSES DADOS.</div>`;const q=g.indices.map(i=>animais[i]).find(x=>Number.isFinite(Number(x.pesoCarcacaArrobas))&&Number.isFinite(Number(x.valorArroba)));$('ab_carcaca').value=q?.pesoCarcacaArrobas??'';$('ab_valor').value=q?.valorArroba??'';const salvo=g.indices.some(i=>animais[i]?.abateSalvoEm);$('ab_carcaca').disabled=salvo;$('ab_valor').disabled=salvo;/* Mantém a listagem já montada acima; não apagar a tabela ao atualizar o aviso. */
  const avisoGrupo=salvo?'ABATE JÁ SALVO — SOMENTE CONSULTA.':'PESAGEM DISPONÍVEL PARA CONFERÊNCIA ANTES DO ABATE.';
@@ -8731,19 +8711,13 @@ window.visaoAbateCarregar=async function(){
 
  for(const g of [...grupos.values()].sort((x,y)=>x.local.localeCompare(y.local,'pt-BR'))){
  const r=g.rows,ab=abMap.get(g.p.id),pe=avg(r,'peso_entrada'),ps=avg(r,'peso_saida'),dias=avg(r,'qtd_dias'),gmd=avg(r.filter(x=>n(x.peso_entrada)>0&&n(x.peso_saida)>0&&n(x.qtd_dias)>0).map(x=>({gmd:(n(x.peso_saida)-n(x.peso_entrada))/n(x.qtd_dias)})),'gmd');
- const serie=diarioPorLocal.get(g.local)||[];
- const diaria=serie.length?n(serie[0].custo_diaria_cabeca):null;
- // Cálculo SEMPRE individual: acumulado do animal + dias do ciclo corrente x diária atual.
- // A movimentação de entrada na baia prevalece sobre a entrada histórica no cadastro.
- const custosCiclo=r.map(x=>{
-  const mov=(movPorAnimal.get(String(x.id))||[]).find(m=>String(m.destino||'').trim().toUpperCase()===g.local && m.data_movimentacao<=dia);
-  const entrada=mov?.data_movimentacao||x.data_entrada||(g.local==='BAIA B5'&&['CHUMBADO','ORELHADO','PRETO CHIFRE'].includes(String(x.brinco||'').toUpperCase())?'2026-10-14':null);
-  const dc=entrada?Math.max(0,Math.round((new Date(dia+'T12:00:00')-new Date(entrada+'T12:00:00'))/86400000)):null;
-  return dc===null||diaria===null?null:dc*diaria;
- });
- const custosValidos=custosCiclo.filter(v=>v!==null);
- const custoUltimoCiclo=custosValidos.length===r.length?custosValidos.reduce((a,b)=>a+b,0)/r.length:null;
+ // Fonte da visão: valores financeiros já registrados na pesagem de saída.
+ // Não recalcular a diária a partir do último trato nem sobrescrever o ciclo fechado.
+ const diaria=r.every(x=>n(x.valor_diaria)!==null&&n(x.valor_diaria)>=0)?avg(r,'valor_diaria'):null;
+ const custosCiclo=r.map(x=>n(x.custo_atual));
+ const custosValidos=custosCiclo.filter(v=>v!==null&&Number.isFinite(v));
  const cicloCompleto=custosValidos.length===r.length;
+ const custoUltimoCiclo=cicloCompleto?custosValidos.reduce((a,b)=>a+b,0)/r.length:null;
 
  // Os campos de carcaça são médias do registro de abate da pesagem, nunca um valor estimado.
  const carcKg=ab?(n(ab.carcaca_kg)??(n(ab.carcaca_arrobas)!==null?n(ab.carcaca_arrobas)*15:null)):null;

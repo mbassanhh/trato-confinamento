@@ -440,7 +440,7 @@ function trDiaAnteriorNota2(dia){return String(dia).slice(0,10);} // Nota 2 sele
 // Fechamento idempotente: usa exclusivamente insumos, tratos e lotações da data.
 // Sobras de vagão: custo médio histórico por kg de MS; nunca cria carregamento.
 
-function trNota2OrigemDia(d){const x=new Date(String(d)+'T12:00:00Z');x.setUTCDate(x.getUTCDate()-1);return x.toISOString().slice(0,10);}
+function trNota2OrigemDia(d){return String(d).slice(0,10);}
 async function nutriGravarDiariasHistoricas(dia){
  const [tr,lc,sl,cur,h,ja,configTratos]=await Promise.all([
   supa.from('tratos_realizados').select('localizacao,sistema,trato_1,trato_2,trato_3,trato_4').eq('data_trato',dia),
@@ -9011,8 +9011,10 @@ window.visaoAbateImprimir=function(){
    for(const row of rows){
     const local=norm(row.dataset.local),nota=notas.get(local);
     row.dataset.nota2Dia=dia;
-    if(!nota || Number(nota.nota)!==2){row.querySelector('.nota2-selecao-persistente')?.remove();continue;}
-    const cel=row.children[1];if(!cel)continue;
+    // Fonte comprovada do histórico: leituras_cocho.curral_id -> currais.id/codigo.
+    // Mostrar a seleção SOMENTE quando a leitura oficial deste dia tiver nota +2.
+    const cel=row.querySelector('td')||row.children[1];if(!cel)continue;
+    if(!nota){cel.querySelector('.nota2-selecao-persistente')?.remove();continue;}
     const antigo=cel.querySelector('.nota2-selecao-persistente');
     if(antigo){const inputAntigo=antigo.querySelector('input');if(inputAntigo&&!inputAntigo.disabled)inputAntigo.checked=ajustes.get(local)?.desconto_selecionado===true;continue;}
     const label=document.createElement('label');label.className='nota2-selecao-persistente';
@@ -9023,7 +9025,8 @@ window.visaoAbateImprimir=function(){
     check.addEventListener('change',async()=>{
      const selecionado=check.checked;check.disabled=true;
      if(trData()!==dia){check.checked=!selecionado;check.disabled=false;return;}
-     if(Number(nota.nota)!==2){check.checked=false;check.disabled=false;return;}
+     if(!notas.has(local)){check.checked=false;check.disabled=false;return;}
+     // A seleção exige nota +2 registrada na leitura oficial do próprio dia.
      try{
       // Não gravar seleção que exigiria alterar um trato já realizado.
       // Conferir antes de qualquer escrita, evitando seleção parcialmente salva.
@@ -9063,7 +9066,7 @@ window.visaoAbateImprimir=function(){
       // Recarregar a grade após confirmar no banco: aplica zero, bloqueio e previsão.
       delete row.dataset.nota2Dia;
       if(typeof tratosRender==='function')await tratosRender();
-     }catch(e){check.checked=!selecionado;alert('NOTA 2 NÃO GRAVADA: '+(e.message||e));}
+     }catch(e){check.checked=!selecionado;trToast('NOTA 2 NÃO GRAVADA: '+(e.message||e),true);}
      finally{check.disabled=false;}
     });
     cel.appendChild(label);
@@ -9131,20 +9134,29 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
   // Espelhar a previsão PENDENTE já calculada na grade, não os percentuais
   // originais nem a dieta ativa. Realizados são sempre exibidos à parte.
   trCalc();
+  // Confere Nota +2 na fonte oficial antes de gerar a ficha.
+  // Nunca imprimir 'NOTA 2 0 KG' quando existem notas +2 sem decisão gravada.
+  if(sistema==='CONFINAMENTO'){
+   const [lq,cq,aq]=await Promise.all([
+    supa.from('leituras_cocho').select('curral_id,nota').eq('data_leitura',dia).eq('nota',2),
+    supa.from('currais').select('id,codigo'),
+    supa.from('tratos_ajustes_df').select('localizacao,desconto_selecionado').eq('data_referencia',dia).eq('sistema','CONFINAMENTO').eq('tipo','DESCONTO_NOTA_2')
+   ]);
+   for(const q of [lq,cq,aq])if(q.error)throw q.error;
+   const nomes=new Map((cq.data||[]).map(c=>[String(c.id),trNormNome(c.codigo).replace(/^BAIA\s+/,'').trim()]));
+   const decisoes=new Set((aq.data||[]).map(a=>trNormNome(a.localizacao).replace(/^BAIA\s+/,'').trim()));
+   const pendentes=(lq.data||[]).map(l=>nomes.get(String(l.curral_id))).filter(n=>n&&!decisoes.has(n));
+   if(pendentes.length)throw Error('NOTA +2 SEM SELEÇÃO DE DESCONTO GRAVADA: '+pendentes.join(', ')+'. MARQUE NOTA 2 · DESCONTAR NA GRADE E AGUARDE A CONFIRMAÇÃO ANTES DE IMPRIMIR.');
+  }
   // Seleção explícita de Nota 2 DO DIA DA FICHA: nunca consultar o dia anterior.
   const nota2Q=await supa.from('tratos_ajustes_df')
     .select('localizacao,desconto_selecionado,quantidade_kg')
     .eq('data_referencia',trNota2OrigemDia(dia))
     .eq('sistema',sistema).eq('tipo','DESCONTO_NOTA_2');
   if(nota2Q.error)throw nota2Q.error;
-  const notasDiaQ=await supa.from('leituras_cocho').select('curral_id,nota').eq('data_leitura',trNota2OrigemDia(dia)).eq('nota',2);
-  if(notasDiaQ.error)throw notasDiaQ.error;
-  const curraisNotaQ=await supa.from('currais').select('id,codigo');
-  if(curraisNotaQ.error)throw curraisNotaQ.error;
-  const codigosNota=new Map((curraisNotaQ.data||[]).map(c=>[String(c.id),trNormNome(c.codigo).replace(/^BAIA\s+/,'').trim()]));
-  const elegiveisNota2=new Set((notasDiaQ.data||[]).filter(x=>Number(x.nota)===2).map(x=>codigosNota.get(String(x.curral_id))).filter(Boolean));
+  // Impressão usa a mesma seleção persistida pela grade, sem filtrar por leituras_cocho.
   const nota2Marcados=new Set((nota2Q.data||[])
-    .filter(x=>x.desconto_selecionado===true && elegiveisNota2.has(trNormNome(x.localizacao).replace(/^BAIA\s+/,'').trim()))
+    .filter(x=>x.desconto_selecionado===true)
     .map(x=>trNormNome(x.localizacao).replace(/^BAIA\s+/,'').trim()));
   // Corrigir na origem da impressão: percentuais do banco, não a divisão
   // possivelmente antiga armazenada na grade ou no navegador.

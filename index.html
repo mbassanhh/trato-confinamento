@@ -2030,7 +2030,7 @@ body{background:#f4f8f7}
         </div>
       </div>
       <div class="dash-visual-card" id="dashFinTresMesesCard" style="margin:0 0 16px">
-        <div class="dash-visual-heading"><h3>RESULTADO FINANCEIRO — ÚLTIMOS 3 MESES</h3><span>2 meses anteriores + mês atual</span></div>
+        <div class="dash-visual-heading"><h3>RESULTADO FINANCEIRO — ÚLTIMOS 6 MESES</h3><span>5 meses anteriores + mês atual</span></div>
         <div id="dashFinTresMeses" class="dash-fin-chart"><div class="dash-fin-wait">CARREGANDO RESULTADOS...</div></div>
       </div>
       <div class="home-head">
@@ -3166,7 +3166,7 @@ function atualizarPizzaResultadoTresMeses(){
    fonte.set(r.id,finCorrigirCusto(x));
   }
   const base=[...fonte.values()],hoje=new Date();
-  const meses=[2,1,0].map(atras=>{
+  const meses=[5,4,3,2,1,0].map(atras=>{
    const d=new Date(hoje.getFullYear(),hoje.getMonth()-atras,1);
    return {chave:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),nome:d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).toUpperCase(),resultado:0,pendentes:0,atual:atras===0};
   });
@@ -3187,13 +3187,13 @@ function atualizarPizzaResultadoTresMeses(){
    mes.resultado=liquido-compra-diarias-acumulados-mort;
    mes.pendentes=saidas.filter(x=>Boolean(x.pesagemId||x._pesagem_id)&&!(Number(x.valorVenda)>0)).length+saidas.filter(x=>x._custoPendente).length;
   }
-  const cores=['#468bba','#d6a04b','#18846a'];
+  const cores=['#468bba','#d6a04b','#18846a','#8c6db2','#d17b62','#5c9ca0'];
   const total=meses.reduce((a,m)=>a+Math.abs(m.resultado),0);let inicio=0;
   const fatias=meses.map((m,i)=>{const a=inicio;inicio+=total?100*Math.abs(m.resultado)/total:0;return cores[i]+' '+a.toFixed(5)+'% '+inicio.toFixed(5)+'%'}).join(',');
   const moeda=n=>Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
   const legenda=meses.map((m,i)=>'<div class="dash-fin-pizza-item"><i style="background:'+cores[i]+'"></i><span>'+m.nome+(m.atual?' <small>(PARCIAL)</small>':'')+'</span><strong style="color:'+(m.resultado<0?'#b4232b':'#087052')+'">'+moeda(m.resultado)+'</strong></div>').join('');
   box.innerHTML='<div class="dash-fin-pizza-layout"><div class="dash-fin-pizza" style="background:'+(total?'conic-gradient('+fatias+')':'#e6eee9')+'"></div><div class="dash-fin-pizza-legenda">'+legenda+'</div></div><div class="dash-fin-aviso">RESULTADO = VENDAS LÍQUIDAS − COMPRAS − DIÁRIAS − CUSTOS ACUMULADOS − MORTES, por data de saída. A pizza mostra o tamanho absoluto de cada resultado (inclusive prejuízos); os sinais +/− aparecem na legenda. Somente o mês atual está em andamento.</div>';
- }catch(e){console.error('PIZZA RESULTADO 3 MESES',e);box.textContent='NÃO FOI POSSÍVEL CARREGAR OS RESULTADOS DOS TRÊS MESES.'}
+ }catch(e){console.error('PIZZA RESULTADO 6 MESES',e);box.textContent='NÃO FOI POSSÍVEL CARREGAR OS RESULTADOS DOS SEIS MESES.'}
 }
 function renderFinanceiro(){
  const el=$('financeiroConteudo');if(!el)return;const hoje=new Date();if($('finMes')&&!$('finMes').value)$('finMes').value=`${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;

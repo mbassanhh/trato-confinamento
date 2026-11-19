@@ -5008,7 +5008,7 @@ function tgProdFilaAdicionar(n,d){
   if(fila.some(v=>v.chave===chave))continue;
   const lista=plano[etapa]||[];
   if(!lista.length||lista.some((v,i)=>!Object.prototype.hasOwnProperty.call(d.registros||{},tipo+i)))continue;
-  const itens=lista.map((v,i)=>({nome:v[0],previsto:Number(v[1]),id:v[2]||null,realizado:Number(d.registros[tipo+i])}));
+  const itens=lista.map((v,i)=>({nome:v[0],previsto:Number(v[1]),id:v[2]||null,realizado:Number(d.registros[tipo+i]),registrado_em:d.horarios?.[tipo+i]||null}));
   // No 4º trato, um curral cuja meta já foi cumprida pode desaparecer da
   // previsão dinâmica. Registrar 0 explicitamente, em vez de deixar NULL.
   // Incluir somente currais que pertencem à ficha do dia e não à lista atual.
@@ -5052,7 +5052,7 @@ async function tgProdEnviar(x){
   if(!id){const w=await supa.from('tratos_carregamentos').insert({data_trato:x.dia,sistema:x.sistema,carga:String(x.n),dieta_versao_id:String(x.versao),previsto_kg:x.itens.reduce((t,i)=>t+i.previsto,0),carregado_kg:x.itens.reduce((t,i)=>t+i.realizado,0)}).select('id').single();if(w.error)throw w.error;id=w.data.id;}
   const r2=await supa.from('tratos_carregamento_ingredientes').select('insumo_id,carregado_kg').eq('carregamento_id',id);if(r2.error)throw r2.error;
   for(const i of x.itens){const a=r2.data.find(v=>String(v.insumo_id)===String(i.id));if(a){if(Math.abs(Number(a.carregado_kg)-i.realizado)>.01)throw Error('INGREDIENTE DIVERGENTE: '+i.nome);continue;}
-   const w=await supa.from('tratos_carregamento_ingredientes').insert({carregamento_id:id,insumo_id:String(i.id),previsto_kg:i.previsto,carregado_kg:i.realizado});if(w.error)throw w.error;}
+   const w=await supa.from('tratos_carregamento_ingredientes').insert({carregamento_id:id,insumo_id:String(i.id),previsto_kg:i.previsto,carregado_kg:i.realizado,registrado_em:i.registrado_em||new Date().toISOString()});if(w.error)throw w.error;}
   const check=await supa.from('tratos_carregamento_ingredientes').select('insumo_id,carregado_kg').eq('carregamento_id',id);if(check.error)throw check.error;
   if(x.itens.some(i=>!check.data.some(v=>String(v.insumo_id)===String(i.id)&&Math.abs(Number(v.carregado_kg)-i.realizado)<.01)))throw Error('CONFERÊNCIA DE INGREDIENTES INCOMPLETA');return;
  }
@@ -5064,12 +5064,12 @@ async function tgProdEnviar(x){
     // Atualizar somente o trato informado, sem reenviar os outros três valores.
     // A versão lida impede sobrescrever mudanças simultâneas do administrativo.
     if(!a.atualizado_em)throw Error('REGISTRO SEM VERSÃO: '+i.nome);
-    const w=await supa.from('tratos_realizados').update({[campo]:i.realizado})
+    const w=await supa.from('tratos_realizados').update({[campo]:i.realizado,[campo+'_registrado_em']:i.registrado_em||new Date().toISOString()})
      .eq('id',a.id).eq('atualizado_em',a.atualizado_em).is(campo,null).select('id');
     if(w.error)throw w.error;
     if((w.data||[]).length!==1)throw Error('TRATO ALTERADO POR OUTRO USUÁRIO: '+i.nome+'. ATUALIZE ANTES DE CONTINUAR.');
    }else{
-    const payload={data_trato:x.dia,sistema:x.sistema,localizacao:i.nome,[campo]:i.realizado};
+    const payload={data_trato:x.dia,sistema:x.sistema,localizacao:i.nome,[campo]:i.realizado,[campo+'_registrado_em']:i.registrado_em||new Date().toISOString()};
     const w=await supa.from('tratos_realizados').insert(payload);if(w.error)throw Error('NÃO FOI POSSÍVEL INSERIR '+i.nome+'; PODE HAVER LANÇAMENTO SIMULTÂNEO: '+w.error.message);
    }
    const check=await supa.from('tratos_realizados').select(campo).eq('data_trato',x.dia).eq('sistema',x.sistema).eq('localizacao',a?.localizacao||i.nome).single();
@@ -5311,6 +5311,7 @@ function tgHomConfirmar(){
  if(!tgHomCongelarPlano(n,atual)){alert('AGUARDE A CONCLUSÃO DOS TRATOS ANTERIORES.');return;}
 
  atual.registros[prefix+i]=peso;
+ atual.horarios=atual.horarios||{};atual.horarios[prefix+i]=new Date().toISOString();
  if(fase==='ingredientes'&&tgHomLista(n,'ingredientes').length&&tgHomLista(n,'ingredientes').every((x,j)=>Object.prototype.hasOwnProperty.call(atual.registros,'I'+j)))atual.fase='aguardando_distribuicao';
  if(fase==='currais'&&tgHomLista(n,'currais').length&&tgHomLista(n,'currais').every((x,j)=>Object.prototype.hasOwnProperty.call(atual.registros,'C'+j)))atual.fase='concluido';
  localStorage.setItem('homologacao_tratos_ficha_v1_'+tgHomDia()+'_'+tgSistema+'_'+n,JSON.stringify(atual));if(['aguardando_distribuicao','concluido'].includes(atual.fase))tgProdFilaAdicionar(n,atual);tgHomLog(fase==='ingredientes'?'INGREDIENTE_CONFIRMADO':'CURRAL_DISTRIBUIDO',{carregamento:n,item:lista[i]?.[0],peso_kg:peso,etapa:atual.fase});if(atual.fase==='concluido'){tgHomAtualizarOpcoes('');tgHomOfflineStatus();}if(atual.fase==='aguardando_distribuicao'){tgHomModo='distribuicao';tgHomDistribuicaoSelecionada='';tgHomAtualizarOpcoes('');}else if(atual.fase==='concluido'){tgHomModo='distribuicao';tgHomDistribuicaoSelecionada='';}tgHomRender();
@@ -6788,7 +6789,7 @@ async function tratosSalvarDistribuicao(){
  const btn=document.querySelector('#tratosCadastro button[onclick="tratosSalvarDistribuicao()"]');
  if(btn){btn.dataset.salvando='1';btn.disabled=true;btn.textContent='SALVANDO NO SUPABASE...'}
  try{
-  const {data:existentes,error:erroEx}=await supa.from('tratos_realizados').select('localizacao,sistema,trato_1,trato_2,trato_3,trato_4').eq('data_trato',trData());
+  const {data:existentes,error:erroEx}=await supa.from('tratos_realizados').select('localizacao,sistema,trato_1,trato_2,trato_3,trato_4,trato_1_registrado_em,trato_2_registrado_em,trato_3_registrado_em,trato_4_registrado_em').eq('data_trato',trData());
   if(erroEx)throw erroEx;
   const novos=[];
   for(const x of payload){const old=(existentes||[]).find(o=>trNormNome(o.localizacao)===trNormNome(x.localizacao));
@@ -6796,7 +6797,15 @@ async function tratosSalvarDistribuicao(){
    // Preservar os valores existentes na linha, inclusive zeros.
    if(old)for(let i=1;i<=4;i++){const k='trato_'+i;if(x[k]===null&&old[k]!==null&&old[k]!==undefined)x[k]=old[k]}
    if(old){for(let i=1;i<=4;i++){const k='trato_'+i;if(old[k]!==null&&old[k]!==undefined&&x[k]!==null&&Number(x[k])!==Number(old[k]))throw Error('TRATO '+i+' DE '+x.localizacao+' JÁ ESTÁ SALVO E NÃO PODE SER EDITADO');if(old[k]!==null&&old[k]!==undefined)x[k]=old[k]}}
-   if(!old||[1,2,3,4].some(i=>old['trato_'+i]==null&&x['trato_'+i]!=null))novos.push(x);
+   if(!old||[1,2,3,4].some(i=>old['trato_'+i]==null&&x['trato_'+i]!=null)){
+    const instante=new Date().toISOString();
+    for(let i=1;i<=4;i++){
+     const k='trato_'+i,t=k+'_registrado_em';
+     if(old&&old[k]!=null)x[t]=old[t]||null;
+     else if(x[k]!=null)x[t]=instante;
+    }
+    novos.push(x);
+   }
   }
   if(!novos.length){trToast('NENHUM TRATO NOVO PARA SALVAR');return}
   const {error}=await supa.from('tratos_realizados').upsert(novos,{onConflict:'data_trato,localizacao,sistema'});

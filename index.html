@@ -1368,9 +1368,8 @@ function consumoImprimirDezDias(kind){
   return '<tr><td>'+esc(r.localidade)+'</td><td>'+validos.length+'</td><td><b>'+fmt(media)+'</b></td>'+vals.map(v=>'<td>'+fmt(v)+'</td>').join('')+'</tr>';
  }).join('');
  const inicio=datas.at(-1).split('-').reverse().join('/'),fim=datas[0].split('-').reverse().join('/');
- const pagina='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+esc(vista.title)+'</title><style>@page{size:A4 landscape;margin:9mm}body{font:10px Arial,sans-serif;color:#20262d}h1{font-size:16px;margin:0 0 5px}h2{font-size:13px;margin:0 0 8px}.sub{margin-bottom:12px;color:#59636b}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{border:1px solid #cbd3d8;padding:5px 3px;text-align:center;overflow-wrap:anywhere}th{background:#e9eef0}th:first-child,td:first-child{text-align:left;width:17%}tr{break-inside:avoid}footer{margin-top:9px;font-size:9px;color:#59636b}</style></head><body><h1>FAZENDA NOVA ESPERANÇA</h1><h2>'+esc(vista.title)+'</h2><div class="sub">PERÍODO: '+inicio+' A '+fim+' — 10 DIAS ENCERRADOS</div><table><thead><tr><th>LOCALIDADE</th><th>DIAS</th><th>MÉDIA</th>'+datas.map(d=>'<th>'+d.slice(8,10)+'/'+d.slice(5,7)+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table><footer>DIAS = TOTAL DO HISTÓRICO DO LOTE NA VISÃO DE %PV. MÉDIA = MÉDIA DOS DIAS VÁLIDOS DO PERÍODO IMPRESSO. ZERO REGISTRADO ENTRA NO CÁLCULO; AUSÊNCIA DE REGISTRO = —. SEM ALTERAÇÃO DO HISTÓRICO.</footer>
-
-</body></html>';
+ const pagina='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+esc(vista.title)+'</title><style>@page{size:A4 landscape;margin:9mm}body{font:10px Arial,sans-serif;color:#20262d}h1{font-size:16px;margin:0 0 5px}h2{font-size:13px;margin:0 0 8px}.sub{margin-bottom:12px;color:#59636b}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{border:1px solid #cbd3d8;padding:5px 3px;text-align:center;overflow-wrap:anywhere}th{background:#e9eef0}th:first-child,td:first-child{text-align:left;width:17%}tr{break-inside:avoid}footer{margin-top:9px;font-size:9px;color:#59636b}</style></head><body><h1>FAZENDA NOVA ESPERANÇA</h1><h2>'+esc(vista.title)+'</h2><div class="sub">PERÍODO: '+inicio+' A '+fim+' — 10 DIAS ENCERRADOS</div><table><thead><tr><th>LOCALIDADE</th><th>DIAS</th><th>MÉDIA</th>'+datas.map(d=>'<th>'+d.slice(8,10)+'/'+d.slice(5,7)+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table><footer>DIAS = TOTAL DO HISTÓRICO DO LOTE NA VISÃO DE %PV. MÉDIA = MÉDIA DOS DIAS VÁLIDOS DO PERÍODO IMPRESSO. ZERO REGISTRADO ENTRA NO CÁLCULO; AUSÊNCIA DE REGISTRO = —. SEM ALTERAÇÃO DO HISTÓRICO.</footer>'+
+ '</body></html>';
  const w=window.open('','_blank');if(!w){alert('LIBERE A JANELA DE IMPRESSÃO NO NAVEGADOR.');return;}
  w.document.open();w.document.write(pagina);w.document.close();w.focus();setTimeout(()=>w.print(),350);
 }
@@ -4693,7 +4692,7 @@ function trOrdenarIngredientes(lista){
 // Ordem operacional solicitada para a distribuição; chaves canônicas evitam duplicações visuais.
 const TG_ORDEM_DISTRIBUICAO=['BAIA A1','BAIA A2','BAIA A3','BAIA A4','BAIA A5','PASTO A1','PASTO A2','PASTO B2','PASTO B1','BAIA B5','BAIA B4','BAIA B3','BAIA B2','BAIA B1','VINHACA','CASINHA CARLINHOS','BARRACAO','SEDE PIQUETE','PIQUETEAMENTO BAIXO','PIQUETEAMENTO ASFALTO','MOMBACA'];
 function tgOrdemChave(nome){return String(nome||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().replace(/^([AB][1-5])$/,'BAIA $1').replace(/^SAO GUILERME /,'SAO GUILHERME ').replace(/^SAO GUILHERME (CIMA|ALTO)$/,'SAO GUILHERME ACIMA').replace(/^SAO GUILHERME (DE )?BAIXO$/,'SAO GUILHERME BAIXO').replace(/^AROREIRA /,'AROEIRA ').replace(/^SAO GUILHERME ALTO$/,'SAO GUILHERME ACIMA').replace(/^BAIXO CASINHA$/,'ABAIXO CASINHA').replace(/^AROEIRA CIMA$/,'AROEIRA ALTO').replace(/^SEDE$/,'SEDE PIQUETE').replace(/^PQT\.?\s+BAIXO$|^PIQ\.?\s+BAIXO$/,'PIQUETEAMENTO BAIXO').replace(/^PQT\.?\s+ASFALTO$|^PIQ\.?\s+ASFALTO$/,'PIQUETEAMENTO ASFALTO');}
-const TG_ORDEM_DISTRIBUICAO_SEMI=['SAO GUILHERME ACIMA','SAO GUILHERME BAIXO','BELEI BAIXO','BELEI ALTO','CASINHA','DIRCE','ABAIXO CASINHA','AROEIRA MANGUEIRA','AROEIRA ALTO'];
+const TG_ORDEM_DISTRIBUICAO_SEMI=['PASTO A1 LD CONF','SAO GUILHERME ACIMA','SAO GUILHERME BAIXO','BELEI BAIXO','BELEI ALTO','CASINHA','DIRCE','ABAIXO CASINHA','AROEIRA MANGUEIRA','AROEIRA ALTO'];
 function tgOrdenarCurrais(lista){const m=new Map();for(const x of lista||[]){const k=tgOrdemChave(x[0]);if(!m.has(k))m.set(k,[x[0],Number(x[1])||0]);else m.get(k)[1]+=Number(x[1])||0;}return [...m.values()].filter(x=>tgSistema!=='SEMI'||TG_ORDEM_DISTRIBUICAO_SEMI.includes(tgOrdemChave(x[0]))).sort((a,b)=>{const ordem=tgSistema==='SEMI'?TG_ORDEM_DISTRIBUICAO_SEMI:TG_ORDEM_DISTRIBUICAO;const ia=ordem.indexOf(tgOrdemChave(a[0])),ib=ordem.indexOf(tgOrdemChave(b[0]));return (ia<0?999:ia)-(ib<0?999:ib)||String(a[0]).localeCompare(String(b[0]),'pt-BR');});}
 // Redistribuição local por curral: preservar os lançamentos confirmados e
 // repartir apenas o saldo do dia entre os tratos ainda não realizados.
@@ -5920,6 +5919,7 @@ function trRestaurarConfiguracaoDoBackup(){
  }catch(e){console.warn('CONFIGURAÇÃO DE TRATOS: BACKUP NÃO RESTAURADO',e)}
 }
 const BACKUP_TRATOS_VALIDADO_29_10={"A1":{"quantidade":4,"percentuais":[10,40,40,10]},"A2":{"quantidade":4,"percentuais":[10,40,40,10]},"A3":{"quantidade":4,"percentuais":[10,40,40,10]},"A4":{"quantidade":4,"percentuais":[10,40,40,10]},"A5":{"quantidade":4,"percentuais":[10,40,40,10]},"B1":{"quantidade":4,"percentuais":[10,40,40,10]},"B2":{"quantidade":4,"percentuais":[10,40,40,10]},"B3":{"quantidade":4,"percentuais":[10,40,40,10]},"B4":{"quantidade":4,"percentuais":[10,40,40,10]},"B5":{"quantidade":4,"percentuais":[10,40,40,10]},"BARRACAO":{"quantidade":2,"percentuais":[50,0,0,50]},"CASINHA CARLINHOS":{"quantidade":2,"percentuais":[50,0,0,50]},"MOMBACA":{"quantidade":2,"percentuais":[50,0,0,50]},"PASTO A1":{"quantidade":3,"percentuais":[30,30,0,40]},"PASTO A2":{"quantidade":3,"percentuais":[30,30,0,40]},"PASTO B1":{"quantidade":3,"percentuais":[30,30,0,40]},"PASTO B2":{"quantidade":3,"percentuais":[30,30,0,40]},"SEDE PIQUETE":{"quantidade":2,"percentuais":[50,0,0,50]},"VINHACA":{"quantidade":2,"percentuais":[50,0,0,50]},"ABAIXO CASINHA":{"quantidade":1,"percentuais":[100,0,0,0]},"ACUDE":{"quantidade":1,"percentuais":[100,0,0,0]},"AROEIRA ALTO":{"quantidade":1,"percentuais":[100,0,0,0]},"AROEIRA MANGUEIRA":{"quantidade":1,"percentuais":[100,0,0,0]},"BELEI ALTO":{"quantidade":1,"percentuais":[100,0,0,0]},"BELEI BAIXO":{"quantidade":1,"percentuais":[100,0,0,0]},"CASINHA":{"quantidade":1,"percentuais":[100,0,0,0]},"DIRCE":{"quantidade":1,"percentuais":[100,0,0,0]},"BELA VISTA":{"quantidade":1,"percentuais":[100,0,0,0]},"BELA VISTA ACUDE":{"quantidade":1,"percentuais":[100,0,0,0]},"SAO GUILHERME ACIMA":{"quantidade":1,"percentuais":[100,0,0,0]},"SAO GUILHERME BAIXO":{"quantidade":1,"percentuais":[100,0,0,0]},"PIQUETEAMENTO ASFALTO":{"quantidade":2,"percentuais":[50,0,0,50]},"PIQUETEAMENTO BAIXO":{"quantidade":2,"percentuais":[50,0,0,50]}};
+BACKUP_TRATOS_VALIDADO_29_10['PASTO A1 LD CONF']={quantidade:1,percentuais:[100,0,0,0]};
 trRestaurarConfiguracaoDoBackup();
 async function trAbrirConfiguracaoTratos(){
  try {
@@ -5937,7 +5937,7 @@ async function trAbrirConfiguracaoTratos(){
  const key='cfg_tratos_por_curral_v1';
  let cfg={};try{cfg=JSON.parse(localStorage.getItem(key)||'{}')}catch(e){}
  const conf=['BAIA A1','BAIA A2','BAIA A3','BAIA A4','BAIA A5','BAIA B1','BAIA B2','BAIA B3','BAIA B4','BAIA B5','BARRACÃO','CASINHA CARLINHOS','MOMBAÇA','PASTO A1','PASTO A2','PASTO B1','PASTO B2','PIQUETEAMENTO ASFALTO','PIQUETEAMENTO BAIXO','SEDE PIQUETE','VINHAÇA'];
- const semi=['ABAIXO CASINHA','AÇUDE','AROEIRA ALTO','AROEIRA MANGUEIRA','BELEI ALTO','BELEI BAIXO','CASINHA','DIRCE','BELA VISTA','BELA VISTA AÇUDE','SÃO GUILHERME ACIMA','SÃO GUILHERME BAIXO'];
+ const semi=['PASTO A1 LD CONF','ABAIXO CASINHA','AÇUDE','AROEIRA ALTO','AROEIRA MANGUEIRA','BELEI ALTO','BELEI BAIXO','CASINHA','DIRCE','BELA VISTA','BELA VISTA AÇUDE','SÃO GUILHERME ACIMA','SÃO GUILHERME BAIXO'];
  const grade=document.getElementById('tr_grade_body');
  const extras=[...Array.from(grade?.querySelectorAll('tr')||[]).map(tr=>tr.cells?.[0]?.textContent?.trim()).filter(Boolean)];
  const nomes=[...new Set([...conf,...semi,...extras])];
@@ -6089,7 +6089,7 @@ async function tratosRender(){
    registros.push({local:nome,sistema:'CONFINAMENTO',bois,dias,total:l?.total_realizado??null,previsao:l?.total_previsto??null,nota:l?.nota??null,referencia:l?'LEITURA DE '+l.data_leitura:'SEM LEITURA ATÉ '+anterior});
   }
   for(const x of semi.data||[]){
-   const nome=String(x.local_nome||'').trim().toUpperCase();if(!nome||x.ativo===false||nome==='PASTO A1 LD CONFINAMENTO')continue;
+   const nome=String(x.local_nome||'').trim().toUpperCase();if(!nome||x.ativo===false||nome==='PASTO A1 LD CONFINAMENTO'||(nome==='PASTO A1 LD CONF'&&data<'2026-11-20'))continue;
    const exibicao=/^[AB][1-5]$/.test(nome)?'PASTO '+nome:(trNormNome(nome)==='AROEIRA ALTO'?'AROEIRA ALTO':nome);
    const sistema=cadastrado.get(nome)||cadastrado.get(exibicao)||(trNormNome(nome)==='AROEIRA ALTO'?cadastrado.get('AROEIRA ALTO'):'')||'';
    // A classificação da localidade vem do cadastro, não da lista de dois tratos.

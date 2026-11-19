@@ -813,12 +813,12 @@ async function diariasHistorico(){
     const planilhaLocal=DIARIAS_OFICIAIS_PLANILHA_26_10[local]||{};
     const ultimaPlanilha=Object.keys(planilhaLocal).sort().reverse()[0];
     const ultimaData=ultima?ultima.data_trato:null;
-    // DIÁRIA ATUAL: último fechamento válido do curral, na data selecionada.
+    // DIÁRIA ATUAL: média acumulada das diárias do período; não usar último fechamento.
     // MÉDIA HISTÓRICA permanece separada e não substitui o valor diário atual.
     const dataLimite=(document.getElementById('diarias_data')?.value)||trHojeISO();
     const ultimaVigente=validos.filter(x=>x.data_trato<=dataLimite)
       .sort((a,b)=>b.data_trato.localeCompare(a.data_trato))[0];
-    const atual=ultimaVigente ? Number(ultimaVigente.custo_diaria_cabeca) : null;
+    const atual=media===null?null:Number(media); // DIÁRIA ATUAL = MÉDIA DAS DIÁRIAS NO PERÍODO, INCLUINDO BASE HISTÓRICA SEM DUPLICAR DIAS
     // Coluna histórica: referência congelada até 25/10, sem incluir novos fechamentos.
     const mediaHistorica=ref&&Number.isFinite(Number(ref.media))?Number(ref.media):null;
 
@@ -6821,7 +6821,37 @@ async function trHistoricoCarregar(){
   const [c,r,i,aj]=await Promise.all([cq,rq,supa.from('nutri_insumos').select('id,nome,ativo'),supa.from('tratos_ajustes_df').select('data_referencia,sistema,tipo,quantidade_kg')]);
   for(const q of [c,r,i,aj])if(q.error)throw q.error;
   const cargas=c.data||[],realizados=r.data||[],nomes=new Map((i.data||[]).map(x=>[String(x.id),x.nome]));
-  const insumosAtivosDesvio=new Set((i.data||[]).filter(x=>x.ativo===true).map(x=>String(x.id))); // Somente matriz resumida; histórico detalhado preservado.
+  // A matriz resumida usa EXCLUSIVAMENTE os ingredientes da versão ATIVA da dieta de cada sistema.
+  // O cadastro geral ativo/inativo não determina os ingredientes da dieta; o histórico detalhado permanece intacto.
+  const [dietasQ,versoesQ]=await Promise.all([
+    supa.from('nutri_dietas').select('id,tipo,ativo'),
+    supa.from('nutri_dieta_versoes').select('id,dieta_id,versao,status').eq('status','ATIVA')
+  ]);
+  if(dietasQ.error)throw dietasQ.error;
+  if(versoesQ.error)throw versoesQ.error;
+  const dietasAtuais=(dietasQ.data||[]).filter(d=>d.ativo===true);
+  const versoesAtuais=new Map();
+  for(const v of (versoesQ.data||[])){
+    const anterior=versoesAtuais.get(String(v.dieta_id));
+    if(!anterior||Number(v.versao)>Number(anterior.versao))versoesAtuais.set(String(v.dieta_id),v);
+  }
+  const idsVersoes=[...versoesAtuais.values()].map(v=>v.id);
+  const itensDietaQ=idsVersoes.length?await supa.from('nutri_dieta_itens').select('versao_id,insumo_id').in('versao_id',idsVersoes):{data:[],error:null};
+  if(itensDietaQ.error)throw itensDietaQ.error;
+  const idsPorVersao=new Map();
+  for(const item of (itensDietaQ.data||[])){
+    const k=String(item.versao_id);
+    if(!idsPorVersao.has(k))idsPorVersao.set(k,new Set());
+    idsPorVersao.get(k).add(String(item.insumo_id));
+  }
+  const ingredientesDietaAtual=new Map();
+  for(const d of dietasAtuais){
+    const v=versoesAtuais.get(String(d.id));
+    if(!v)continue;
+    const tipo=String(d.tipo||'').toUpperCase();
+    const sistema=tipo==='SEMICONFINAMENTO'||tipo==='SEMI'?'SEMI':tipo==='CONFINAMENTO'?'CONFINAMENTO':null;
+    if(sistema)ingredientesDietaAtual.set(sistema,idsPorVersao.get(String(v.id))||new Set());
+  }
   let itens=[];for(let n=0;n<cargas.length;n+=100){const ids=cargas.slice(n,n+100).map(x=>x.id);const q=await supa.from('tratos_carregamento_ingredientes').select('carregamento_id,insumo_id,previsto_kg,carregado_kg').in('carregamento_id',ids);if(q.error)throw q.error;itens.push(...(q.data||[]))}
   const retificacoes=await trRetificacoesPorCarga(cargas.map(c=>c.id));
   const diferencaRetificada=new Map();
@@ -6915,7 +6945,7 @@ async function trHistoricoCarregar(){
     const acumulado=new Map();
     for(const x of itens){
       const c=porCarga.get(String(x.carregamento_id));
-      if(!c||c.sistema!==sis||!insumosAtivosDesvio.has(String(x.insumo_id)))continue;
+      if(!c||c.sistema!==sis||!ingredientesDietaAtual.get(sis)?.has(String(x.insumo_id)))continue;
       const nome=nomes.get(String(x.insumo_id))||String(x.insumo_id);
       const chave=nome+'|'+c.data_trato;
       if(!acumulado.has(chave))acumulado.set(chave,{nome,data:c.data_trato,p:0,v:0});
@@ -9013,15 +9043,15 @@ window.visaoAbateImprimir=function(){
     row.dataset.nota2Dia=dia;
     // Fonte comprovada do histórico: leituras_cocho.curral_id -> currais.id/codigo.
     // Mostrar a seleção SOMENTE quando a leitura oficial deste dia tiver nota +2.
-    const cel=row.querySelector('td')||row.children[1];if(!cel)continue;
+    const cel=row.children[1]||row.querySelector('td');if(!cel)continue;
     if(!nota){cel.querySelector('.nota2-selecao-persistente')?.remove();continue;}
     const antigo=cel.querySelector('.nota2-selecao-persistente');
     if(antigo){const inputAntigo=antigo.querySelector('input');if(inputAntigo&&!inputAntigo.disabled)inputAntigo.checked=ajustes.get(local)?.desconto_selecionado===true;continue;}
     const label=document.createElement('label');label.className='nota2-selecao-persistente';
-    label.style.cssText='display:inline-flex;gap:4px;align-items:center;margin-left:8px;font-size:10px;color:#9a4b0c;white-space:nowrap;cursor:pointer';
+    label.style.cssText='display:flex;gap:4px;align-items:center;justify-content:center;margin:2px auto 0;font-size:9px;color:#9a4b0c;white-space:nowrap;cursor:pointer;width:max-content;max-width:100%';
     const check=document.createElement('input');check.type='checkbox';check.checked=ajustes.get(local)?.desconto_selecionado===true;
     check.setAttribute('aria-label','SELECIONADO PARA DESCONTO NOTA 2');
-    label.append(check,document.createTextNode('NOTA 2 · DESCONTAR'));
+    label.append(check,document.createTextNode('N2 DESCONTAR'));
     check.addEventListener('change',async()=>{
      const selecionado=check.checked;check.disabled=true;
      if(trData()!==dia){check.checked=!selecionado;check.disabled=false;return;}

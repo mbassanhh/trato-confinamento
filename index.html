@@ -432,6 +432,10 @@ body.acesso-tratador #tratadorInicio{padding-top:30px}
 #visaoAbate .va-scroll .va-total td:first-child{white-space:normal!important}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script id="correcao-global-nota2-20261119">
+// Disponivel mesmo quando um script posterior falha na inicializacao.
+window.trNota2OrigemDia = function(d){ return String(d == null ? '' : d).slice(0,10); };
+</script>
 <script id="nota2-data-origem-20261114">
 // Nota +2 selecionada da leitura de D aplica-se somente ao primeiro trato de D.
 function trDiaAnteriorNota2(dia){return String(dia).slice(0,10);} // Nota 2 selecionada vale para o PRIMEIRO TRATO DA PRÓPRIA DATA
@@ -440,7 +444,7 @@ function trDiaAnteriorNota2(dia){return String(dia).slice(0,10);} // Nota 2 sele
 // Fechamento idempotente: usa exclusivamente insumos, tratos e lotações da data.
 // Sobras de vagão: custo médio histórico por kg de MS; nunca cria carregamento.
 
-function trNota2OrigemDia(d){return String(d).slice(0,10);}
+window.trNota2OrigemDia = function(d){return String(d).slice(0,10);};
 // Sobra informada pelo tratador no FECHAMENTO de D: abater na abertura de D+1.
 // Corte em 20/11: jamais recalcular os tratos/cargas já iniciados em 19/11.
 function trDiaAnteriorSobra(d){const x=new Date(String(d).slice(0,10)+'T12:00:00Z');if(!Number.isFinite(x.getTime()))throw Error('DATA INVÁLIDA PARA SOBRA');x.setUTCDate(x.getUTCDate()-1);return x.toISOString().slice(0,10);}
@@ -4595,7 +4599,7 @@ async function tgHomCarregarFicha(){
     .select('tipo,localizacao,quantidade_kg,desconto_selecionado')
     .eq('data_referencia',dia).eq('sistema',tgSistema);
   if(ajustesQ.error)throw Error('AJUSTES OFICIAIS NÃO DISPONÍVEIS: '+ajustesQ.error.message);
-  const nota2Q=await supa.from('tratos_ajustes_df').select('tipo,localizacao,quantidade_kg,desconto_selecionado').eq('data_referencia',trNota2OrigemDia(dia)).eq('sistema',tgSistema).eq('tipo','DESCONTO_NOTA_2');
+  const nota2Q=await supa.from('tratos_ajustes_df').select('tipo,localizacao,quantidade_kg,desconto_selecionado').eq('data_referencia',window.trNota2OrigemDia(dia)).eq('sistema',tgSistema).eq('tipo','DESCONTO_NOTA_2');
   if(nota2Q.error)throw nota2Q.error;
   const ajustes=[...(ajustesQ.data||[]).filter(a=>a.tipo!=='DESCONTO_NOTA_2'),...(nota2Q.data||[])];
   const sobra=await trConsultarSobraEntrada(dia,tgSistema);
@@ -6123,7 +6127,7 @@ async function tratosRender(){
   try{
    const ajustes=await supa.from('tratos_ajustes_df')
     .select('localizacao,sistema,tipo,desconto_selecionado,trato_numero')
-    .eq('data_referencia',trNota2OrigemDia(data)).eq('tipo','DESCONTO_NOTA_2').eq('desconto_selecionado',true);
+    .eq('data_referencia',window.trNota2OrigemDia(data)).eq('tipo','DESCONTO_NOTA_2').eq('desconto_selecionado',true);
    if(ajustes.error)throw ajustes.error;
    const canon=n=>String(n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim().replace(/\s+/g,' ').replace(/^([AB][1-5])$/,'BAIA $1');
    const pendentes=[];
@@ -6291,7 +6295,7 @@ async function tratosRender(){
  const nota2Selecionados=new Set();
  try{
   const q=await supa.from('tratos_ajustes_df').select('localizacao')
-   .eq('data_referencia',trNota2OrigemDia(data)).eq('sistema','CONFINAMENTO')
+   .eq('data_referencia',window.trNota2OrigemDia(data)).eq('sistema','CONFINAMENTO')
    .eq('tipo','DESCONTO_NOTA_2').eq('desconto_selecionado',true);
   if(q.error)throw q.error;
   for(const a of q.data||[])nota2Selecionados.add(trNormNome(a.localizacao));
@@ -6366,7 +6370,7 @@ async function tratosRender(){
  // independentemente de a grade ter sido restaurada do rascunho local.
  try{
   const n2=await supa.from('tratos_ajustes_df')
-   .select('localizacao').eq('data_referencia',trNota2OrigemDia(data)).eq('sistema','CONFINAMENTO')
+   .select('localizacao').eq('data_referencia',window.trNota2OrigemDia(data)).eq('sistema','CONFINAMENTO')
    .eq('tipo','DESCONTO_NOTA_2').eq('desconto_selecionado',true);
   if(n2.error)throw n2.error;
   const normN2=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim().replace(/\s+/g,' ').replace(/^([AB][1-5])$/,'BAIA $1');
@@ -7299,7 +7303,7 @@ async function trCargaRender(){
     .select('tipo,quantidade_kg,localizacao,desconto_selecionado')
     .eq('data_referencia',data).eq('sistema',sistema);
   if(ajustesQ.error)throw ajustesQ.error;
-  const nota2Q=await supa.from('tratos_ajustes_df').select('tipo,localizacao,quantidade_kg,desconto_selecionado').eq('data_referencia',trNota2OrigemDia(data)).eq('sistema',sistema).eq('tipo','DESCONTO_NOTA_2');
+  const nota2Q=await supa.from('tratos_ajustes_df').select('tipo,localizacao,quantidade_kg,desconto_selecionado').eq('data_referencia',window.trNota2OrigemDia(data)).eq('sistema',sistema).eq('tipo','DESCONTO_NOTA_2');
   if(nota2Q.error)throw nota2Q.error;
   const ajustesConfirmados=[...(ajustesQ.data||[]).filter(a=>a.tipo!=='DESCONTO_NOTA_2'),...(nota2Q.data||[])];
   // A sobra de D+1 é o saldo que foi transferido ao final de D.
@@ -7797,7 +7801,7 @@ async function trImprimirPrevisaoConferida(){
     .select('tipo,quantidade_kg,localizacao,desconto_selecionado')
     .eq('data_referencia',dia).eq('sistema',sistema);
   if(ajusteQ.error)throw ajusteQ.error;
-  const nota2FichaQ=await supa.from('tratos_ajustes_df').select('tipo,quantidade_kg,localizacao,desconto_selecionado').eq('data_referencia',trNota2OrigemDia(dia)).eq('sistema',sistema).eq('tipo','DESCONTO_NOTA_2');
+  const nota2FichaQ=await supa.from('tratos_ajustes_df').select('tipo,quantidade_kg,localizacao,desconto_selecionado').eq('data_referencia',window.trNota2OrigemDia(dia)).eq('sistema',sistema).eq('tipo','DESCONTO_NOTA_2');
   if(nota2FichaQ.error)throw nota2FichaQ.error;
   const marcadosFicha=sistema==='CONFINAMENTO'
     ?(nota2FichaQ.data||[]).filter(a=>a.tipo==='DESCONTO_NOTA_2'&&a.desconto_selecionado===true&&a.localizacao):[];
@@ -9118,7 +9122,7 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
   // Seleção explícita de Nota 2 DO DIA DA FICHA: nunca consultar o dia anterior.
   const nota2Q=await supa.from('tratos_ajustes_df')
     .select('localizacao,desconto_selecionado,quantidade_kg')
-    .eq('data_referencia',trNota2OrigemDia(dia))
+    .eq('data_referencia',window.trNota2OrigemDia(dia))
     .eq('sistema',sistema).eq('tipo','DESCONTO_NOTA_2');
   if(nota2Q.error)throw nota2Q.error;
   // Impressão usa a mesma seleção persistida pela grade, sem filtrar por leituras_cocho.

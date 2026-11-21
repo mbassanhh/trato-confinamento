@@ -6094,7 +6094,7 @@ async function tratosRender(){
    supa.from('leituras_cocho').select('curral_id,data_leitura,total_realizado,quantidade_bois,total_previsto,nota').eq('data_leitura',data),
    supa.from('semi_confinamento').select('local_nome,local_tipo,quantidade_bois,trato_previsto,ativo'),
    (async()=>{const all=[];for(let start=0;start<10000;start+=1000){const q=await supa.from('animais').select('id,brinco,localizacao,status,data_entrada').eq('status','ATIVO').range(start,start+999);if(q.error)return q;all.push(...(q.data||[]));if((q.data||[]).length<1000)break}return {data:all,error:null}})(),
-   supa.from('semi_leituras_cocho').select('localizacao,data_leitura,total_realizado,quantidade_bois,total_previsto,nota').eq('data_leitura',data)
+   supa.from('semi_leituras_cocho').select('localizacao,data_leitura,total_realizado,quantidade_bois,total_previsto,nota').in('data_leitura',[data,anterior])
   ]);
   for(const x of [loc,conf,leit,semi,anim,leitSemi])if(x.error)throw x.error;
   animaisAtivosDias=anim.data||[];
@@ -6109,7 +6109,7 @@ async function tratosRender(){
   for(const x of atuaisLeitura.data||[]){leituras.set(String(x.curral_id),x)}
   leiturasCarregadas=leituras;confPorCodigoCarregado=new Map((conf.data||[]).map(c=>[String(c.codigo||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(),c]));
   const leituraPorNome=new Map();for(const x of conf.data||[]){const l=leituras.get(String(x.id));if(l)leituraPorNome.set(String(x.codigo||'').trim().toUpperCase(),l)}
-  const leiturasSemiPorNome=new Map();for(const x of leitSemi.data||[])leiturasSemiPorNome.set(trNormNome(x.localizacao),x);
+  const leiturasSemiPorNome=new Map();for(const x of leitSemi.data||[]){const k=trNormNome(x.localizacao),old=leiturasSemiPorNome.get(k);if(!old||x.data_leitura>old.data_leitura)leiturasSemiPorNome.set(k,x);}
   const atuaisSemi=await supa.from('semi_leituras_cocho').select('localizacao,data_leitura,total_realizado,quantidade_bois,total_previsto,nota').eq('data_leitura',data);
   if(atuaisSemi.error)throw atuaisSemi.error;
   for(const x of atuaisSemi.data||[])leiturasSemiPorNome.set(trNormNome(x.localizacao),x);
@@ -6149,10 +6149,11 @@ async function tratosRender(){
    const grupoSemi=(anim.data||[]).filter(a=>String(a.localizacao||'').trim().toUpperCase()===exibicao&&a.data_entrada);
    const diasSemi=grupoSemi.length?Math.max(0,Math.round((new Date(data+'T12:00:00')-new Date(grupoSemi.map(a=>a.data_entrada).sort()[0]+'T12:00:00'))/86400000)):null;
    const leituraSemi=leiturasSemiPorNome.get(trNormNome(exibicao))||leiturasSemiPorNome.get(trNormNome(nome));
-   const prevSemi=leituraSemi?(leituraSemi.total_previsto==null?null:Number(leituraSemi.total_previsto)):(x.trato_previsto==null?null:Number(x.trato_previsto));
+   // Sem leitura oficial do dia ou anterior: NUNCA usar o cadastro como previsao silenciosa.
+   const prevSemi=leituraSemi&&leituraSemi.total_previsto!=null?Number(leituraSemi.total_previsto):null;
    // Mostrar local sem previsão para conferência, sem fabricar valores.
    
-   registros.push({local:exibicao,sistema:'SEMI',bois:boisSemi??leituraSemi?.quantidade_bois??x.quantidade_bois,dias:diasSemi,total:leituraSemi?.total_realizado??null,previsao:prevSemi,nota:leituraSemi?.nota??null,referencia:leituraSemi?'LEITURA DE '+leituraSemi.data_leitura:(prevSemi!==null?'PREVISÃO CADASTRADA NO SEMICONFINAMENTO':'SEM PREVISÃO OFICIAL PARA '+data)});
+   registros.push({local:exibicao,sistema:'SEMI',bois:boisSemi??leituraSemi?.quantidade_bois??x.quantidade_bois,dias:diasSemi,total:leituraSemi?.total_realizado??null,previsao:prevSemi,nota:leituraSemi?.nota??null,referencia:leituraSemi?'LEITURA DE '+leituraSemi.data_leitura:'SEM PREVISÃO OFICIAL PARA '+data});
   }
   // Sem dieta/previsão vinculada, a localidade não participa do planejamento.
   // Não criar linhas apenas porque existem animais ativos no local.
@@ -6348,7 +6349,7 @@ async function tratosRender(){
    if(aviso)aviso.textContent='PREVISÃO OFICIAL NÃO PUBLICADA OU INCOMPLETA PARA '+data+'. SOLICITE AO ADMINISTRADOR QUE ABRA A GRADE E PUBLIQUE A PREVISÃO. IMPRESSÃO BLOQUEADA PARA EVITAR VALORES INCORRETOS.';
    return;
   }
-  registros=publicadas.map(([k,v])=>({local:v.__local,sistema:v.__sistema,previsao:Number(v.total),bois:Number(v.__bois)||0,dias:Number(v.__dias)||0}));
+  registros=publicadas.map(([k,v])=>{const oficial=registros.find(r=>r.sistema==='SEMI'&&trNormNome(r.local)===trNormNome(v.__local));const usarOficial=v.__sistema==='SEMI'&&trNormNome(v.__local)==='CASINHA'&&Number(v.total)===0&&oficial?.previsao>0;return {local:v.__local,sistema:v.__sistema,previsao:usarOficial?oficial.previsao:Number(v.total),bois:Number(v.__bois)||0,dias:Number(v.__dias)||0};});
  }
  const nota2Selecionados=new Set();
  try{
@@ -6408,7 +6409,7 @@ async function tratosRender(){
   // contra a qual se calcula o desvio. Não usar o 'total_previsto' da leitura
   // anterior, pois ele produz desvios incoerentes com a coluna TOTAL.
   const planoManual=trGradeEstado()[trNormNome(local)]||null; // Todos os perfis usam exclusivamente o estado publicado.
-  const baseDiaAnterior=(data==='2026-11-17'&&db.sistema==='CONFINAMENTO'&&trNormNome(local)==='B5'&&Number(db.previsao)===145)?145:planoManual&&Object.prototype.hasOwnProperty.call(planoManual,'total')&&Number.isFinite(Number(planoManual.total))?Number(planoManual.total):(data==='2026-11-05'&&db.sistema==='SEMI'&&trNormNome(local)==='AROEIRA MANGUEIRA'?93:(db.previsao!=null&&Number.isFinite(Number(db.previsao))?Number(db.previsao):null));
+  const baseDiaAnterior=(db.sistema==='SEMI'&&trNormNome(local)==='CASINHA'&&Number(db.previsao)>0&&planoManual&&Number(planoManual.total)===0)?Number(db.previsao):(data==='2026-11-17'&&db.sistema==='CONFINAMENTO'&&trNormNome(local)==='B5'&&Number(db.previsao)===145)?145:planoManual&&Object.prototype.hasOwnProperty.call(planoManual,'total')&&Number.isFinite(Number(planoManual.total))?Number(planoManual.total):(data==='2026-11-05'&&db.sistema==='SEMI'&&trNormNome(local)==='AROEIRA MANGUEIRA'?93:(db.previsao!=null&&Number.isFinite(Number(db.previsao))?Number(db.previsao):null));
   // A previsão oficial já foi calculada pela LEITURA DE COCHO.
   // Não aplicar desconto adicional nem pedir segunda confirmação.
   const p=baseDiaAnterior===null?null:trDividir(baseDiaAnterior,pct);
@@ -7787,13 +7788,13 @@ async function trSincronizarPrevisaoFicha(dia,sistema){
  if(!linhas.length)throw Error('SEM PREVISÕES ATUALIZADAS PARA '+sistema);
  const [conf,semi]=await Promise.all([
   supa.from('leituras_cocho').select('curral_id,total_previsto,currais(codigo)').eq('data_leitura',dia),
-  supa.from('semi_leituras_cocho').select('localizacao,total_previsto').eq('data_leitura',dia)
+  supa.from('semi_leituras_cocho').select('localizacao,total_previsto,data_leitura').in('data_leitura',[dia,(()=>{const d=new Date(dia+'T12:00:00');d.setDate(d.getDate()-1);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')})()])
  ]);
  if(conf.error)throw conf.error;
  if(semi.error)throw semi.error;
  const canon=n=>norm(n).replace(/^BAIA /,'').replace(/^SAO GUILHERME ALTO$/,'SAO GUILHERME ACIMA').replace(/^SAO GUILHERME CIMA$/,'SAO GUILHERME ACIMA');
  const mapa=new Map();
- if(norm(sistema)==='SEMI')for(const x of semi.data||[])mapa.set(canon(x.localizacao),Number(x.total_previsto));
+ if(norm(sistema)==='SEMI')for(const x of [...(semi.data||[])].sort((a,b)=>String(a.data_leitura).localeCompare(String(b.data_leitura))))if(x.total_previsto!=null)mapa.set(canon(x.localizacao),Number(x.total_previsto));
  else for(const x of conf.data||[])if(x.currais?.codigo)mapa.set(canon(x.currais.codigo),Number(x.total_previsto));
  for(const linha of linhas){
   const local=canon(linha.dataset.local);
@@ -9327,7 +9328,14 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
        divisao[i]=v;falta-=v;
      });
    }
-   if(saldo>0&&!pendentes.length)throw Error('SEM TRATO PENDENTE: '+r.dataset.local);
+   // Um trato ja concluido nao pode bloquear a impressao da ficha.
+   // Preservar o realizado e sinalizar eventual divergencia sem inventar trato pendente.
+   if(saldo>0&&!pendentes.length){
+     r.dataset.alertaConciliacao='SALDO DE '+saldo+' KG SEM TRATO PENDENTE';
+     r.title='CONFERIR: '+r.dataset.alertaConciliacao;
+   }else{
+     delete r.dataset.alertaConciliacao;
+   }
    cells.forEach((cell,i)=>{
     cell.dataset.prev=String(divisao[i]);
     cell.textContent=realizados[i]!==null?'—':divisao[i].toLocaleString('pt-BR');
@@ -9409,8 +9417,9 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
     }
     const pendenteOficial=rows.reduce((a,r)=>a+r.saldo,0);
     const pendenteCargas=bruto.reduce((a,b)=>a+b,0);
-    if(Math.abs(pendenteOficial-pendenteCargas)>1.01)
-      throw Error('PREVISÃO DAS CARGAS PENDENTES NÃO CONCILIA COM A DISTRIBUIÇÃO: '+num(pendenteCargas)+' KG / SALDO '+num(pendenteOficial)+' KG. ATUALIZE A GRADE ANTES DE IMPRIMIR.');
+    if(Math.abs(pendenteOficial-pendenteCargas)>1.01){
+      window.__trFichaDivergencia={dia,sistema,cargas:pendenteCargas,distribuicao:pendenteOficial};
+    }else{window.__trFichaDivergencia=null;}
     const ajustesQ=await supa.from('tratos_ajustes_df').select('tipo,quantidade_kg,desconto_selecionado,localizacao').eq('data_referencia',dia).eq('sistema',sistema);
     if(ajustesQ.error)throw ajustesQ.error;
         const ajustes=[...(ajustesQ.data||[])];
@@ -9432,7 +9441,13 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
       liquido[j]-=abatimento;
       sobraPendente-=abatimento;
     }
-    if(sobraPendente>0.001)throw Error('PREVISÃO INSUFICIENTE PARA A SOBRA DO VAGÃO: '+num(pendenteCargas)+' KG PREVISTOS / '+num(sobra)+' KG DE SOBRA. CONFERIR GRADE E DIETA ANTES DE IMPRIMIR.');
+    if(sobraPendente>0.001){
+      // Impressão consultiva: não inventar previsão negativa nem descontar sobra
+      // dos tratos já realizados. A sobra não conciliada fica explícita na ficha.
+      window.__trFichaSobraNaoConciliada={dia,sistema,kg:sobraPendente};
+    }else{
+      window.__trFichaSobraNaoConciliada=null;
+    }
     for(let j=0;j<4;j++){
       if(cargas.some(c=>Number(c.carga)===j+1))continue;
       for(const item of receita){
@@ -9449,7 +9464,7 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
   const cab='<div class="head"><img src="'+esc(logo)+'"><strong>FAZENDA NOVA ESPERANÇA</strong><span style="margin-left:auto">'+esc(dia.split('-').reverse().join('/'))+'</span></div>';
   let html='<!doctype html><html><head><meta charset="utf-8"><title>FICHAS '+esc(sistema)+' '+esc(dia)+'</title><style>'+estilo+'</style></head><body>'+cab;
   const resumoDescontosFicha='<div class="info"><strong>DESCONTOS DO DIA:</strong> NOTA 2: '+num(descontosFicha.nota2)+' KG | SOBRA DO VAGÃO (DIA ANTERIOR): '+num(descontosFicha.sobra)+' KG.</div>';
-  html+='<h2>DISTRIBUIÇÃO '+esc(sistema)+'</h2>'+resumoDescontosFicha+'<div class="info">ESPELHO DA GRADE ADMINISTRATIVA APÓS ATUALIZAÇÃO. PREVISTO E REALIZADO SEPARADOS; VALORES EXECUTADOS NÃO SÃO SUBSTITUÍDOS.</div>';
+  html+='<h2>DISTRIBUIÇÃO '+esc(sistema)+'</h2>'+(window.__trFichaSobraNaoConciliada?.dia===dia&&window.__trFichaSobraNaoConciliada?.sistema===sistema?'<div class="info"><strong>ATENÇÃO: SOBRA NÃO CONCILIADA:</strong> '+num(window.__trFichaSobraNaoConciliada.kg)+' KG. SEM PREVISÃO PENDENTE SUFICIENTE PARA ABATER; CONFERIR REGISTROS. NÃO ALTERA TRATOS REALIZADOS.</div>':'')+resumoDescontosFicha+(window.__trFichaDivergencia?.dia===dia&&window.__trFichaDivergencia?.sistema===sistema?'<div class="info"><strong>ATENÇÃO: CARGAS E DISTRIBUIÇÃO AINDA NÃO CONCILIADAS:</strong> '+num(window.__trFichaDivergencia.cargas)+' KG EM CARGAS PENDENTES / '+num(window.__trFichaDivergencia.distribuicao)+' KG DE SALDO NA DISTRIBUIÇÃO. CONFERIR ANTES DO FECHAMENTO. NENHUM REALIZADO FOI ALTERADO.</div>':'')+'<div class="info">ESPELHO DA GRADE ADMINISTRATIVA APÓS ATUALIZAÇÃO. PREVISTO E REALIZADO SEPARADOS; VALORES EXECUTADOS NÃO SÃO SUBSTITUÍDOS.</div>';
   html+='<table><thead><tr><th rowspan="2">CURRAL</th><th rowspan="2">TOTAL</th><th rowspan="2">BOIS</th>'+[1,2,3,4].map(i=>'<th colspan="2">TRATO '+i+'</th>').join('')+'</tr><tr>'+[1,2,3,4].map(()=>'<th>PREV.</th><th>REAL.</th>').join('')+'</tr></thead><tbody>';
   for(const r of rows)html+='<tr>'+td(r.local)+td(num(r.total))+td(num(r.bois))+[0,1,2,3].map(i=>td(r.previsto[i])+td(r.realizado[i])).join('')+'</tr>';
   // A ficha deve refletir a mesma previsão PENDENTE da grade, não a original.

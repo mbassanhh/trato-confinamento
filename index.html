@@ -4590,7 +4590,7 @@ async function tgHomCarregarFicha(){
     supa.from('tratos_realizados').select('id').eq('data_trato',dia).eq('sistema',tgSistema).limit(1)
    ]);
    if(leit.error)throw leit.error;if(cfg.error)throw cfg.error;if(rj.error)throw rj.error;
-   if((rj.data||[]).length)throw Error('EXISTEM TRATOS OFICIAIS REALIZADOS HOJE. ABRA A GRADE ADMINISTRATIVA PARA CONFERIR A REDISTRIBUIÇÃO ANTES DE TESTAR.');
+   // Registros oficiais (inclusive zero no primeiro trato) não impedem leitura da ficha; preservados no Supabase.
    const canon=n=>norm(n).replace(/^BAIA /,'').replace(/^BAIXO CASINHA$/,'ABAIXO CASINHA').replace(/^SAO GUILHERME (ALTO|CIMA)$/,'SAO GUILHERME ACIMA');
    const semDieta=new Set((cfg.data||[]).filter(x=>x.recebe_dieta===false).map(x=>canon(x.localizacao)));
    const configuracao=trCochoConfig();
@@ -4618,7 +4618,7 @@ async function tgHomCarregarFicha(){
    const canonSG=n=>norm(n).replace(/^BAIXO CASINHA$/,'ABAIXO CASINHA').replace(/^SAO GUILHERME (ALTO|CIMA)$/,'SAO GUILHERME ACIMA');
    for(const item of sg.data||[]){
     const chave=canonSG(item.localizacao),peso=Number(item.total_previsto);
-    if(!['SAO GUILHERME ACIMA','SAO GUILHERME BAIXO'].includes(chave)||!(peso>0))continue;
+    if(!['SAO GUILHERME ACIMA','SAO GUILHERME BAIXO','PASTO A1 LD CONF'].includes(chave)||!(peso>0))continue;
     if(locais.some(l=>canonSG(l.nome)===chave))continue;
     const pct=cfgSG.pctCurral(chave);
     const divisao=trDividir(peso,pct);

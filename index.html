@@ -4574,7 +4574,7 @@ async function tgHomCarregarFicha(){
   const receita=itens.reduce((t,i)=>t+Number(i.batida_kg??i.quantidade_mn??0),0);
   if(!(receita>0))throw Error('RECEITA DA DIETA SEM PESO VÁLIDO.');
   const norm=v=>String(v||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-  const locais=[...document.querySelectorAll('#tr_grade_body tr')].filter(tr=>norm(tr.dataset.sistema)===tgSistema && tr.querySelector('[data-tr-dieta]')?.checked!==false).map(tr=>{
+  const locais=(tgSistema==='CONFINAMENTO'?[]:[...document.querySelectorAll('#tr_grade_body tr')]).filter(tr=>norm(tr.dataset.sistema)===tgSistema && tr.querySelector('[data-tr-dieta]')?.checked!==false).map(tr=>{
    if(tr.dataset.total==null||tr.dataset.total==='')return null;
    const divisao=[...tr.querySelectorAll('td[data-prev]')].map(td=>Number(td.dataset.prev??0));
    if(divisao.length!==4||divisao.some(v=>!Number.isFinite(v)))throw Error('PREVISÃO INCOMPLETA PARA '+tr.dataset.local);
@@ -4663,6 +4663,13 @@ async function tgHomCarregarFicha(){
       linha.divisao[0]-=desconto;
     }
     nota2+=desconto;jaMarcados.add(nome);
+  }
+  if(tgSistema==='CONFINAMENTO'){
+   const q=await supa.from('leituras_cocho').select('total_previsto').eq('data_leitura',dia);
+   if(q.error)throw q.error;
+   const bruto=(q.data||[]).reduce((t,x)=>t+Number(x.total_previsto||0),0);
+   const calculado=locais.reduce((t,l)=>t+l.divisao.reduce((u,v)=>u+Number(v||0),0),0)+nota2;
+   if(Math.abs(bruto-calculado)>0.1)throw Error('FICHA MÓVEL NÃO CONCILIA COM LEITURAS OFICIAIS: '+calculado+' / '+bruto+' KG. NÃO LANÇAR.');
   }
   const cargas=[0,1,2,3].map(i=>locais.reduce((t,r)=>t+Number(r.divisao[i]||0),0));
   if(!Number.isFinite(sobra)||sobra<0||sobra>cargas.reduce((a,b)=>a+b,0))throw Error('SOBRA DA FICHA INVÁLIDA.');
@@ -6129,6 +6136,9 @@ async function tratosRender(){
   for(const x of semi.data||[]){
    const nome=String(x.local_nome||'').trim().toUpperCase();if(!nome||x.ativo===false||nome==='PASTO A1 LD CONFINAMENTO'||(nome==='PASTO A1 LD CONF'&&data<'2026-11-20'))continue;
    const exibicao=/^[AB][1-5]$/.test(nome)?'PASTO '+nome:(trNormNome(nome)==='AROEIRA ALTO'?'AROEIRA ALTO':nome);
+   // NÃO importar previsões de pastos do CONFINAMENTO da tabela semi_confinamento.
+   // Elas sobrescreviam leituras oficiais (ex.: PASTO A1 702 kg -> 350 kg).
+   if(['A1','A2','B1','B2','PASTO A1','PASTO A2','PASTO B1','PASTO B2'].includes(nome))continue;
    const sistema=cadastrado.get(nome)||cadastrado.get(exibicao)||(trNormNome(nome)==='AROEIRA ALTO'?cadastrado.get('AROEIRA ALTO'):'')||'';
    // A classificação da localidade vem do cadastro, não da lista de dois tratos.
    if(sistema&&!sistema.includes('SEMI')||['SEDE PIQUETE','BARRACÃO','MOMBAÇA','PIQUETEAMENTO ASFALTO','PIQUETEAMENTO BAIXO','VINHAÇA','CASINHA CARLINHOS'].includes(nome))continue;
@@ -6202,7 +6212,21 @@ async function tratosRender(){
  const trConfOficial=['BAIA A1','BAIA A2','BAIA A3','BAIA A4','BAIA A5','BAIA B1','BAIA B2','BAIA B3','BAIA B4','BAIA B5','CASINHA CARLINHOS','VINHACA','SEDE PIQUETE','SEDE','BARRACAO','PASTO A1','PASTO A2','PASTO B1','PASTO B2','MOMBACA','PIQUETEAMENTO ASFALTO','PIQUETEAMENTO BAIXO'];
  const trChaveLocal=n=>String(n||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ').replace(/^BAIXO CASINHA$/,'ABAIXO CASINHA').replace(/^SAO GUILHERME (ALTO|CIMA)$/,'SAO GUILHERME ACIMA').replace(/^PIQ\.?\s*ASFALTO$/,'PIQUETEAMENTO ASFALTO').replace(/^PIQ\.?\s*BAIXO$/,'PIQUETEAMENTO BAIXO');
  const trSistemaOficial=n=>trSemiOficial.includes(trChaveLocal(n))?'SEMI':trConfOficial.includes(trChaveLocal(n))?'CONFINAMENTO':null;
- registros=registros.filter(r=>trSistemaOficial(r.local)).map(r=>({...r,sistema:trSistemaOficial(r.local)}));
+ // Não converter um registro SEMI em CONFINAMENTO apenas pelo nome.
+ // Os pastos A1/A2/B1/B2 têm leitura oficial em currais e NÃO podem receber
+ // os valores homônimos da tabela semi_confinamento.
+ registros=registros.filter(r=>trSistemaOficial(r.local)===r.sistema);
+ // Restaurar as leituras oficiais do próprio dia, mesmo quando a contagem
+ // de animais usa uma grafia/localização diferente da tabela currais.
+ for(const nomePasto of ['PASTO A1','PASTO A2','PASTO B1','PASTO B2']){
+  const curral=confPorCodigoCarregado.get(trChaveLocal(nomePasto));
+  const leitura=curral?leiturasCarregadas.get(String(curral.id)):null;
+  if(!leitura||leitura.total_previsto==null)continue;
+  const idx=registros.findIndex(r=>trChaveLocal(r.local)===trChaveLocal(nomePasto)&&r.sistema==='CONFINAMENTO');
+  const oficial={local:nomePasto,sistema:'CONFINAMENTO',bois:leitura.quantidade_bois??curral.quantidade_bois??null,dias:null,total:leitura.total_realizado??null,previsao:Number(leitura.total_previsto),nota:leitura.nota??null,referencia:'LEITURA DE '+leitura.data_leitura};
+  if(idx>=0)registros[idx]={...registros[idx],...oficial};else registros.push(oficial);
+ }
+
  // Completar o Cadastro de Tratos com localidades oficiais que tenham animais ativos,
  // mesmo sem leitura/previsão anterior. Nunca inventar MN ou previsão.
  const chaveCadastro=n=>trChaveLocal(n).replace(/^([AB][1-5])$/,'BAIA $1');
@@ -9238,6 +9262,26 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
   const nota2Marcados=new Set((nota2Q.data||[])
     .filter(x=>x.desconto_selecionado===true)
     .map(x=>trNormNome(x.localizacao).replace(/^BAIA\s+/,'').trim()));
+  // RESTAURACAO 21/11: na impressao do CONFINAMENTO, os totais
+  // dos currais devem vir das leituras oficiais do proprio dia, nunca
+  // da tabela semi_confinamento (que tem nomes coincidentes de pastos).
+  if(sistema==='CONFINAMENTO'){
+    const [oficiaisQ,cadastroQ]=await Promise.all([
+      supa.from('leituras_cocho').select('curral_id,total_previsto').eq('data_leitura',dia),
+      supa.from('currais').select('id,codigo')
+    ]);
+    if(oficiaisQ.error||cadastroQ.error)throw Error('NAO FOI POSSIVEL CONFERIR AS PREVISOES OFICIAIS DO CONFINAMENTO.');
+    const codigosOficiais=new Map((cadastroQ.data||[]).map(c=>[String(c.id),trNormNome(c.codigo).replace(/^BAIA\s+/,'').trim()]));
+    const totaisOficiais=new Map((oficiaisQ.data||[]).map(l=>[codigosOficiais.get(String(l.curral_id)),Number(l.total_previsto)]));
+    for(const linha of document.querySelectorAll('#tr_grade_body tr[data-local]')){
+      if(trNormNome(linha.dataset.sistema)!=='CONFINAMENTO')continue;
+      const nome=trNormNome(linha.dataset.local).replace(/^BAIA\s+/,'').trim();
+      if(!totaisOficiais.has(nome))continue;
+      const valor=totaisOficiais.get(nome);
+      if(!Number.isFinite(valor))throw Error('TOTAL OFICIAL INVALIDO: '+nome);
+      linha.dataset.total=String(valor);
+    }
+  }
   // Corrigir na origem da impressão: percentuais do banco, não a divisão
   // possivelmente antiga armazenada na grade ou no navegador.
   for(const r of document.querySelectorAll('#tr_grade_body tr')){

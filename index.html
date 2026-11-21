@@ -4555,9 +4555,13 @@ async function tgHomCarregarFicha(){
     const aviso=document.getElementById('tr_db_aviso')?.textContent||'';
     if(/FALHA AO CONSULTAR|ERRO AO LER|ERRO AO VERIFICAR/.test(aviso))throw Error(aviso);
    }else{
-    await trSincronizarPrevisaoFicha(dia,tgSistema);
+    // MODO TRATADOR CONFINAMENTO: a grade administrativa nao e fonte obrigatoria.
+    // As previsoes sao obtidas diretamente de leituras_cocho abaixo, com
+    // conciliacao integral contra o total oficial do dia.
+    // Nao chamar trSincronizarPrevisaoFicha: sua validacao da grade pode
+    // bloquear uma leitura oficial existente (ex.: BAIA A1).
    }
-   gradeDisponivel=[...document.querySelectorAll('#tr_grade_body tr')].some(r=>r.dataset.sistema===tgSistema&&r.dataset.total!=='');
+   gradeDisponivel=tgSistema==='SEMI'&&[...document.querySelectorAll('#tr_grade_body tr')].some(r=>r.dataset.sistema===tgSistema&&r.dataset.total!=='');
   }catch(e){
    const existentes=[...document.querySelectorAll('#tr_grade_body tr')].filter(r=>r.dataset.sistema===tgSistema&&r.dataset.total!=='');
    if(existentes.length)throw e;

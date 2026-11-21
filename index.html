@@ -4745,33 +4745,15 @@ function tgOrdenarCurrais(lista){const m=new Map();for(const x of lista||[]){con
 // Redistribuição local por curral: preservar os lançamentos confirmados e
 // repartir apenas o saldo do dia entre os tratos ainda não realizados.
 function tgHomPlanoDinamico(n){
- const base=tgHomFicha?.planos?.[n];if(!base)return null;
+ // 21/11: A ficha oficial e o celular usam exatamente a mesma previsão
+ // por carga. Nunca redistribuir automaticamente o saldo dos currais:
+ // isso transformava MILHO 627 KG na ficha em 860 KG no celular.
+ // Cargas anteriores continuam registradas sem alteração.
+ const base=tgHomFicha?.planos?.[n];
+ if(!base)return null;
  const atual=tgHomDadosNumero(n);
  if(atual.planoCongelado)return atual.planoCongelado;
- if(n===1||tgSistema==='SEMI')return base;
- const anteriores=Array.from({length:n-1},(_,i)=>i+1);
- if(anteriores.some(k=>tgHomDadosNumero(k).fase!=='concluido'))return null;
- const locais=new Map();
- for(const k of [1,2,3,4])for(const [nome,kg] of tgHomFicha.planos[k]?.currais||[]){
-  if(!locais.has(nome))locais.set(nome,{total:0,originais:{}});
-  const l=locais.get(nome);l.total+=Number(kg);l.originais[k]=Number(kg);
- }
- const currais=[];
- for(const [nome,l] of locais){
-  let realizado=0;
-  for(const k of anteriores){const dados=tgHomDadosNumero(k),plano=dados.planoCongelado||tgHomFicha.planos[k];
-   const idx=plano.currais.findIndex(x=>x[0]===nome);
-   if(idx>=0)realizado+=Number(dados.registros?.['C'+idx]||0);
-  }
-  const restante=l.total-realizado;
-  const futuro=Array.from({length:5-n},(_,i)=>i+n).reduce((a,k)=>a+Number(l.originais[k]||0),0);
-  const previsto=futuro>0?Math.max(0,restante)*Number(l.originais[n]||0)/futuro:0;
-  if(previsto>0)currais.push([nome,previsto]);
- }
- const total=currais.reduce((a,x)=>a+x[1],0);
- const receita=base.ingredientes.reduce((a,x)=>a+Number(x[1]),0);
- const ingredientes=receita>0?base.ingredientes.map(x=>[x[0],total*Number(x[1])/receita,x[2]]):[];
- return {ingredientes,currais:tgOrdenarCurrais(currais)};
+ return base;
 }
 // Ordenação no fluxo MOBILE: fichas offline antigas e planos congelados
 // também devem seguir a ordem operacional. Nunca mudar índices de pesos já lançados.
@@ -6353,7 +6335,12 @@ async function tratosRender(){
    if(aviso)aviso.textContent='PREVISÃO OFICIAL NÃO PUBLICADA OU INCOMPLETA PARA '+data+'. SOLICITE AO ADMINISTRADOR QUE ABRA A GRADE E PUBLIQUE A PREVISÃO. IMPRESSÃO BLOQUEADA PARA EVITAR VALORES INCORRETOS.';
    return;
   }
-  registros=publicadas.map(([k,v])=>{const oficial=registros.find(r=>r.sistema==='SEMI'&&trNormNome(r.local)===trNormNome(v.__local));const usarOficial=v.__sistema==='SEMI'&&trNormNome(v.__local)==='CASINHA'&&Number(v.total)===0&&oficial?.previsao>0;return {local:v.__local,sistema:v.__sistema,previsao:usarOficial?oficial.previsao:Number(v.total),bois:Number(v.__bois)||0,dias:Number(v.__dias)||0};});
+  registros=publicadas.map(([k,v])=>{
+   const oficial=registros.find(r=>r.sistema===v.__sistema&&trNormNome(r.local)===trNormNome(v.__local));
+   const pastoConf=v.__sistema==='CONFINAMENTO'&&['PASTO A1','PASTO A2','PASTO B1','PASTO B2'].includes(trNormNome(v.__local));
+   const usarOficialSemi=v.__sistema==='SEMI'&&trNormNome(v.__local)==='CASINHA'&&Number(v.total)===0&&oficial?.previsao>0;
+   return {local:v.__local,sistema:v.__sistema,previsao:(pastoConf&&oficial?.previsao!=null)||usarOficialSemi?Number(oficial.previsao):Number(v.total),bois:Number(v.__bois)||0,dias:Number(v.__dias)||0};
+  });
  }
  const nota2Selecionados=new Set();
  try{
@@ -6413,7 +6400,8 @@ async function tratosRender(){
   // contra a qual se calcula o desvio. Não usar o 'total_previsto' da leitura
   // anterior, pois ele produz desvios incoerentes com a coluna TOTAL.
   const planoManual=trGradeEstado()[trNormNome(local)]||null; // Todos os perfis usam exclusivamente o estado publicado.
-  const baseDiaAnterior=(db.sistema==='SEMI'&&trNormNome(local)==='CASINHA'&&Number(db.previsao)>0&&planoManual&&Number(planoManual.total)===0)?Number(db.previsao):(data==='2026-11-17'&&db.sistema==='CONFINAMENTO'&&trNormNome(local)==='B5'&&Number(db.previsao)===145)?145:planoManual&&Object.prototype.hasOwnProperty.call(planoManual,'total')&&Number.isFinite(Number(planoManual.total))?Number(planoManual.total):(data==='2026-11-05'&&db.sistema==='SEMI'&&trNormNome(local)==='AROEIRA MANGUEIRA'?93:(db.previsao!=null&&Number.isFinite(Number(db.previsao))?Number(db.previsao):null));
+  const pastoConfOficial=db.sistema==='CONFINAMENTO'&&['PASTO A1','PASTO A2','PASTO B1','PASTO B2'].includes(trNormNome(local))&&db.previsao!=null;
+  const baseDiaAnterior=pastoConfOficial?Number(db.previsao):(db.sistema==='SEMI'&&trNormNome(local)==='CASINHA'&&Number(db.previsao)>0&&planoManual&&Number(planoManual.total)===0)?Number(db.previsao):(data==='2026-11-17'&&db.sistema==='CONFINAMENTO'&&trNormNome(local)==='B5'&&Number(db.previsao)===145)?145:planoManual&&Object.prototype.hasOwnProperty.call(planoManual,'total')&&Number.isFinite(Number(planoManual.total))?Number(planoManual.total):(data==='2026-11-05'&&db.sistema==='SEMI'&&trNormNome(local)==='AROEIRA MANGUEIRA'?93:(db.previsao!=null&&Number.isFinite(Number(db.previsao))?Number(db.previsao):null));
   // A previsão oficial já foi calculada pela LEITURA DE COCHO.
   // Não aplicar desconto adicional nem pedir segunda confirmação.
   const p=baseDiaAnterior===null?null:trDividir(baseDiaAnterior,pct);
@@ -9404,10 +9392,10 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
       const cel=[...r.querySelectorAll('td[data-prev]')];
       for(let j=0;j<4;j++){
         if(cargaSalva.has(j+1))continue;
-        // O texto da célula é a previsão redistribuída que o tratador vê;
-        // dataset.prev pode manter a previsão original, anterior aos desvios.
-        const texto=String(cel[j]?.textContent||'').trim().replace(/\./g,'').replace(',','.');
-        const v=texto==='—'||texto==='-'||texto===''?0:Number(texto);
+        // Usar a previsão numérica oficial da carga, a mesma base do Tratador.
+        // textContent é apenas a apresentação e pode conter saldos redistribuídos
+        // ou travessão para tratos realizados. Não recalcular cargas já salvas.
+        const v=Number(cel[j]?.dataset.prev||0);
         if(!Number.isFinite(v)||v<0)throw Error('PREVISÃO INVÁLIDA NA FICHA: '+r.dataset.local);
         bruto[j]+=v;
       }
@@ -9438,7 +9426,10 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
     // A SOBRA DO VAGÃO de ontem reduz EXCLUSIVAMENTE os carregamentos de hoje,
     // começando pela primeira carga ainda não salva. Não reduzir a distribuição.
     const liquido=bruto.slice();
-    let sobraPendente=sobra;
+    // Sobra do vagão é abatida apenas na PRIMEIRA carga do dia.
+    // Se a carga 1 já foi salva, seu desconto foi consumido: jamais
+    // descontar de novo da carga 4 ou de qualquer carga pendente.
+    let sobraPendente=cargaSalva.has(1)?0:sobra;
     for(let j=0;j<4&&sobraPendente>0;j++){
       if(cargaSalva.has(j+1))continue; // nunca retificar carregamento já realizado
       const abatimento=Math.min(liquido[j],sobraPendente);
@@ -9482,7 +9473,12 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
     }
   }
   const totalBruto=rows.reduce((a,r)=>a+r.bruto,0);
-  const totalNota2=rows.reduce((a,r)=>a+r.nota2,0);
+  // Nota 2: valor oficial selecionado no banco, sem incorporar zeros ou
+  // redistribuições dos tratos já executados (ex.: SEDE 30 kg).
+  const totalNota2=sistema==='CONFINAMENTO'
+    ? (nota2Q.data||[]).filter(x=>x.desconto_selecionado===true)
+        .reduce((a,x)=>a+Number(x.quantidade_kg||0),0)
+    : rows.reduce((a,r)=>a+r.nota2,0);
   const totalLiquido=rows.reduce((a,r)=>a+r.liquido,0);
   const totalReal=rows.reduce((a,r)=>a+r.realSomado,0);
   const totalSaldo=rows.reduce((a,r)=>a+r.saldo,0);

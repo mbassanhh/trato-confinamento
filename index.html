@@ -6139,10 +6139,10 @@ async function tratosRender(){
    const grupoSemi=(anim.data||[]).filter(a=>String(a.localizacao||'').trim().toUpperCase()===exibicao&&a.data_entrada);
    const diasSemi=grupoSemi.length?Math.max(0,Math.round((new Date(data+'T12:00:00')-new Date(grupoSemi.map(a=>a.data_entrada).sort()[0]+'T12:00:00'))/86400000)):null;
    const leituraSemi=leiturasSemiPorNome.get(trNormNome(exibicao))||leiturasSemiPorNome.get(trNormNome(nome));
-   const prevSemi=leituraSemi?(leituraSemi.total_previsto==null?null:Number(leituraSemi.total_previsto)):null;
+   const prevSemi=leituraSemi?(leituraSemi.total_previsto==null?null:Number(leituraSemi.total_previsto)):(x.trato_previsto==null?null:Number(x.trato_previsto));
    // Mostrar local sem previsão para conferência, sem fabricar valores.
    
-   registros.push({local:exibicao,sistema:'SEMI',bois:boisSemi??leituraSemi?.quantidade_bois??x.quantidade_bois,dias:diasSemi,total:leituraSemi?.total_realizado??null,previsao:prevSemi,nota:leituraSemi?.nota??null,referencia:leituraSemi?'LEITURA DE '+leituraSemi.data_leitura:'SEM PREVISÃO OFICIAL PARA '+data});
+   registros.push({local:exibicao,sistema:'SEMI',bois:boisSemi??leituraSemi?.quantidade_bois??x.quantidade_bois,dias:diasSemi,total:leituraSemi?.total_realizado??null,previsao:prevSemi,nota:leituraSemi?.nota??null,referencia:leituraSemi?'LEITURA DE '+leituraSemi.data_leitura:(prevSemi!==null?'PREVISÃO CADASTRADA NO SEMICONFINAMENTO':'SEM PREVISÃO OFICIAL PARA '+data)});
   }
   // Sem dieta/previsão vinculada, a localidade não participa do planejamento.
   // Não criar linhas apenas porque existem animais ativos no local.
@@ -6198,7 +6198,7 @@ async function tratosRender(){
   }catch(e){erro='FALHA AO SINCRONIZAR ZERO DA NOTA 2: '+String(e.message||e);}
  }
  // Classificação operacional validada para o módulo de TRATOS (não modifica cadastros no banco).
- const trSemiOficial=['SAO GUILHERME ACIMA','SAO GUILHERME BAIXO','BELEI BAIXO','BELEI ALTO','CASINHA','DIRCE','ABAIXO CASINHA','AROEIRA MANGUEIRA','AROEIRA ALTO'];
+ const trSemiOficial=['PASTO A1 LD CONF','SAO GUILHERME ACIMA','SAO GUILHERME BAIXO','BELEI BAIXO','BELEI ALTO','CASINHA','DIRCE','ABAIXO CASINHA','AROEIRA MANGUEIRA','AROEIRA ALTO'];
  const trConfOficial=['BAIA A1','BAIA A2','BAIA A3','BAIA A4','BAIA A5','BAIA B1','BAIA B2','BAIA B3','BAIA B4','BAIA B5','CASINHA CARLINHOS','VINHACA','SEDE PIQUETE','SEDE','BARRACAO','PASTO A1','PASTO A2','PASTO B1','PASTO B2','MOMBACA','PIQUETEAMENTO ASFALTO','PIQUETEAMENTO BAIXO'];
  const trChaveLocal=n=>String(n||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ').replace(/^BAIXO CASINHA$/,'ABAIXO CASINHA').replace(/^SAO GUILHERME (ALTO|CIMA)$/,'SAO GUILHERME ACIMA').replace(/^PIQ\.?\s*ASFALTO$/,'PIQUETEAMENTO ASFALTO').replace(/^PIQ\.?\s*BAIXO$/,'PIQUETEAMENTO BAIXO');
  const trSistemaOficial=n=>trSemiOficial.includes(trChaveLocal(n))?'SEMI':trConfOficial.includes(trChaveLocal(n))?'CONFINAMENTO':null;
@@ -9356,6 +9356,13 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
         bruto[j]+=v;
       }
     }
+    // Semi possui um unico trato: quando a grade oficial apresenta o saldo
+    // mas a coluna de carga esta vazia, usar o saldo dos currais na carga 1.
+    // Nunca gerar previsao a partir de uma sobra ou de um carregamento ficticio.
+    if(sistema==='SEMI' && !cargaSalva.size && bruto.every(v=>v===0)){
+      const saldoSemi=rows.reduce((a,r)=>a+r.saldo,0);
+      if(saldoSemi>0)bruto[0]=saldoSemi;
+    }
     const pendenteOficial=rows.reduce((a,r)=>a+r.saldo,0);
     const pendenteCargas=bruto.reduce((a,b)=>a+b,0);
     if(Math.abs(pendenteOficial-pendenteCargas)>1.01)
@@ -9381,7 +9388,7 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
       liquido[j]-=abatimento;
       sobraPendente-=abatimento;
     }
-    if(sobraPendente>0.001)throw Error('SOBRA DO VAGÃO MAIOR QUE AS CARGAS PENDENTES. CONFERIR ANTES DE IMPRIMIR.');
+    if(sobraPendente>0.001)throw Error('PREVISÃO INSUFICIENTE PARA A SOBRA DO VAGÃO: '+num(pendenteCargas)+' KG PREVISTOS / '+num(sobra)+' KG DE SOBRA. CONFERIR GRADE E DIETA ANTES DE IMPRIMIR.');
     for(let j=0;j<4;j++){
       if(cargas.some(c=>Number(c.carga)===j+1))continue;
       for(const item of receita){

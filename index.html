@@ -9253,13 +9253,15 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
     const linha=[...document.querySelectorAll('#tr_grade_body tr[data-local]')].find(r=>trNormNome(r.dataset.local)===nome&&trNormNome(r.dataset.sistema)==='CONFINAMENTO');
     if(!linha)continue; // local sem dieta não participa da distribuição
     const ja=(existentes.data||[]).find(a=>trNormNome(a.localizacao)===nome);
-    if(ja?.desconto_selecionado===true)continue;
+    // Um desconto selecionado com 0 kg NÃO é válido se o primeiro trato original é positivo.
+    // Corrigir o registro sem alterar tratos realizados nem a seleção.
     const realizado=linha.querySelector('input[data-f="v"][data-n="0"]');
     if(realizado?.value.trim()!=='' && Number(realizado.value)!==0)
      throw Error('NOTA 2 EM '+nome+': PRIMEIRO TRATO JÁ EXECUTADO. CONFERIR ANTES DE DESCONTAR.');
     const total=Number(linha.dataset.total),pct=cfgMap.get(nome);
     const divisao=trDividir(total,pct);
     if(!divisao||!Number.isFinite(divisao[0]))throw Error('PREVISÃO DO PRIMEIRO TRATO INDISPONÍVEL PARA '+nome);
+    if(ja?.desconto_selecionado===true && Math.abs(Number(ja.quantidade_kg||0)-divisao[0])<.01)continue;
     const registro={data_informada:dia,data_referencia:dia,sistema:'CONFINAMENTO',tipo:'DESCONTO_NOTA_2',localizacao:nome,trato_numero:1,quantidade_kg:divisao[0],desconto_selecionado:true,observacao:'NOTA +2 DA PRÓPRIA DATA — PRIMEIRO TRATO ZERADO'};
     const gravacao=ja
       ?await supa.from('tratos_ajustes_df').update({desconto_selecionado:true,quantidade_kg:divisao[0],trato_numero:1}).eq('id',ja.id)
@@ -9480,6 +9482,11 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
     }
   }
   const descontosFicha=await trResumoDescontosDia(dia,sistema);
+  // O resumo e a conciliação da ficha têm que usar o MESMO desconto oficial.
+  if(sistema==='CONFINAMENTO'){
+    const nota2DaGrade=(nota2Q.data||[]).filter(x=>x.desconto_selecionado===true).reduce((a,x)=>a+Number(x.quantidade_kg||0),0);
+    if(Math.abs(descontosFicha.nota2-nota2DaGrade)>.01)throw Error('NOTA 2 INCONSISTENTE ENTRE CONSULTAS. TENTE NOVAMENTE.');
+  }
   const estilo='@page{size:A4 landscape;margin:3mm}*{box-sizing:border-box}body{font:14px Arial;color:#172027;margin:0}h2{text-align:center;border:1px solid #555;padding:4px;margin:4px 0;font-size:20px}table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:14px}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}th,td{border:1px solid #999;padding:3px 0;text-align:center;line-height:1.15;overflow-wrap:normal;white-space:nowrap;font-variant-numeric:tabular-nums}th:first-child,td:first-child{text-align:left;width:15%;white-space:normal;font-weight:700;padding-left:2px}th{background:#e9eeeb;font-size:12px}.head{display:flex;align-items:center;gap:7px}.head img{width:32px;height:32px;object-fit:contain}.head strong{font-size:18px}.pagebreak{break-before:page;page-break-before:always}.info{margin:4px 0;padding:3px;background:#f1f5f2;font-size:13px}.total{font-weight:bold;background:#edf1ee;font-size:14px}@media print{button{display:none}}';
   const logo=document.querySelector('.side .brand img')?.src||document.querySelector('.marca-fazenda-topo')?.src||'';
   const cab='<div class="head"><img src="'+esc(logo)+'"><strong>FAZENDA NOVA ESPERANÇA</strong><span style="margin-left:auto">'+esc(dia.split('-').reverse().join('/'))+'</span></div>';
@@ -9506,6 +9513,10 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
         .reduce((a,x)=>a+Number(x.quantidade_kg||0),0)
     : rows.reduce((a,r)=>a+r.nota2,0);
   const totalLiquido=rows.reduce((a,r)=>a+r.liquido,0);
+  // Conferência independente: nunca emitir uma ficha que declare Nota 2 = 0
+  // enquanto o líquido já descontou esse valor (ou vice-versa).
+  if(sistema==='CONFINAMENTO'&&Math.abs(totalBruto-totalNota2-totalLiquido)>.51)
+    throw Error('NOTA 2 DIVERGENTE: BRUTO '+num(totalBruto)+' KG, DESCONTO OFICIAL '+num(totalNota2)+' KG, LÍQUIDO '+num(totalLiquido)+' KG. ATUALIZE A GRADE ANTES DE IMPRIMIR.');
   const totalReal=rows.reduce((a,r)=>a+r.realSomado,0);
   const totalSaldo=rows.reduce((a,r)=>a+r.saldo,0);
   if(Math.abs(totalLiquido-totalReal-totalSaldo)>0.51)throw Error('FICHA BLOQUEADA: TOTAIS NÃO CONCILIADOS');

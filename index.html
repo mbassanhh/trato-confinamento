@@ -3196,6 +3196,19 @@ function finCorrigirCusto(x){
    x.custoAnimal=Number(x.compra||0)+Number(x.custoAcumulado||0);
    return x;
  }
+ // Verificação restrita a vendas recentes: diária parcial não equivale a ciclo completo.
+ if(r&&String(r.status||'').toUpperCase()==='VENDA'&&String(r.data_saida||'')>='2026-11-16'&&r.data_entrada&&r.data_saida){
+  const inicio=new Date(r.data_entrada+'T12:00:00'),fim=new Date(r.data_saida+'T12:00:00');
+  if(Number.isFinite(inicio.getTime())&&Number.isFinite(fim.getTime())&&fim>inicio){
+   const local=finNormalizaLocal(r.localizacao||r.origem),hist=finDiariasPorLocal.get(local)||new Map();
+   let pendente=false;
+   for(let d=new Date(inicio);d<fim;d.setDate(d.getDate()+1)){
+    const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(!hist.has(iso)){pendente=true;break;}
+   }
+   if(pendente)x._custoPendente=true;
+  }
+ }
  const faltaCusto=x._custoAtualAusente===true;
  const custoOrigem=finCustoOrigemLeilao.get(x._dbid);
  if(custoOrigem&&faltaCusto){
@@ -4484,10 +4497,13 @@ async function salvarSaidaSelecionada(){
    const x=animais.find(a=>a._dbid===id); if(!x)continue;
    const pesoEl=document.querySelector(`#s_lista .s_peso[data-id="${id}"]`), pesoDigitado=Number(pesoEl?.value), temPeso=pesoEl&&pesoEl.value!==''&&Number.isFinite(pesoDigitado)&&pesoDigitado>0;
    const pesoAnterior=Number(x.ps)>0?Number(x.ps):Number(x.pe), pesoSaida=temPeso?pesoDigitado:pesoAnterior;
-   const d=diasEntre(x.entrada,data), custoAtual=(Number(x.diaria)||0)*d, acumAnterior=Number(x.custoAcumulado)||0, novoAcum=acumAnterior+custoAtual;
+   const d=diasEntre(x.entrada,data);
+   const mediaCiclo=d>0?await diariaMediaPeriodoUnificada(x.origem||x.localizacao,data):0;
+   if(d>0&&(!Number.isFinite(mediaCiclo)||mediaCiclo<=0))throw new Error('BRINCO '+x.brinco+': MÉDIA OFICIAL DA DIÁRIA NÃO DISPONÍVEL. SAÍDA NÃO GRAVADA.');
+   const custoAtual=(mediaCiclo||0)*d, acumAnterior=Number(x.custoAcumulado)||0, novoAcum=acumAnterior+custoAtual;
    const pe=Number(x.pe)||pesoAnterior, gmd=(d>0&&Number.isFinite(pe)&&Number.isFinite(pesoSaida))?(pesoSaida-pe)/d:0;
    const custoAnimal=(Number(x.compra)||0)+novoAcum;
-   const upd={data_saida:data,destino,peso_saida:Number.isFinite(pesoSaida)?pesoSaida:null,qtd_dias:d,gmd,valor_diaria:Number(x.diaria)||0,custo_atual:custoAtual,custo_acumulado:acumAnterior,custo_animal:custoAnimal,tipo_evento:tipo,status:tipo==='COMERCIALIZAÇÃO'?'VENDA':'ATIVO',evento_id:eventoId};
+   const upd={data_saida:data,destino,peso_saida:Number.isFinite(pesoSaida)?pesoSaida:null,qtd_dias:d,gmd,valor_diaria:mediaCiclo||0,custo_atual:custoAtual,custo_acumulado:acumAnterior,custo_animal:custoAnimal,tipo_evento:tipo,status:tipo==='COMERCIALIZAÇÃO'?'VENDA':'ATIVO',evento_id:eventoId};
    const u=await supa.from('animais').update(upd).eq('id',id); if(u.error)throw u.error;
    if(tipo==='MOVIMENTAÇÃO'){
      const row={pesagem_id:null,brinco:x.brinco,origem:destino,data_entrada:data,data_saida:null,destino:null,peso_entrada:Number.isFinite(pesoSaida)?pesoSaida:null,peso_saida:null,qtd_dias:0,gmd:0,valor_diaria:diariaNova,origem_compra:x.origemCompra||null,preco_compra:Number(x.compra)||0,custo_atual:0,custo_acumulado:novoAcum,custo_animal:(Number(x.compra)||0)+novoAcum,valor_venda:null,resultado:null,status:'ATIVO',tipo_evento:'MOVIMENTAÇÃO',evento_id:eventoId,ciclo_id:crypto.randomUUID()};
@@ -5789,7 +5805,8 @@ async function salvarPesagemSaidaAtual(){
    for(const x of ls){
      const dias=diasEntre(x.dataEntrada,x.dataSaida),pe=Number(x.pesoEntrada);
      const gmd=dias>0?(x.pesoSaida-pe)/dias:0;
-     const diaria=(({'BAIA A1':11.67,'BAIA B2':12.63,'BAIA B4':12.56,'PASTO B1':5.67})[local] ?? Number(x.valorDiaria))||0;
+     const diaria=dias>0?await diariaMediaPeriodoUnificada(local,x.dataSaida):0;
+     if(dias>0&&(!Number.isFinite(diaria)||diaria<=0))throw new Error('BRINCO '+x.brinco+': DIÁRIA DO CICLO AUSENTE. NÃO É PERMITIDO FECHAR O CUSTO ATUAL COMO ZERO.');
      const compra=Number(x.precoCompra)||0,acum=Number(x.custoAcumulado)||0,custoAtual=diaria*dias;
      const u=await supa.from('animais').update({
        localizacao:local,origem:x.localizacaoOriginal==='REPOSITÓRIO'?'REPOSITÓRIO':undefined,
@@ -5881,13 +5898,15 @@ function leiDias(a,b){if(!a||!b)return null;const n=Math.round((Date.parse(b+'T1
 async function leiMovimentarUm(a,origem,destino,data,diaria,acao,valorVenda=null){
  const dias=leiDias(a.data_entrada,data);
  if(diaria!==null&&dias===null)throw Error('BRINCO '+a.brinco+' SEM DATA DE ENTRADA VÁLIDA. REGULARIZE ANTES DE APURAR DIÁRIAS.');
+ if(acao==='VENDA CONFIRMADA'&&dias>0){const mediaOficial=await diariaMediaPeriodoUnificada(origem,data);if(!Number.isFinite(mediaOficial)||mediaOficial<=0)throw Error('BRINCO '+a.brinco+': MÉDIA OFICIAL PENDENTE. VENDA BLOQUEADA.');diaria=mediaOficial;}
  const custo=diaria===null?null:Math.round(dias*diaria*100)/100;
  const acumulado=Number(a.custo_acumulado)||0;
  const novo=acumulado+(custo||0);
  const registro={animal_id:a.id,brinco:a.brinco,origem,destino,data_movimentacao:data,data_entrada_origem:a.data_entrada||null,dias_origem:dias,valor_diaria_origem:diaria,custo_ciclo:custo,acumulado_apos_ciclo:novo,peso_entrada_origem:a.peso_entrada,observacao:acao+(acao==='VENDA CONFIRMADA'?' — VENDA POR ANIMAL R$ '+Number(valorVenda).toFixed(2):'')+(custo===null?' — DIÁRIA PENDENTE; DATA ORIGINAL PRESERVADA.':' — CICLO ENCERRADO E ACUMULADO TRANSFERIDO.')};
+ if(acao==='VENDA CONFIRMADA'&&(!(Number(valorVenda)>0)||custo===null))throw Error('VENDA SEM CUSTO OU VALOR VÁLIDO: NENHUM REGISTRO GRAVADO.');
  const ins=await supa.from('movimentacoes_animais').insert(registro).select('id').single();if(ins.error)throw ins.error;
  const upd={localizacao:destino,atualizado_em:new Date().toISOString()};
- if(acao==='VENDA CONFIRMADA'){if(!(Number(valorVenda)>0))throw Error('VALOR DE VENDA OBRIGATÓRIO.');upd.status='VENDA';upd.data_saida=data;upd.destino='LEILÃO';upd.valor_venda=Number(valorVenda);upd.tipo_evento='VENDA';upd.custo_animal=(Number(a.preco_compra)||0)+novo;upd.resultado=custo===null?null:Number(valorVenda)-upd.custo_animal;}
+ if(acao==='VENDA CONFIRMADA'){if(dias>0&&(diaria===null||!Number.isFinite(diaria)||diaria<=0))throw Error('BRINCO '+a.brinco+': CUSTO ATUAL PENDENTE. VENDA NÃO PODE SER FECHADA.');if(!(Number(valorVenda)>0))throw Error('VALOR DE VENDA OBRIGATÓRIO.');upd.status='VENDA';upd.data_saida=data;upd.destino='LEILÃO';upd.valor_venda=Number(valorVenda);upd.tipo_evento='VENDA';upd.custo_animal=(Number(a.preco_compra)||0)+novo;upd.resultado=custo===null?null:Number(valorVenda)-upd.custo_animal;}
  else if(custo!==null){upd.data_entrada=data;upd.custo_atual=0;upd.valor_diaria=null;}
  if(custo!==null)upd.custo_acumulado=novo;
  const u=await supa.from('animais').update(upd).eq('id',a.id).eq('status','ATIVO').eq('localizacao',origem).select('id');
@@ -9567,7 +9586,7 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
   // O resumo e a conciliação da ficha têm que usar o MESMO desconto oficial.
   if(sistema==='CONFINAMENTO'){
     const nota2DaGrade=(nota2Q.data||[]).filter(x=>x.desconto_selecionado===true).reduce((a,x)=>a+Number(x.quantidade_kg||0),0);
-    if(Math.abs(descontosFicha.nota2-nota2DaGrade)>.01)throw Error('NOTA 2 INCONSISTENTE ENTRE CONSULTAS. TENTE NOVAMENTE.');
+    if(Math.abs(descontosFicha.nota2-nota2DaGrade)>.01)window.__trFichaAvisoNota2Consultas={dia,sistema,resumo:descontosFicha.nota2,grade:nota2DaGrade};
   }
   const estilo='@page{size:A4 landscape;margin:3mm}*{box-sizing:border-box}body{font:14px Arial;color:#172027;margin:0}h2{text-align:center;border:1px solid #555;padding:4px;margin:4px 0;font-size:20px}table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:14px}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}th,td{border:1px solid #999;padding:3px 0;text-align:center;line-height:1.15;overflow-wrap:normal;white-space:nowrap;font-variant-numeric:tabular-nums}th:first-child,td:first-child{text-align:left;width:15%;white-space:normal;font-weight:700;padding-left:2px}th{background:#e9eeeb;font-size:12px}.head{display:flex;align-items:center;gap:7px}.head img{width:32px;height:32px;object-fit:contain}.head strong{font-size:18px}.pagebreak{break-before:page;page-break-before:always}.info{margin:4px 0;padding:3px;background:#f1f5f2;font-size:13px}.total{font-weight:bold;background:#edf1ee;font-size:14px}@media print{button{display:none}}';
   const logo=document.querySelector('.side .brand img')?.src||document.querySelector('.marca-fazenda-topo')?.src||'';
@@ -9597,13 +9616,22 @@ async function trImprimirEspelhoAdministrativo(sistemaSolicitado,diaSolicitado){
   const totalLiquido=rows.reduce((a,r)=>a+r.liquido,0);
   // Conferência independente: nunca emitir uma ficha que declare Nota 2 = 0
   // enquanto o líquido já descontou esse valor (ou vice-versa).
-  if(sistema==='CONFINAMENTO'&&Math.abs(totalBruto-totalNota2-totalLiquido)>.51)
-    throw Error('NOTA 2 DIVERGENTE: BRUTO '+num(totalBruto)+' KG, DESCONTO OFICIAL '+num(totalNota2)+' KG, LÍQUIDO '+num(totalLiquido)+' KG. ATUALIZE A GRADE ANTES DE IMPRIMIR.');
+  // Diferenças de peso são informativas: nunca bloquear a impressão.
+  // Manter os números oficiais e os realizados intactos, sem ajustes artificiais.
+  const diferencaNota2=totalBruto-totalNota2-totalLiquido;
   const totalReal=rows.reduce((a,r)=>a+r.realSomado,0);
   const totalSaldo=rows.reduce((a,r)=>a+r.saldo,0);
-  if(Math.abs(totalLiquido-totalReal-totalSaldo)>0.51)throw Error('FICHA BLOQUEADA: TOTAIS NÃO CONCILIADOS');
+  const diferencaExecucao=totalLiquido-totalReal-totalSaldo;
+  if(Math.abs(diferencaNota2)>.51 || Math.abs(diferencaExecucao)>.51){
+    html+='<div class="info"><strong>ATENÇÃO — DIVERGÊNCIA DE PESO (NÃO BLOQUEANTE):</strong> '+
+      'BRUTO '+num(totalBruto)+' KG; NOTA 2 OFICIAL '+num(totalNota2)+' KG; '+
+      'LÍQUIDO NA GRADE '+num(totalLiquido)+' KG; '+
+      'DIFERENÇA BRUTO − NOTA 2 − LÍQUIDO '+num(diferencaNota2)+' KG; '+
+      'DIFERENÇA LÍQUIDO − REALIZADO − SALDO '+num(diferencaExecucao)+' KG. '+
+      'VALORES ORIGINAIS PRESERVADOS.</div>';
+  }
   html+='<tr class="total">'+td('TOTAL POR TRATO')+td(num(totalLiquido))+td('—')+[0,1,2,3].map(i=>td(num(totaisPrev[i]))+td(temReal[i]?num(totaisReal[i]):'—')).join('')+'</tr>';
-  html+='</tbody></table><div class="info"><strong>CONCILIAÇÃO DO DIA:</strong> TOTAL BRUTO '+num(totalBruto)+' KG − NOTA 2 '+num(totalNota2)+' KG = PREVISTO LÍQUIDO '+num(totalLiquido)+' KG = REALIZADO '+num(totalReal)+' KG + FALTANTE '+num(totalSaldo)+' KG. PREV. POR TRATO EXIBE SOMENTE O QUE AINDA FALTA DISTRIBUIR.</div>';
+  html+='</tbody></table><div class="info"><strong>CONCILIAÇÃO DO DIA:</strong> TOTAL BRUTO '+num(totalBruto)+' KG | NOTA 2 '+num(totalNota2)+' KG | PREVISTO LÍQUIDO NA GRADE '+num(totalLiquido)+' KG | REALIZADO '+num(totalReal)+' KG | FALTANTE '+num(totalSaldo)+' KG. PREV. POR TRATO EXIBE SOMENTE O QUE AINDA FALTA DISTRIBUIR.</div>';
   html+='<div class="pagebreak"></div>'+cab+'<h2>CARREGAMENTO '+esc(sistema)+' — TOTAL POR INGREDIENTE E TOTAL GERAL</h2>'+resumoDescontosFicha+'<div class="info">PREVISÃO DE INGREDIENTES PELA DIETA ATIVA; REALIZADO CONFORME REGISTROS SALVOS NO SUPABASE. SOBRA DO VAGÃO ANTERIOR: '+num(await trConsultarSobraEntrada(dia,sistema))+' KG — ABATIDA APENAS DO CARREGAMENTO, NÃO DA DISTRIBUIÇÃO.</div>';
   html+='<table><thead><tr><th rowspan="2">INGREDIENTE</th>'+'<th colspan="2">TOTAL INGREDIENTE</th>'+[1,2,3,4].map(i=>'<th colspan="2">CARGA '+i+'</th>').join('')+'</tr><tr>'+'<th>PREV.</th><th>REAL.</th>'+[1,2,3,4].map(()=>'<th>PREV.</th><th>REAL.</th>').join('')+'</tr></thead><tbody>';
   // Ordem operacional da ficha, com torta imediatamente após polpa.

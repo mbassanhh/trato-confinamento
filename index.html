@@ -2003,7 +2003,11 @@ body{background:#f4f8f7}
       </div>
       <div id="postoKafeEntrada" style="display:none;border:1px solid #d8dee4;border-radius:8px;padding:12px;margin:12px 0"><b>POSTO KAFÉ — CUSTOS DA ENTRADA</b><p class="hint">O FRETE É POR ENTREGA. O ALUGUEL É ÚNICO POR MÊS, NÃO SE SOMA A CADA ENTRADA.</p><div class="grid"><div class="field"><label>FRETE DA ENTRADA (R$)</label><input id="kafe_frete" type="number" step="0.01" min="0" value="270"></div><div class="field"><label>ALUGUEL DO MÊS (R$)</label><input id="kafe_aluguel" type="number" step="0.01" min="0" value="4200"></div></div><div id="kafe_resumo_frete" class="notice"></div></div>
       <div class="form-actions"><button class="btn primary" type="button" onclick="salvarMovimentoEstoque()">REGISTRAR ENTRADA / AJUSTE</button></div>
-      <h3 style="margin-top:22px">MOVIMENTAÇÕES RECENTES</h3><div id="estoqueInsumosHistorico"></div>
+      <div id="consumoMensalInsumos" style="margin-top:24px;border-top:1px solid #e2e7e4;padding-top:20px">
+ <div class="section-head"><div><h2>CONSUMO MENSAL DE INSUMOS</h2><p>Consumo efetivamente baixado no estoque, sem duplicar carregamentos.</p></div><div class="field" style="min-width:165px"><label for="consumoMensalMes">MÊS / ANO</label><input type="month" id="consumoMensalMes" onchange="consultarConsumoMensalInsumos()"></div></div>
+ <div id="consumoMensalResultado"><div class="empty">Selecione o mês para consultar.</div></div>
+</div>
+<h3 style="margin-top:22px">MOVIMENTAÇÕES RECENTES</h3><div id="estoqueInsumosHistorico"></div>
     </div>
     <div class="panel">
       <div class="section-head"><div><h2>Cadastro de insumos</h2><p>Cadastro nutricional e econômico dos ingredientes utilizados nas dietas.</p></div><div style="display:flex;gap:8px"><button class="btn primary" type="button" onclick="novoInsumoNutri()">+ NOVO INSUMO</button><button class="btn" type="button" onclick="carregarDietasMS()">Atualizar</button></div></div>
@@ -3919,6 +3923,39 @@ function imprimirInsumosEmUso(){
  janela.document.open();janela.document.write(html);janela.document.close();
 }
 
+// CONSULTA ISOLADA: apenas leitura de baixas já gravadas. Não gera consumo nem modifica saldos.
+async function consultarConsumoMensalInsumos(){
+ const campo=document.getElementById('consumoMensalMes'),out=document.getElementById('consumoMensalResultado');
+ if(!campo||!out)return;
+ const mes=campo.value;if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(mes)){out.innerHTML='<div class="empty">Selecione um mês válido.</div>';return;}
+ const [ano,mm]=mes.split('-').map(Number),fim=new Date(Date.UTC(ano,mm,1)).toISOString().slice(0,10);
+ out.innerHTML='<div class="empty">CONSULTANDO CONSUMO...</div>';
+ try{
+  const grupos=new Map();let inicio=0;
+  while(true){
+   const r=await supa.from('nutri_estoque_movimentos').select('id,data_movimento,insumo_nome,tipo,quantidade_kg,observacao').gte('data_movimento',mes+'-01').lt('data_movimento',fim).eq('tipo','AJUSTE_NEGATIVO').order('id',{ascending:true}).range(inicio,inicio+999);
+   if(r.error)throw r.error;
+   const lote=r.data||[];
+   for(const x of lote){
+    const obs=String(x.observacao||'');
+    if(!obs.startsWith('CARGA_AUTO:')&&!/^CONSUMO_AUTO_POSTO_KAFE_[0-9]+(?:\.[0-9]+)?KG_DIA:/.test(obs))continue;
+    const nome=estoqueNomeCanonico(x.insumo_nome||'');
+    const qtd=Number(x.quantidade_kg||0);if(!nome||!Number.isFinite(qtd)||qtd<=0)continue;
+    if(!grupos.has(nome))grupos.set(nome,{total:0,dias:new Set()});
+    const g=grupos.get(nome);g.total+=qtd;g.dias.add(x.data_movimento);
+   }
+   if(lote.length<1000)break;
+   inicio+=1000;
+  }
+  const itens=[...grupos.entries()].sort((a,b)=>a[0].localeCompare(b[0],'pt-BR'));
+  if(!itens.length){out.innerHTML='<div class="empty">Nenhum consumo automático registrado neste mês.</div>';return;}
+  const fmt=n=>Number(n).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:2});
+  const linhas=itens.map(([nome,g])=>'<tr><td>'+estoqueEscape(nome)+'</td><td style="text-align:center">'+g.dias.size+'</td><td style="text-align:right">'+fmt(g.total)+' kg</td></tr>').join('');
+  const total=itens.reduce((v,[,g])=>v+g.total,0);
+  out.innerHTML='<div class="table-responsive"><table style="min-width:0;width:100%"><thead><tr><th>INSUMO</th><th style="text-align:center">DIAS COM CONSUMO</th><th style="text-align:right">TOTAL CONSUMIDO</th></tr></thead><tbody>'+linhas+'<tr style="font-weight:800;background:#eef3ef"><td>TOTAL GERAL</td><td></td><td style="text-align:right">'+fmt(total)+' kg</td></tr></tbody></table></div><p class="hint">Somente baixas automáticas registradas. Dias são contados separadamente por insumo; ajustes manuais não entram no consumo.</p>';
+ }catch(e){out.innerHTML='<div class="notice">NÃO FOI POSSÍVEL CONSULTAR O CONSUMO: '+estoqueEscape(String(e.message||e))+'</div>';}
+}
+(function(){const iniciar=()=>{const c=document.getElementById('consumoMensalMes');if(c&&!c.value){const d=new Date();c.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');consultarConsumoMensalInsumos();}};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else iniciar();})();
 async function carregarEstoqueInsumos(){
  const tabela=$('estoqueInsumosTabela');if(!tabela)return;
  tabela.innerHTML='<div class="notice">CONSULTANDO ESTOQUE...</div>';
@@ -3962,7 +3999,7 @@ async function carregarEstoqueInsumos(){
   }
   const diasDesde=(a,b)=>Math.round((Date.parse(b+'T12:00:00Z')-Date.parse(a+'T12:00:00Z'))/86400000);
   const mediaDiaria=x=>{
-    if(x.nome==='VINHAÇA DE SORGO E MILHO')return trHojeISO()>='2026-11-07'?1500:(trHojeISO()>='2026-10-28'?1000:500);
+    if(x.nome==='VINHAÇA DE SORGO E MILHO')return trHojeISO()>='2026-11-23'?2000:(trHojeISO()>='2026-11-07'?1500:(trHojeISO()>='2026-10-28'?1000:500));
     const registro=consumos7.get(x.nome);
     if(!registro)return 0;
     const dias=Math.max(1,diasDesde(registro.primeira,hojeEstoque));
@@ -4031,7 +4068,7 @@ async function postoKafeBaixaDiaria(){
    const dia=d.toISOString().slice(0,10);
    if(jaBaixados.has(dia))continue;
    // Limitar o consumo ao estoque disponível: nunca gerar saldo negativo.
-   const consumoDia=dia>='2026-11-07'?1500:(dia>='2026-10-28'?1000:500);
+   const consumoDia=dia>='2026-11-23'?2000:(dia>='2026-11-07'?1500:(dia>='2026-10-28'?1000:500));
    if(saldo<=0)continue;
    // Reconsulta o estoque e as baixas do dia para evitar repetição entre sessões.
    const chk=await supa.from('nutri_estoque_movimentos').select('id,tipo,quantidade_kg,observacao').eq('insumo_nome',nome).limit(10000);
@@ -4057,7 +4094,7 @@ async function postoKafeAtualizarConsumo(atualizarTela=false){
   const entrada=mov.filter(x=>x.tipo==='ENTRADA'||x.tipo==='AJUSTE_POSITIVO').reduce((a,x)=>a+Number(x.quantidade_kg||0),0);
   const saida=mov.filter(x=>x.tipo==='AJUSTE_NEGATIVO').reduce((a,x)=>a+Number(x.quantidade_kg||0),0);
   const automaticas=mov.filter(x=>/^CONSUMO_AUTO_POSTO_KAFE_([0-9]+(?:\.[0-9]+)?)KG_DIA:/.test(String(x.observacao||'')));
-  if(el)el.innerHTML='<b>ENTRADAS: '+estoqueFmt(entrada)+' KG | SAÍDAS: '+estoqueFmt(saida)+' KG | SALDO: '+estoqueFmt(entrada-saida)+' KG</b><br>CONSUMO PADRÃO: '+(trHojeISO()>='2026-11-07'?'1.500':(trHojeISO()>='2026-10-28'?'1.000':'500'))+' KG/DIA | DIAS COM BAIXA AUTOMÁTICA: '+automaticas.length+'<br><small>BAIXAS POR DATA, SEM DUPLICAÇÃO. CONSUMO FÍSICO INDEPENDENTE DA DIÁRIA.</small>';
+  if(el)el.innerHTML='<b>ENTRADAS: '+estoqueFmt(entrada)+' KG | SAÍDAS: '+estoqueFmt(saida)+' KG | SALDO: '+estoqueFmt(entrada-saida)+' KG</b><br>CONSUMO PADRÃO: '+(trHojeISO()>='2026-11-23'?'2.000':(trHojeISO()>='2026-11-07'?'1.500':(trHojeISO()>='2026-10-28'?'1.000':'500')))+' KG/DIA | DIAS COM BAIXA AUTOMÁTICA: '+automaticas.length+'<br><small>BAIXAS POR DATA, SEM DUPLICAÇÃO. CONSUMO FÍSICO INDEPENDENTE DA DIÁRIA.</small>';
   if(atualizarTela)await carregarEstoqueInsumos();
  }catch(e){if(el)el.textContent='ERRO NA BAIXA/CONSULTA DO CONSUMO: '+String(e.message||e);console.error('POSTO KAFE:',e);}
 }

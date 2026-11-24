@@ -1478,7 +1478,8 @@ function consumoImprimirDezDias(kind){
  }).join('');
  const inicio=datas.at(-1).split('-').reverse().join('/'),fim=datas[0].split('-').reverse().join('/');
  const pagina='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+esc(vista.title)+'</title><style>@page{size:A4 landscape;margin:9mm}body{font:10px Arial,sans-serif;color:#20262d}h1{font-size:16px;margin:0 0 5px}h2{font-size:13px;margin:0 0 8px}.sub{margin-bottom:12px;color:#59636b}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{border:1px solid #cbd3d8;padding:5px 3px;text-align:center;overflow-wrap:anywhere}th{background:#e9eef0}th:first-child,td:first-child{text-align:left;width:17%}tr{break-inside:avoid}footer{margin-top:9px;font-size:9px;color:#59636b}</style></head><body><h1>FAZENDA NOVA ESPERANÇA</h1><h2>'+esc(vista.title)+'</h2><div class="sub">PERÍODO: '+inicio+' A '+fim+' — 10 DIAS ENCERRADOS</div><table><thead><tr><th>LOCALIDADE</th><th>DIAS</th><th>MÉDIA</th>'+datas.map(d=>'<th>'+d.slice(8,10)+'/'+d.slice(5,7)+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table><footer>DIAS = TOTAL DO HISTÓRICO DO LOTE NA VISÃO DE %PV. MÉDIA = MÉDIA DOS DIAS VÁLIDOS DO PERÍODO IMPRESSO. ZERO REGISTRADO ENTRA NO CÁLCULO; AUSÊNCIA DE REGISTRO = —. SEM ALTERAÇÃO DO HISTÓRICO.</footer>'+
- '</body></html>';
+ '
+</body></html>';
  const w=window.open('','_blank');if(!w){alert('LIBERE A JANELA DE IMPRESSÃO NO NAVEGADOR.');return;}
  w.document.open();w.document.write(pagina);w.document.close();w.focus();setTimeout(()=>w.print(),350);
 }
@@ -1898,6 +1899,7 @@ body{background:#f4f8f7}
 <button onclick="showPage('animais',this)">ANIMAIS</button> <button onclick="showPage('peso_estimado',this);carregarVisaoPesoEstimado()">PESO ESTIMADO</button>
 <button onclick="showPage('pesagens',this)">PESAGEM DE SAÍDA</button>
 <button onclick="showPage('pesagemIntermediaria',this);piCarregar()">PESAGEM INTERMEDIÁRIA</button>
+<button onclick="showPage('relatorioPiAtivos',this);rpiCarregar()">RELATÓRIO DE PESO ESTIMADO</button>
 <button onclick="showPage('saidas',this);carregarSaidasAtivas()">SAÍDAS E MOVIMENTAÇÕES</button>
 <button class="admin-only" onclick="showPage('leiloes',this);carregarLeiloes()">LEILÃO / LOTES</button>
 <button onclick="showPage('mortes',this);renderMortes()">MORTE</button>
@@ -2321,7 +2323,8 @@ body{background:#f4f8f7}
 
 <div id="peso_estimado" class="page"><div class="panel"><div class="section-head"><div><h2>PESO ESTIMADO POR CURRAL</h2><p>VISÃO INFORMATIVA • ANIMAIS ATIVOS • GANHO DE PESO CONFORME PARÂMETROS ZOOTÉCNICOS DO SISTEMA</p></div><button class="btn" onclick="carregarVisaoPesoEstimado()">ATUALIZAR</button></div><div id="peso_estimado_resumo"></div><div id="peso_estimado_tabela" style="width:100%;max-width:100%;overflow-x:hidden;margin-top:14px">CARREGANDO...</div><p style="font-size:11px;color:#667085;margin-top:10px">PESO ESTIMADO NÃO É PESAGEM REAL. %PV MS CALCULADO COM A ÚLTIMA MS DISTRIBUÍDA REGISTRADA E O PESO VIVO ESTIMADO. O %PV MS UTILIZA O ÚLTIMO VALOR SALVO NO HISTÓRICO. NÃO ALTERA O BANCO.</p></div></div>
 <section id="animais" class="page"><div class="panel"><div class="section-head"><div><h2>Consulta individual</h2><p>Informe o BRINCO/SB para conferir os dados do animal.</p></div><span class="tag">CONSULTA</span></div><div class="consulta-animal"><div class="field"><label>BRINCO / SB</label><input id="consultaBrinco" placeholder="Digite o número do animal" onkeydown="if(event.key==='Enter'){event.preventDefault();consultarAnimal()}"></div><button class="btn primary" type="button" onclick="consultarAnimal()">CARREGAR ANIMAL</button><button class="btn" type="button" onclick="limparConsultaAnimal()">Limpar</button></div><div id="fichaAnimal" style="margin-top:18px"></div></div><div class="panel"><div class="section-head"><div><h2>Animais por Localidade</h2><p>Selecione uma localidade para ver rapidamente os animais ativos.</p></div><span class="tag">ESTOQUE ATUAL</span></div><div class="consulta-animal"><div class="field"><label>LOCALIDADE</label><select id="filtroLocalidadeAnimais" onchange="renderAnimaisLocalidade()"><option value="">TODAS AS LOCALIDADES</option></select></div></div><div id="animaisLocalidadeResumo" style="margin-top:12px"></div><div id="animaisLocalidadeTable" style="margin-top:12px"></div></div><div class="panel"><h2>Animais Negociados</h2><p>Todos os animais negociados salvos no sistema.</p><div id="animaisTable"></div></div></section>
-  <section id="pesagemIntermediaria" class="page">
+  <section id="relatorioPiAtivos" class="page"><div class="panel"><div class="section-head no-print"><h2>RELATÓRIO DE PESO ESTIMADO</h2><div class="actions"><button class="btn" onclick="rpiCarregar()">ATUALIZAR</button><button class="btn primary" id="rpiPrint" disabled onclick="window.print()">IMPRIMIR / PDF</button></div></div><div class="grid no-print" style="margin:12px 0"><div class="field"><label for="rpiGmd">GMD ESTIMADO (KG/DIA)</label><input id="rpiGmd" type="text" inputmode="decimal" value="1,250" onchange="rpiCarregar()"></div><div class="field"><label for="rpiData">DATA DA PESAGEM PROJETADA</label><input id="rpiData" type="date" onchange="rpiCarregar()"></div></div><div id="rpiStatus" class="small-note no-print" role="status"></div><div id="rpiConteudo"></div></div></section>
+<section id="pesagemIntermediaria" class="page">
 <div class="section-head"><div><h2>PESAGEM INTERMEDIÁRIA</h2><p>Relatórios históricos por baia/localidade e data da pesagem.</p></div></div>
 <div class="card" style="padding:20px;max-width:1200px">
 <label for="piSelecao" style="display:block;font-weight:800;margin-bottom:8px">SELECIONE A PESAGEM — BAIA / DATA</label>
@@ -10046,6 +10049,33 @@ function abrirTelaHorariosOperacoes(botao){
     campo.value=v.year+'-'+v.month+'-'+v.day;
   }
   carregarHorariosOperacoes();
+}
+</script>
+
+<style id="rpi-css">#relatorioPiAtivos table{min-width:0!important;width:100%;table-layout:fixed}#relatorioPiAtivos td,#relatorioPiAtivos th{white-space:normal;text-align:center;padding:7px 4px}#relatorioPiAtivos .rpi-verde td{background:#d9f2df!important;color:#174c2c!important}#relatorioPiAtivos tfoot td{font-weight:bold;background:#edf2ef}#relatorioPiAtivos h3{color:#315d4b;margin:22px 0 8px} @media print{body:has(#relatorioPiAtivos.active) #relatorioPiAtivos{print-color-adjust:exact;-webkit-print-color-adjust:exact}body:has(#relatorioPiAtivos.active) #relatorioPiAtivos tr{break-inside:avoid}body:has(#relatorioPiAtivos.active) #relatorioPiAtivos h3{break-after:avoid}body:has(#relatorioPiAtivos.active) #relatorioPiAtivos thead{display:table-header-group}body:has(#relatorioPiAtivos.active) #relatorioPiAtivos table{font-size:10px}}</style>
+<script id="rpi-script">
+let rpiVersao=0;
+async function rpiPaginar(make){const out=[];for(let i=0;;i+=1000){const r=await make().range(i,i+999);if(r.error)throw r.error;out.push(...r.data);if(r.data.length<1000)return out;}}
+async function rpiCarregar(){
+ const v=++rpiVersao, el=document.getElementById('rpiConteudo'),st=document.getElementById('rpiStatus'),btn=document.getElementById('rpiPrint');el.innerHTML='';btn.disabled=true;st.textContent='CONSULTANDO DADOS OFICIAIS...';
+ try{
+ const campo=document.getElementById('rpiData'); if(!campo.value)campo.value=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date()); const hoje=campo.value; const g=Number(document.getElementById('rpiGmd').value.trim().replace(',','.')); if(!Number.isFinite(g)||g<=0)throw Error('INFORME UM GMD POSITIVO.');
+ const [animais,pesagens]=await Promise.all([
+ rpiPaginar(()=>supa.from('animais').select('id,brinco,localizacao,sexo,data_entrada,dias_acumulados_confinamento').eq('status','ATIVO').order('id')),
+ rpiPaginar(()=>supa.from('pesagens_intermediarias').select('id,animal_id,data_pesagem,peso_kg,criado_em').lte('data_pesagem',hoje).order('data_pesagem',{ascending:false}).order('criado_em',{ascending:false}).order('id'))]);
+ const ult=new Map();for(const p of pesagens)if(!ult.has(p.animal_id)&&Number(p.peso_kg)>0)ult.set(p.animal_id,p);
+ const dias=(a,b)=>Math.round((Date.parse(b+'T12:00:00Z')-Date.parse(a+'T12:00:00Z'))/86400000);
+ const grupos=new Map();let omitidos=0;
+ for(const a of animais){if(!/^BAIA [AB][1-5]$/.test(a.localizacao))continue;const p=ult.get(a.id);if(!p)continue;
+ const dp=dias(p.data_pesagem,hoje); if(!Number.isFinite(dp)||dp<0){omitidos++;continue;}
+ const peso=Number(p.peso_kg),proj=peso+dp*g;if(!grupos.has(a.localizacao))grupos.set(a.localizacao,[]);grupos.get(a.localizacao).push({brinco:a.brinco,data:p.data_pesagem,peso,g,proj});}
+ if(v!==rpiVersao)return;
+ const fmt=(n,d=2)=>n.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+ const total470=[...grupos.values()].reduce((n,rows)=>n+rows.filter(r=>r.proj>=470).length,0);
+ let html='<h2>FAZENDA NOVA ESPERANÇA</h2><p>RELATÓRIO DE PESO ESTIMADO | '+hoje.split('-').reverse().join('/')+' | GMD: '+fmt(g,3)+' KG/DIA</p><div style="padding:12px 14px;border:1px solid #b6d2bf;border-radius:8px;background:#e9f4ec;color:#174c2c;font-weight:700;margin:12px 0">TOTAL GERAL — ANIMAIS COM 470 KG OU MAIS: <strong style="font-size:22px">'+total470+'</strong></div>';
+ for(const [baia,rows] of [...grupos].sort((a,b)=>a[0].localeCompare(b[0]))){rows.sort((a,b)=>String(a.brinco).localeCompare(String(b.brinco),'pt-BR',{numeric:true}));const total=rows.reduce((s,r)=>s+r.proj,0);html+='<h3>'+piEsc(baia)+' — '+rows.filter(r=>r.proj>=470).length+' ANIMAIS COM 470 KG OU MAIS</h3><table><thead><tr><th>BRINCO</th><th>DATA PESAGEM</th><th>PESO (KG)</th><th>GMD (KG/DIA)</th><th>PROJETADO (KG)</th></tr></thead><tbody>'+rows.map(r=>'<tr class="'+(r.proj>=470?'rpi-verde':'')+'"><td>'+piEsc(r.brinco)+'</td><td>'+piEsc(r.data.split('-').reverse().join('/'))+'</td><td>'+fmt(r.peso)+'</td><td>'+fmt(r.g,3)+'</td><td>'+fmt(r.proj)+'</td></tr>').join('')+'</tbody><tfoot><tr><td colspan="2">TOTAL: '+rows.length+' ANIMAIS</td><td colspan="2">MÉDIA: '+fmt(total/rows.length)+' KG</td><td>'+fmt(total)+' KG</td></tr></tfoot></table>';}
+ el.innerHTML=grupos.size?html:'<p>NENHUM ANIMAL ATIVO COM PROJEÇÃO CALCULADA.</p>';st.textContent=omitidos?omitidos+' ANIMAIS COM PESAGEM SEM DADOS SUFICIENTES PARA PROJEÇÃO (EXCLUÍDOS).':'';btn.disabled=!grupos.size;
+ }catch(e){if(v===rpiVersao)st.textContent='FALHA NA CONSULTA: '+(e.message||e);}
 }
 </script>
 </body></html>

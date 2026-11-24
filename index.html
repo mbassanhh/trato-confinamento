@@ -1383,6 +1383,31 @@ async function consumoHistoricoRender(){
    if(!(comp?.mn>0&&comp.ms>0&&n>0))continue;
    msPorDiaConferido.set(local+'|'+dia,{ms:kg*comp.ms/comp.mn,animais:n});
   }
+  // Após 18/11 faltam fechamentos em nutri_custos_diarios.
+  // Recuperar a MS/cabeça já registrada em leituras_cocho, sem recalcular dieta
+  // e sem substituir fechamentos históricos disponíveis.
+  const leiturasMS=[];
+  for(let start=0;start<100000;start+=1000){
+   const q=await supa.from('leituras_cocho')
+    .select('data_leitura,ms_cabeca,quantidade_bois,curral_id')
+    .order('data_leitura',{ascending:true}).range(start,start+999);
+   if(q.error)throw q.error;
+   leiturasMS.push(...(q.data||[]));
+   if((q.data||[]).length<1000)break;
+  }
+  const cadastroCurrais=await supa.from('currais').select('id,codigo');
+  if(cadastroCurrais.error)throw cadastroCurrais.error;
+  const nomesCurral=new Map((cadastroCurrais.data||[]).map(c=>[c.id,c.codigo]));
+  const msLeituraPorDia=new Map();
+  for(const l of leiturasMS){
+   const nome=nomesCurral.get(l.curral_id);
+   if(!nome||!(Number(l.quantidade_bois)>0)||l.ms_cabeca==null)continue;
+   const valor=Number(l.ms_cabeca);
+   if(!Number.isFinite(valor)||valor<0)continue;
+   const local=canonLocal(nome),key=local+'|'+l.data_leitura;
+   if(!msPorDiaConferido.has(key))msLeituraPorDia.set(key,{ms:valor*Number(l.quantidade_bois),animais:Number(l.quantidade_bois)});
+  }
+  for(const [key,val] of msLeituraPorDia)if(!msPorDiaConferido.has(key))msPorDiaConferido.set(key,val);
   const msDados=[...msPorDiaConferido].filter(([,x])=>x.animais>0)
    .map(([key,x])=>({localizacao:key.split('|')[0],data_referencia:key.split('|')[1],indicador:'MS_CAB_DIA',valor:x.ms/x.animais}));
   const dates=[...new Set(dadosPVConfiaveis.map(x=>x.data_referencia))].sort().reverse();
@@ -1426,7 +1451,7 @@ async function consumoHistoricoRender(){
     html+='</tr>';
    }
    html+='</tbody></table></div>';
-   if(kind==='MS_CAB_DIA')html+='<div class="small-note">Fonte: MS distribuída e lotação dos fechamentos históricos por local e dia. Sem fechamento ou sem quantidade de animais, exibe —. Não altera dados do banco.</div>';
+   if(kind==='MS_CAB_DIA')html+='<div class="small-note">Fonte: fechamento histórico; quando ausente, MS/cabeça registrada na leitura de cocho (referência de leitura, não fechamento). Não altera dados do banco.</div>';
    visoes.push({kind,title,linhas,values:m});
   }
   window.__consumoVistasImpressao={visoes,dezDias};

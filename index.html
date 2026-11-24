@@ -1478,8 +1478,7 @@ function consumoImprimirDezDias(kind){
  }).join('');
  const inicio=datas.at(-1).split('-').reverse().join('/'),fim=datas[0].split('-').reverse().join('/');
  const pagina='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+esc(vista.title)+'</title><style>@page{size:A4 landscape;margin:9mm}body{font:10px Arial,sans-serif;color:#20262d}h1{font-size:16px;margin:0 0 5px}h2{font-size:13px;margin:0 0 8px}.sub{margin-bottom:12px;color:#59636b}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{border:1px solid #cbd3d8;padding:5px 3px;text-align:center;overflow-wrap:anywhere}th{background:#e9eef0}th:first-child,td:first-child{text-align:left;width:17%}tr{break-inside:avoid}footer{margin-top:9px;font-size:9px;color:#59636b}</style></head><body><h1>FAZENDA NOVA ESPERANÇA</h1><h2>'+esc(vista.title)+'</h2><div class="sub">PERÍODO: '+inicio+' A '+fim+' — 10 DIAS ENCERRADOS</div><table><thead><tr><th>LOCALIDADE</th><th>DIAS</th><th>MÉDIA</th>'+datas.map(d=>'<th>'+d.slice(8,10)+'/'+d.slice(5,7)+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table><footer>DIAS = TOTAL DO HISTÓRICO DO LOTE NA VISÃO DE %PV. MÉDIA = MÉDIA DOS DIAS VÁLIDOS DO PERÍODO IMPRESSO. ZERO REGISTRADO ENTRA NO CÁLCULO; AUSÊNCIA DE REGISTRO = —. SEM ALTERAÇÃO DO HISTÓRICO.</footer>'+
- '
-</body></html>';
+ '</body></html>';
  const w=window.open('','_blank');if(!w){alert('LIBERE A JANELA DE IMPRESSÃO NO NAVEGADOR.');return;}
  w.document.open();w.document.write(pagina);w.document.close();w.focus();setTimeout(()=>w.print(),350);
 }

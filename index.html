@@ -4682,7 +4682,9 @@ async function tgHomCarregarFicha(){
    if(divisao.length!==4||divisao.some(v=>!Number.isFinite(v)))throw Error('PREVISÃO INCOMPLETA PARA '+tr.dataset.local);
    return {nome:tr.dataset.local,divisao:tgSistema==='SEMI'?[divisao.reduce((a,b)=>a+b,0),0,0,0]:divisao};
   }).filter(Boolean);
-  if(!locais.length && tgSistema==='CONFINAMENTO'){
+  if(tgSistema==='CONFINAMENTO'){
+   // A publicação administrativa prevalece SEMPRE sobre DOM/leituras antigas.
+   locais.length=0;
    // No celular a grade pode não estar montada. Buscar a última publicação oficial,
    // com as quatro previsões ajustadas, nunca recalcular da leitura antiga.
    const oficial=await supa.from('cocho_ajustes_previsao').select('motivo').eq('data_leitura',dia)
@@ -4812,37 +4814,9 @@ async function tgHomCarregarFicha(){
    const idx=n-1;
    planos[n]={ingredientes:ingredientes.map(i=>[i.nome,cargas[idx]*i.frac,i.id]),currais:tgOrdenarCurrais(locais.filter(l=>l.divisao[idx]>0).map(l=>[l.nome,l.divisao[idx]]))};
   }
-  // Confinamento: a carga 4 ainda não iniciada deve espelhar os valores
-  // exibidos nos Tratos ADM. Não tocar em cargas já iniciadas/congeladas.
-  if(tgSistema==='CONFINAMENTO'){
-   const pendente=tgHomDadosNumero(4);
-   const semLancamentos=!Object.keys(pendente.registros||{}).length &&
-      (pendente.fase||'ingredientes')==='ingredientes';
-   if(semLancamentos){
-    try{
-     await tratosRender();
-     if(dia!==trData())throw Error('DATA DA GRADE NÃO CONFERE');
-     const linhas=[...document.querySelectorAll('#tr_grade_body tr')]
-       .filter(r=>norm(r.dataset.sistema)==='CONFINAMENTO'&&r.dataset.total!==''&&
-         r.querySelector('[data-tr-dieta]')?.checked!==false);
-     const currais=linhas.map(r=>{
-       const celulas=[...r.querySelectorAll('td[data-prev]')];
-       return celulas.length===4?[r.dataset.local,Number(celulas[3].dataset.ajustado!==undefined?celulas[3].dataset.ajustado:celulas[3].dataset.prev)]:null;
-     }).filter(x=>x&&Number.isFinite(x[1])&&x[1]>0);
-     const total=currais.reduce((t,x)=>t+x[1],0);
-     if(total>0&&currais.length){
-      planos[4]={ingredientes:ingredientes.map(i=>[i.nome,total*i.frac,i.id]),
-        currais:tgOrdenarCurrais(currais)};
-      gradeDisponivel=true;
-     }else throw Error('PREVISÃO DO TRATO 4 NÃO DISPONÍVEL NA GRADE');
-    }catch(e){
-     // Nunca substituir a previsão por cache antigo silenciosamente.
-     throw Error('NÃO FOI POSSÍVEL CONFERIR A CARGA 4 COM OS TRATOS ADM: '+String(e.message||e));
-    }
-   }
-  }
+  // Carga 4: mesma fonte oficial das cargas 1-3; não substituir por leitura antiga.
   if(tgSistema!==sistemaSolicitado)return;
-  tgHomFicha={dia,sistema:tgSistema,planos,sobraRecebidaKg:sobra,versaoDieta:String(versao.id),origem:gradeDisponivel?'GRADE OFICIAL':'LEITURAS OFICIAIS + CONFIGURAÇÃO DE TRATOS',gradeDisponivel};
+  tgHomFicha={dia,sistema:tgSistema,planos,sobraRecebidaKg:sobra,versaoDieta:String(versao.id),origem:tgSistema==='CONFINAMENTO'?'PUBLICAÇÃO ADMINISTRATIVA':'GRADE/LEITURAS SEMI',gradeDisponivel};
   try{localStorage.setItem('tg_offline_ficha_'+dia+'_'+tgSistema,JSON.stringify(tgHomFicha));}catch(cacheError){console.warn('CACHE DE PREVISÕES NÃO SALVO',cacheError);}
  }catch(e){
   if(tgSistema!==sistemaSolicitado)return;
@@ -4908,13 +4882,11 @@ function tgHomPlanoDinamico(n){
  const base=tgHomFicha?.planos?.[n];
  if(!base)return null;
  const atual=tgHomDadosNumero(n);
- // Para carga ainda não iniciada, o plano oficial recém-consultado prevalece
- // sobre qualquer congelamento antigo do navegador. Jamais alterar carga iniciada.
- if(tgSistema==='CONFINAMENTO'&&Number(n)===4&&
-    (atual.fase||'ingredientes')==='ingredientes'&&
-    !Object.keys(atual.registros||{}).length)return base;
- if(atual.planoCongelado)return atual.planoCongelado;
- return base;
+ // Enquanto não houver pesos lançados, usar o plano atual do administrativo.
+ const temPesos=Object.keys(atual.registros||{}).some(k=>/^[IC]\d+$/.test(k));
+ const iniciada=temPesos||['aguardando_distribuicao','currais','concluido'].includes(atual.fase);
+ if(!iniciada)return base;
+ return atual.planoCongelado||base;
 }
 // Ordenação no fluxo MOBILE: fichas offline antigas e planos congelados
 // também devem seguir a ordem operacional. Nunca mudar índices de pesos já lançados.

@@ -4724,6 +4724,10 @@ async function tgHomCarregarFicha(){
    if(!texto.startsWith('TRATOS_ESTADO:'))throw Error('PUBLIQUE A GRADE ADMINISTRATIVA ATUALIZADA ANTES DE CARREGAR.');
    const pacote=JSON.parse(texto.slice('TRATOS_ESTADO:'.length));
    if(pacote.dia!==dia)throw Error('PREVISÃO OFICIAL DE OUTRA DATA.');
+   const realizadosOficiais=await supa.from('tratos_realizados').select('localizacao,trato_1,trato_2,trato_3,trato_4').eq('data_trato',dia).eq('sistema','CONFINAMENTO');
+   if(realizadosOficiais.error)throw realizadosOficiais.error;
+   const chaveOficial=v=>norm(v).replace(/^BAIA\s+/,'').replace(/\s+/g,' ');
+   const realizadosPorLocal=new Map((realizadosOficiais.data||[]).map(x=>[chaveOficial(x.localizacao),x]));
    for(const r of Object.values(pacote.registros||{})){
     if(r.__sistema!=='CONFINAMENTO'||r.comDieta===false||!(Number(r.total)>0))continue;
     // Usar SEMPRE o total da grade administrativa publicada, inclusive em pacotes
@@ -4733,9 +4737,15 @@ async function tgHomCarregarFicha(){
     if(!Number.isFinite(totalOficial)||totalOficial<0)throw Error('TOTAL ADMINISTRATIVO INVÁLIDO: '+r.__local);
     const completo=Array.isArray(r.__tratos_ajustados)&&r.__tratos_ajustados.length===4;
     const divisao=completo?r.__tratos_ajustados.map(Number):trDividir(totalOficial,trCochoConfig().pctCurral(r.__local));
-    if(!divisao||divisao.some(x=>!Number.isFinite(x)||x<0)||Math.abs(divisao.reduce((a,b)=>a+b,0)-totalOficial)>0.01)
+    const realizadoOficial=realizadosPorLocal.get(chaveOficial(r.__local));
+    const valoresRealizados=[1,2,3,4].map(i=>realizadoOficial?.['trato_'+i]);
+    const somaRealizada=valoresRealizados.reduce((a,v)=>a+Number(v??0),0);
+    const saldoOficial=Math.max(0,totalOficial-somaRealizada);
+    const somaDivisao=divisao?.reduce((a,b)=>a+b,0);
+    const saldoConfere=completo&&valoresRealizados.some(v=>v!=null)&&valoresRealizados.every((v,i)=>v==null||divisao[i]===0)&&Math.abs(somaDivisao-saldoOficial)<=0.01;
+    if(!divisao||divisao.some(x=>!Number.isFinite(x)||x<0)||(!saldoConfere&&Math.abs(somaDivisao-totalOficial)>0.01))
       throw Error('PREVISÃO ADMINISTRATIVA INVÁLIDA: '+r.__local);
-    locais.push({nome:r.__local,divisao});
+    locais.push({nome:r.__local,divisao,realizados:valoresRealizados});
    }
    // Somente o pacote publicado com quatro tratos é a fonte do tratador.
   }
@@ -4842,7 +4852,7 @@ async function tgHomCarregarFicha(){
   const planos={};
   for(const n of (tgSistema==='SEMI'?[1]:[1,2,3,4])){
    const idx=n-1;
-   planos[n]={ingredientes:ingredientes.map(i=>[i.nome,cargas[idx]*i.frac,i.id]),currais:tgOrdenarCurrais(locais.filter(l=>l.divisao[idx]>0).map(l=>[l.nome,l.divisao[idx]]))};
+   planos[n]={ingredientes:ingredientes.map(i=>[i.nome,cargas[idx]*i.frac,i.id]),currais:tgOrdenarCurrais(locais.filter(l=>l.divisao[idx]>0||(tgSistema==='CONFINAMENTO'&&l.realizados?.[idx]!=null)).map(l=>[l.nome,l.divisao[idx]]))};
   }
   // Carga 4: mesma fonte oficial das cargas 1-3; não substituir por leitura antiga.
   if(tgSistema!==sistemaSolicitado)return;
@@ -5085,23 +5095,22 @@ async function tgHomRecuperarCarregamentosBanco(){
     tgHomSalvar(local,n);
    }
   }
-  // O primeiro carregamento pode ter sido registrado no administrativo.
-  // Reconhecer a distribuição já gravada sem exigir novo lançamento no celular.
-  if(sistema==='CONFINAMENTO'&&(q.data||[]).some(c=>String(c.carga)==='1')){
-   const primeiro=tgHomDadosNumero(1);
-   const plano=primeiro.planoCongelado||tgHomFicha.planos?.[1];
-   if(plano?.currais?.length){
-    const campo='trato_1';
-    const encontrados=plano.currais.map(([nome,kg])=>{
-     const registros=(realizados.data||[]).filter(r=>tgProdNome(r.localizacao)===tgProdNome(nome)&&r[campo]!==null);
-     return registros.length===1?Number(registros[0][campo]):(Math.abs(Number(kg)||0)<0.00001?0:null);
-    });
-    if(encontrados.every(v=>v!==null)){
-     for(let j=0;j<encontrados.length;j++)primeiro.registros['C'+j]=encontrados[j];
-     primeiro.fase='concluido';primeiro.planoCongelado=plano;
-     tgHomSalvar(primeiro,1);
-    }
-   }
+  // A grade oficial atual pode ter zerado o trato já realizado. O plano congelado
+  // antigo não deve impedir a confirmação de todos os locais oficiais no banco.
+  if(sistema==='CONFINAMENTO')for(const n of [1,2,3,4]){
+   if(!(q.data||[]).some(c=>Number(c.carga)===n))continue;
+   const local=tgHomDadosNumero(n), oficial=tgHomFicha.planos?.[n];
+   const campo='trato_'+n;
+   const lista=oficial?.currais||[];
+   if(!lista.length||tgProdFilaLer().some(x=>x.dia===dia&&x.sistema===sistema&&Number(x.n)===n))continue;
+   const linhas=lista.map(([nome])=>(realizados.data||[]).filter(r=>tgProdNome(r.localizacao)===tgProdNome(nome)&&r[campo]!=null));
+   if(!linhas.every(a=>a.length===1&&Number.isFinite(Number(a[0][campo]))))continue;
+   const plano=local.planoCongelado||oficial;
+   const registros=Object.fromEntries(Object.entries(local.registros||{}).filter(([k])=>!/^C\d+$/.test(k)));
+   linhas.forEach((a,j)=>registros['C'+j]=Number(a[0][campo]));
+   local.registros=registros;
+   local.planoCongelado={...plano,currais:lista.map((x,j)=>[x[0],Number(linhas[j][0][campo])])};
+   local.fase='concluido';tgHomSalvar(local,n);
   }
  }catch(e){
   tgHomRecuperacaoErro='NÃO FOI POSSÍVEL CONFERIR OS CARREGAMENTOS NO SUPABASE: '+String(e.message||e)+'. NÃO REPITA OS INGREDIENTES.';

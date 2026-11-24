@@ -1408,7 +1408,7 @@ async function consumoHistoricoRender(){
    if(!msPorDiaConferido.has(key))msLeituraPorDia.set(key,{ms:valor*Number(l.quantidade_bois),animais:Number(l.quantidade_bois)});
   }
   for(const [key,val] of msLeituraPorDia)if(!msPorDiaConferido.has(key))msPorDiaConferido.set(key,val);
-  const msDados=[...msPorDiaConferido].filter(([,x])=>x.animais>0)
+  let msDados=[...msPorDiaConferido].filter(([,x])=>x.animais>0)
    .map(([key,x])=>({localizacao:key.split('|')[0],data_referencia:key.split('|')[1],indicador:'MS_CAB_DIA',valor:x.ms/x.animais}));
   const dates=[...new Set(dadosPVConfiaveis.map(x=>x.data_referencia))].sort().reverse();
   const fmt=(n,kind)=>n===null||n===undefined||n===''||!Number.isFinite(Number(n))?'—':kind==='PERCENTUAL_PV_MS'?(100*Number(n)).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'%':Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -1416,6 +1416,9 @@ async function consumoHistoricoRender(){
   const hoje=new Date();hoje.setHours(12,0,0,0);
   const ontem=new Date(hoje);ontem.setDate(ontem.getDate()-1);
   const dezDias=Array.from({length:10},(_,i)=>{const d=new Date(ontem);d.setDate(d.getDate()-i);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');});
+  // MS/cab: o dia em andamento não entra na tabela nem na média.
+  const dataUltimoDiaFechado=[ontem.getFullYear(),String(ontem.getMonth()+1).padStart(2,'0'),String(ontem.getDate()).padStart(2,'0')].join('-');
+  msDados=msDados.filter(x=>x.data_referencia<=dataUltimoDiaFechado);
   const visoes=[];
   const diasPorLocalPV=new Map();
   let html='';

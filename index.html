@@ -7716,7 +7716,8 @@ async function trCargaRender(){
   const cargasBase=[0,0,0,0];
   for(const rr of gradeNota2){if(rr.dataset.total===''||rr.querySelector('[data-tr-dieta]')?.checked===false)continue;
    rr.querySelectorAll('td[data-prev]').forEach((td,i)=>{if(i<4)cargasBase[i]+=Number(td.dataset.ajustado!==undefined?td.dataset.ajustado:td.dataset.prev)||0;});}
-  const cargasAjustadas=trAbaterCargasSemNegativo(cargasBase,sobraConfirmada);
+  const cargasAjustadas=(registro||consultaConsolidada)?cargasBase.slice():trAbaterCargasSemNegativo(cargasBase,sobraConfirmada);
+  for(const r of todasCargas.data||[]){if(/^[1-4]$/.test(String(r.carga)))cargasAjustadas[Number(r.carga)-1]=Number(r.previsto_kg)||0;}
   const previstoCargaAjustado=carga==='CONSOLIDADO'?cargasAjustadas.reduce((a,b)=>a+b,0):cargasAjustadas[Number(carga)-1]??0;
   const historicoCongelado=!!registro;
   // Os ajustes históricos são os efetivamente gravados, nunca valores reconstruídos pela grade atual.
@@ -7773,7 +7774,7 @@ async function trCargaRender(){
    const cs=tr.querySelectorAll('td[data-prev]');
    for(let k=0;k<4;k++)if(cs[k]&&cs[k].dataset.prev!=='')previsoesQuatro[k]+=Number(cs[k].dataset.prev)||0;
   }
-  if(sistema==='CONFINAMENTO'||sistema==='SEMI'){const corrigidas=trAbaterCargasSemNegativo(previsoesQuatro,sobraConfirmada);previsoesQuatro.splice(0,4,...corrigidas);}
+  previsoesQuatro.splice(0,4,...cargasAjustadas);
   trCargaUltima={previsaoConsolidada,totalPrevisaoConsolidada,totalPrevisaoCargasSalvas,previsaoSalvaPorIngrediente,historicoCongelado,previsaoLegadaCorrigida:historicoLegadoDiaInteiro,descontoDF,sobraDF,sobraFinalDF,nota2Confirmada,data,sistema,carga,versao:String(versao.id),linhas,distribuido,completas,base,previsoesQuatro,matrizCarregados,todasCargas:todasCargas.data||[],registroSalvo:registroCompleto||consultaConsolidada,registroPendente,registroId:registro?.id||null,temPrevisao:hojeValidos.length>0,dataAnterior};
   if(destaqueData)destaqueData.innerHTML='DATA SELECIONADA: <strong>'+data.split('-').reverse().join('/')+'</strong> • SISTEMA: <strong>'+trEsc(sistema)+'</strong><div style="font-size:13px;margin-top:8px">REFERÊNCIA INTERNA DO SISTEMA: <strong>'+(hojeQ.error?'INDISPONÍVEL':trFmt(previstoHoje)+' KG')+'</strong> ('+hojeValidos.length+' LOCAIS COM ANIMAIS)</div><div style="font-size:12px;margin-top:6px">INFORME SOMENTE AS QUANTIDADES EFETIVAMENTE CARREGADAS.</div>';
   // Uma única grade: insumos, total previsto, total realizado (distribuição),

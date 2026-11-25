@@ -4800,7 +4800,9 @@ async function tgHomCarregarFicha(){
     const descontoOficial=notaPorLocal.get(chaveOficial(r.__local))||0;
     const saldoOficial=Math.max(0,totalOficial-somaRealizada-descontoOficial);
     const somaDivisao=divisao?.reduce((a,b)=>a+b,0);
-    const saldoConfere=completo&&valoresRealizados.some(v=>v!=null)&&valoresRealizados.every((v,i)=>v==null||divisao[i]===0)&&Math.abs(somaDivisao-saldoOficial)<=0.01;
+    const todosRealizados=valoresRealizados.every(v=>v!=null);
+    if(todosRealizados) divisao.fill(0);
+    const saldoConfere=completo&&(todosRealizados||(valoresRealizados.some(v=>v!=null)&&valoresRealizados.every((v,i)=>v==null||divisao[i]===0)&&Math.abs(somaDivisao-saldoOficial)<=0.01));
     if(!divisao||divisao.some(x=>!Number.isFinite(x)||x<0)||(!saldoConfere&&Math.abs(somaDivisao-totalOficial)>0.01&&!(completo&&descontoOficial>0&&divisao[0]===0&&Math.abs(somaDivisao-(totalOficial-descontoOficial))<=0.01)))
       throw Error('PREVISÃO ADMINISTRATIVA INVÁLIDA: '+r.__local);
     locais.push({nome:r.__local,divisao,realizados:valoresRealizados});
@@ -5624,7 +5626,7 @@ async function aplicarAcesso(){
    if(!document.getElementById('sairTratadorFixo')){
     const sair=document.createElement('button');sair.id='sairTratadorFixo';sair.textContent='SAIR';
     sair.style.cssText='position:fixed;right:12px;top:8px;z-index:9999;padding:7px 18px;background:#15232c;color:white;border:1px solid #40515b;border-radius:7px;font-weight:bold';
-    sair.onclick=async()=>{sair.disabled=true;try{if(typeof supa!=='undefined'&&supa?.auth){const {error}=await supa.auth.signOut();if(error)throw error;}else{document.getElementById('btnSair')?.click();return;}window.location.reload();}catch(e){console.error('Erro ao sair:',e);sair.disabled=false;alert('NÃO FOI POSSÍVEL SAIR. TENTE NOVAMENTE.');}};
+    sair.onclick=()=>sairSessaoAtual(sair);
     document.body.appendChild(sair);
    }
 
@@ -5712,7 +5714,23 @@ async function iniciarSupabase(){
    if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();executarLogin();}});
  });
 })();
-document.getElementById('btnSair').addEventListener('click',async()=>{await supa.auth.signOut();location.reload()});
+async function sairSessaoAtual(botao){
+ if(botao)botao.disabled=true;
+ try{
+   const {error}=await supa.auth.signOut({scope:'local'});
+   if(error)throw error;
+   window.location.reload();
+ }catch(e){
+   console.error('Erro ao encerrar sessão:',e);
+   try{
+     const chave='sb-'+new URL(SUPA_URL).hostname.split('.')[0]+'-auth-token';
+     localStorage.removeItem(chave);sessionStorage.removeItem(chave);
+     localStorage.removeItem(chave+'-code-verifier');sessionStorage.removeItem(chave+'-code-verifier');
+     window.location.reload();
+   }catch(f){console.error('Erro ao limpar sessão local:',f);if(botao)botao.disabled=false;alert('NÃO FOI POSSÍVEL SAIR. TENTE NOVAMENTE.');}
+ }
+}
+document.getElementById('btnSair').addEventListener('click',e=>sairSessaoAtual(e.currentTarget));
 iniciarSupabase().catch(e=>{const st=document.getElementById('supaStatus');if(st)st.textContent='ERRO NA INICIALIZAÇÃO: '+String(e&&e.message||e);});
 
 

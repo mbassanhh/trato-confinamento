@@ -718,16 +718,7 @@ async function relatorioMensalLote(){
  }catch(e){el.textContent='ERRO NA CONSULTA: '+String(e.message||e);}
 }
 
-async function diariasHistorico(){
- const el=document.getElementById('diarias_historico_resultado');if(!el)return;
- el.textContent='CONSULTANDO DIÁRIAS FECHADAS NO BANCO...';
- try{
-  // Recupera custos efetivamente calculados a partir dos ingredientes e das leituras
-  // dos dias 26/10 em diante. Nunca sobrescreve diárias já fechadas.
-  // Histórico é consulta, nunca uma operação de fechamento automático.
-  const pendenciasDiarias=[];
-  const hoje=trHojeISO();
-
+async function consultarFonteDiariasOficial(){
   const rows=[];
   for(let inicio=0;inicio<100000;inicio+=1000){
    const r=await supa.from('nutri_custos_diarios').select('data_trato,sistema,localizacao,quantidade_animais,mn_distribuida_kg,custo_diaria_cabeca,fechado').eq('fechado',true).order('data_trato',{ascending:false}).range(inicio,inicio+999);
@@ -786,6 +777,19 @@ async function diariasHistorico(){
     r._reconciliadoSomenteExibicao=true;
    }
   }
+  return {rows,diariasCalculadas};
+}
+async function diariasHistorico(){
+ const el=document.getElementById('diarias_historico_resultado');if(!el)return;
+ el.textContent='CONSULTANDO DIÁRIAS FECHADAS NO BANCO...';
+ try{
+  // Recupera custos efetivamente calculados a partir dos ingredientes e das leituras
+  // dos dias 26/10 em diante. Nunca sobrescreve diárias já fechadas.
+  // Histórico é consulta, nunca uma operação de fechamento automático.
+  const pendenciasDiarias=[];
+  const hoje=trHojeISO();
+
+  const {rows,diariasCalculadas}=await consultarFonteDiariasOficial();
   const norm=x=>String(x||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/^CONF ([AB])0?([1-5])$/,'BAIA $1$2').replace(/^([AB])0?([1-5])$/,'BAIA $1$2').replace(/^CASINHA CARLINHO$/,'CASINHA CARLINHOS').replace(/^AROREIRA/,'AROEIRA');
   const esc=x=>String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;');
   const dinheiro=x=>Number(x).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -2884,26 +2888,17 @@ const _cacheDiariasUnificadas=new Map();
 function _normalizaDiaria(x){return String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase().replace(/\s+/g,' ').replace(/^CONF ([AB])0?([1-5])$/,'BAIA $1$2').replace(/^([AB])0?([1-5])$/,'BAIA $1$2');}
 // Fonte comum de custos: planilha oficial e registros efetivos da própria data.
 async function diariaMediaPeriodoUnificada(local,limite,inicioCiclo){
- const chave=_normalizaDiaria(local),fim=limite||trHojeISO(),inicio='2026-10-26';
- const paginar=async f=>{const out=[];for(let i=0;;i+=500){const r=await f().range(i,i+499);if(r.error)throw r.error;out.push(...(r.data||[]));if((r.data||[]).length<500)return out;}};
- const [tr,hi,lc,ls,cur,db]=await Promise.all([
- paginar(()=>supa.from('tratos_realizados').select('data_trato,sistema,localizacao,trato_1,trato_2,trato_3,trato_4').gte('data_trato',inicio).lte('data_trato',fim).order('id')),
- paginar(()=>supa.from('nutri_custos_ingredientes_historico').select('data_trato,sistema,carregado_kg,custo_ingrediente').gte('data_trato',inicio).lte('data_trato',fim).order('id')),
- paginar(()=>supa.from('leituras_cocho').select('data_leitura,curral_id,quantidade_bois').gte('data_leitura',inicio).lte('data_leitura',fim).order('id')),
- paginar(()=>supa.from('semi_leituras_cocho').select('data_leitura,localizacao,quantidade_bois').gte('data_leitura',inicio).lte('data_leitura',fim).order('id')),
- paginar(()=>supa.from('currais').select('id,codigo').order('id')),
- paginar(()=>supa.from('nutri_custos_diarios').select('data_trato,localizacao,quantidade_animais,fechado,custo_diaria_cabeca').gte('data_trato',inicio).lte('data_trato',fim).order('id'))]);
- const norm=_normalizaDiaria, sis=x=>norm(x).includes('SEMI')?'SEMI':'CONFINAMENTO';
- const lot=new Map(),comp=new Map(),cod=new Map(cur.map(x=>[String(x.id),norm(x.codigo)]));
- for(const x of db)if(norm(x.localizacao)===chave&&Number(x.quantidade_animais)>0)lot.set(x.data_trato,Number(x.quantidade_animais));
- for(const x of lc)if(cod.get(String(x.curral_id))===chave&&Number(x.quantidade_bois)>0)lot.set(x.data_leitura,Number(x.quantidade_bois));
- for(const x of ls)if(norm(x.localizacao)===chave&&Number(x.quantidade_bois)>0)lot.set(x.data_leitura,Number(x.quantidade_bois));
- for(const x of hi){const k=x.data_trato+'|'+sis(x.sistema),v=comp.get(k)||{kg:0,custo:0};v.kg+=Number(x.carregado_kg)||0;v.custo+=Number(x.custo_ingrediente)||0;comp.set(k,v);}
- const serie=new Map();for(const x of db)if(norm(x.localizacao)===chave&&x.custo_diaria_cabeca!=null&&Number(x.quantidade_animais)>0&&Number.isFinite(Number(x.custo_diaria_cabeca)))serie.set(x.data_trato,Number(x.custo_diaria_cabeca));for(const [d,v] of Object.entries(DIARIAS_OFICIAIS_PLANILHA_26_10[chave]||{}))if(d>=inicio&&d<=fim&&Number.isFinite(Number(v)))serie.set(d,Number(v));
- for(const t of tr){if(norm(t.localizacao)!==chave||serie.has(t.data_trato))continue;const kg=[1,2,3,4].reduce((a,i)=>a+(Number(t['trato_'+i])||0),0),n=lot.get(t.data_trato),c=comp.get(t.data_trato+'|'+(/^PASTO [AB][1-5]$/.test(chave)?'CONFINAMENTO':sis(t.sistema)));if(n>0&&c?.kg>0&&c.custo>0)serie.set(t.data_trato,diariaCustoEfetivoOficial(kg,n,c.custo/c.kg));}
-
- const ref=MEDIA_HISTORICA_REFERENCIA_22_10['CONFINAMENTO|'+chave]||MEDIA_HISTORICA_REFERENCIA_22_10['SEMI|'+chave]||null;
- return mediaDiariaComReferencia(ref,serie,fim);
+ const chave=_normalizaDiaria(local),fim=limite||trHojeISO();
+ const {rows,diariasCalculadas}=await consultarFonteDiariasOficial();
+ const norm=x=>_normalizaDiaria(x).replace(/^CASINHA CARLINHO$/,'CASINHA CARLINHOS').replace(/^AROREIRA/,'AROEIRA');
+ const si=MEDIA_HISTORICA_REFERENCIA_22_10['CONFINAMENTO|'+chave]||/^BAIA |^PASTO [AB][12]$/.test(chave)||rows.some(x=>norm(x.localizacao)===chave&&norm(x.sistema)==='CONFINAMENTO')?'CONFINAMENTO':'SEMI';
+ const historico=rows.filter(x=>norm(x.localizacao)===chave&&(norm(x.sistema)===si||(si==='CONFINAMENTO'&&/^PASTO [AB][12]$/.test(chave)&&norm(x.sistema)==='SEMI'))).map(x=>chave==='BAIA A1'&&x.data_trato==='2026-10-27'&&Number(x.quantidade_animais)===16?{...x,quantidade_animais:64,custo_diaria_cabeca:Number(x.custo_diaria_cabeca)/4}:x);
+ const datas=new Set(historico.map(x=>x.data_trato));
+ for(const x of diariasCalculadas.values())if(norm(x.localizacao)===chave&&norm(x.sistema)===si&&!datas.has(x.data_trato)&&Number(x.quantidade_animais)>0&&Number.isFinite(Number(x.custo_diaria_cabeca)))historico.push(x);
+ const serie=new Map();for(const x of historico)if(x.data_trato<=fim&&x.custo_diaria_cabeca!=null&&Number(x.quantidade_animais)>0&&Number.isFinite(Number(x.custo_diaria_cabeca)))serie.set(x.data_trato,Number(x.custo_diaria_cabeca));
+ for(const [d,v] of Object.entries(DIARIAS_OFICIAIS_PLANILHA_26_10[chave]||{}))if(d<=fim&&v!=null&&Number.isFinite(Number(v)))serie.set(d,Number(v));
+ const media=mediaDiariaComReferencia(MEDIA_HISTORICA_REFERENCIA_22_10[si+'|'+chave]||null,serie,fim);
+ return media===null?null:Math.round((media+Number.EPSILON)*100)/100;
 }
 function mediaDiariaComReferencia(ref,serie,limite){
  const base=ref&&ref.ate<=limite&&Number(ref.dias)>0&&Number.isFinite(Number(ref.media))?Number(ref.dias):0;
@@ -2923,21 +2918,19 @@ function preencherGruposAbate(){
 function grupoSelecionado(){const v=$('ab_grupo')?.value;if(!v)return null;return gruposAbate().find(g=>encodeURIComponent(g.key)===v)||null}
 let abatePreview=null;
 async function atualizarCustosAbate(g,lote){
- const nome=(g.base?.localizacao||g.base?.origem||lote[0]?.localizacao||'').trim();
- if(!nome)return;
  try{
-  const registradas=lote.map(x=>Number(x.diaria));
-  const media=registradas.length&&registradas.every(v=>Number.isFinite(v)&&v>0)?registradas.reduce((a,b)=>a+b,0)/registradas.length:await diariaMediaPeriodoUnificada(nome,g.base?.saida||trHojeISO());
-  if(media===null)return;
+  const ids=lote.map(x=>x._dbid).filter(Boolean);
+  if(ids.length!==lote.length)throw Error('Pesagem sem identificação completa');
+  const r=await supa.from('animais').select('id,valor_diaria,preco_compra,custo_atual,custo_acumulado,custo_animal').in('id',ids);
+  if(r.error)throw r.error;
+  if(r.data.length!==ids.length)throw Error('Pesagem incompleta');
   const sel=$('ab_grupo');if(!sel||decodeURIComponent(sel.value)!==g.key)return;
   const el=$('ab_grupoResumo');if(!el)return;
-  const kpis=el.querySelectorAll('.kpi');
-  if(kpis[4]){kpis[4].querySelector('span').textContent='DIÁRIA ATUAL (MÉDIA DO PERÍODO)';kpis[4].querySelector('strong').textContent=money0(media);}
-  const tabela=el.querySelector('table');if(tabela){
-   const cab=tabela.querySelectorAll('thead th');if(cab[5])cab[5].textContent='DIÁRIA ATUAL';
-   for(const tr of tabela.querySelectorAll('tbody tr')){const td=tr.querySelectorAll('td');if(td[5]&&!registradas.every(v=>Number.isFinite(v)&&v>0))td[5].textContent=money0(media);}
-  }
- }catch(e){console.warn('DIÁRIA ATUAL DO ABATE INDISPONÍVEL',e)}
+  const mapa=new Map(r.data.map(x=>[x.id,x]));
+  for(const x of lote){const z=mapa.get(x._dbid);Object.assign(x,{diaria:nval(z.valor_diaria),compra:nval(z.preco_compra),custoAtual:nval(z.custo_atual),custoAcumulado:nval(z.custo_acumulado),custoAnimal:nval(z.custo_animal)});}
+  const kpi=el.querySelectorAll('.kpi')[4];if(kpi){kpi.querySelector('span').textContent='DIÁRIA ATUAL (MÉDIA DO PERÍODO)';kpi.querySelector('strong').textContent=lote.every(x=>Number(x.diaria)>0)?money0(lote.reduce((a,x)=>a+Number(x.diaria),0)/lote.length):'PENDENTE';}
+  el.querySelectorAll('tbody tr').forEach((tr,i)=>{const x=lote[i],td=tr.querySelectorAll('td');if(x&&td.length>=10){[x.diaria,x.compra,x.custoAtual,x.custoAcumulado,x.custoAnimal].forEach((v,j)=>td[5+j].textContent=money0(v));}});
+ }catch(e){const el=$('ab_grupoResumo');if(el&&$('ab_grupo')&&decodeURIComponent($('ab_grupo').value)===g.key){const k=el.querySelectorAll('.kpi')[4];if(k)k.querySelector('strong').textContent='NÃO CONFIRMADA';}console.warn('Falha ao consultar pesagem gravada',e);}
 }
 function mostrarResumoAbate(){const el=$('ab_grupoResumo'),g=grupoSelecionado();abatePreview=null;if(!el)return;if(!g){el.style.display='none';$('abateResultado').innerHTML='<div class="empty">Selecione uma pesagem/origem, informe os dados e clique em CARREGAR DADOS.</div>';return}const a=animais[g.indices[0]];el.style.display='block';el.innerHTML=`<b>${g.indices.length} animal(is)</b> neste grupo: <b>${grupoLabelCompleto(g)}</b>. Confira os dados da pesagem abaixo. Peso de carcaça e valor da arroba são necessários somente para calcular e salvar o abate.`;const lote=g.indices.map(i=>animais[i]);const somaCampo=k=>lote.reduce((t,z)=>t+(Number(z[k])||0),0);const mediaCampo=k=>lote.length?somaCampo(k)/lote.length:0;el.insertAdjacentHTML('beforeend',`<div class="kpis" style="margin-top:12px"><div class="kpi"><span>ANIMAIS</span><strong>${lote.length}</strong></div><div class="kpi"><span>PESO ENTRADA MÉDIO</span><strong>${mediaCampo('pe').toFixed(2)} kg</strong></div><div class="kpi"><span>PESO SAÍDA MÉDIO</span><strong>${mediaCampo('ps').toFixed(2)} kg</strong></div><div class="kpi"><span>DIAS MÉDIOS</span><strong>${mediaCampo('dias').toFixed(1)}</strong></div><div class="kpi"><span>DIÁRIA MÉDIA</span><strong>${money0(mediaCampo('diaria'))}</strong></div></div>`);el.innerHTML += `<div class="table-wrap" style="margin-top:10px"><table style="min-width:1000px"><thead><tr><th>BRINCO</th><th>ENTRADA</th><th>PESO ENTRADA</th><th>PESO SAÍDA</th><th>DIAS</th><th>DIÁRIA</th><th>PREÇO COMPRA</th><th>CUSTO ATUAL</th><th>ACUMULADO</th><th>CUSTO TOTAL</th></tr></thead><tbody>${g.indices.map(i=>{const z=animais[i];return `<tr><td><b>${z.brinco}</b></td><td>${dataBR(z.entrada)}</td><td>${Number(z.pe).toFixed(2)} kg</td><td>${Number(z.ps).toFixed(2)} kg</td><td>${z.dias}</td><td>${money0(z.diaria)}</td><td>${money0(z.compra??z.precoCompra??z.preco_compra)}</td><td>${money0(z.custoAtual)}</td><td>${money0(z.custoAcumulado)}</td><td>${money0(z.custoAnimal)}</td></tr>`}).join('')}</tbody></table></div><div class="hint">CONSULTA DA PESAGEM: DISPONÍVEL SEM INFORMAR CARCAÇA OU VALOR DA ARROBA. O FECHAMENTO DO ABATE CONTINUA EXIGINDO ESSES DADOS.</div>`;atualizarCustosAbate(g,lote);const q=g.indices.map(i=>animais[i]).find(x=>Number(x.pesoCarcacaArrobas)>0&&Number(x.valorArroba)>0);$('ab_carcaca').value=q?.pesoCarcacaArrobas??'';$('ab_valor').value=q?.valorArroba??'';const salvo=g.indices.some(i=>animais[i]?.abateSalvoEm&&Number(animais[i]?.pesoCarcacaArrobas)>0&&Number(animais[i]?.valorArroba)>0);$('ab_carcaca').disabled=false;$('ab_valor').disabled=false;/* Mantém a listagem já montada acima; não apagar a tabela ao atualizar o aviso. */
  const avisoGrupo=salvo?'ABATE JÁ SALVO — CAMPOS LIBERADOS PARA SIMULAÇÃO; NOVO SALVAMENTO BLOQUEADO.':'PESAGEM DISPONÍVEL PARA CONFERÊNCIA ANTES DO ABATE.';
@@ -5902,13 +5895,14 @@ async function salvarPesagemSaidaAtual(){
      repos.forEach((animal,i)=>trocas.push({animal,compensacao:candidatos[i]}));
    }
    const data=ls[0].dataSaida;
+   const diariaOficialPesagem=await diariaMediaPeriodoUnificada(local,data);
    const p=await supa.from('pesagens').insert({data_saida:data,destino:'',observacoes:'PESAGEM DE SAÍDA - '+local+' - '+ls.length+' ANIMAIS; REPOSITÓRIO COMPENSADO: '+trocas.map(t=>t.animal.brinco+' / '+t.compensacao.brinco).join(', ')}).select('id').single();
    if(p.error)throw p.error;
    pesagemId=p.data.id;
    for(const x of ls){
      const dias=x.dataEntrada?diasEntre(x.dataEntrada,x.dataSaida):null,pe=Number(x.pesoEntrada);
      const gmd=dias>0&&pe>0?(x.pesoSaida-pe)/dias:null;
-     const diaria=dias>0?await diariaMediaPeriodoUnificada(local,x.dataSaida,x.dataEntrada):dias===null?null:0;
+     const diaria=dias>0?diariaOficialPesagem:dias===null?null:0;
      if(dias>0&&(!Number.isFinite(diaria)||diaria<=0))throw new Error('BRINCO '+x.brinco+': DIÁRIA DO CICLO AUSENTE. NÃO É PERMITIDO FECHAR O CUSTO ATUAL COMO ZERO.');
      const compra=Number(x.precoCompra)||0,acum=Number(x.custoAcumulado)||0,custoAtual=dias===null?null:diaria*dias;
      const u=await supa.from('animais').update({

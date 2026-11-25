@@ -2338,6 +2338,11 @@ body{background:#f4f8f7}
 #trRapido .qr-day span,#trRapido .qr-day strong{color:white!important}
 #trRapidoDados>p{color:#65766d;line-height:1.5}
 @media(max-width:480px){#trRapido .panel{padding:10px;border-radius:10px}#trRapido h2{font-size:19px}#trRapido .qr-line{padding:9px 7px;gap:4px;grid-template-columns:minmax(0,1fr) 59px 59px 36px;font-size:11px}#trRapido .qr-line span:last-child{font-size:10px}#trRapido .qr-head{font-size:10px}#trRapido .qr-card h4{padding:11px 9px}#trRapido .qr-day{font-size:12px}}
+/* Alinhamento exclusivo do acesso rapido: mesmas quatro colunas em todas as linhas. */
+#trRapido .qr-line{grid-template-columns:minmax(0,1fr) 76px 76px 48px!important;gap:8px!important;box-sizing:border-box;width:100%;padding-left:12px!important;padding-right:12px!important}
+#trRapido .qr-line> :nth-child(1){min-width:0;text-align:left}
+#trRapido .qr-line> :nth-child(2),#trRapido .qr-line> :nth-child(3),#trRapido .qr-line> :nth-child(4){min-width:0;text-align:right!important;white-space:nowrap;font-variant-numeric:tabular-nums}
+@media(max-width:480px){#trRapido .qr-line{grid-template-columns:minmax(0,1fr) 61px 61px 38px!important;gap:5px!important;padding-left:7px!important;padding-right:7px!important}}
 </style>
 <section id="horariosOperacoes" class="page admin-only">
     <div class="panel" id="painelHorarioOperacoes">

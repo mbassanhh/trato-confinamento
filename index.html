@@ -4651,13 +4651,19 @@ async function tgOficialConfirmarSobraAdmin(dia,sistema,sobra){
 // HOMOLOGAÇÃO: mesma grade e receita utilizadas na impressão da ficha oficial.
 // A leitura é somente leitura. Nenhum lançamento é enviado ao Supabase.
 let tgHomFicha=null,tgHomFichaErro='',tgHomOfflineAviso='';
+let tgFichaSolicitacao=0;
 async function tgHomCarregarFicha(){
  const sistemaSolicitado=tgSistema;
+ const solicitacao=++tgFichaSolicitacao;
+ const dia=trHojeISO();
+ const vigente=()=>solicitacao===tgFichaSolicitacao&&tgSistema===sistemaSolicitado;
+ for(const id of ['tgConf','tgSemi','tgCarga']){const e=document.getElementById(id);if(e)e.disabled=true;}
+ try{
  tgHomFicha=null;tgHomFichaErro='';tgHomOfflineAviso='';
  const status=document.getElementById('tgHomTela');
  if(status)status.textContent='CONSULTANDO A FICHA OFICIAL DE CARREGAMENTO...';
  try{
-  const dia=typeof trHojeISO==='function'?trHojeISO():tgHomDia();
+
   const trDataEl=document.getElementById('tr_data');
   if(!trDataEl)throw Error('GRADE DE TRATOS NÃO ENCONTRADA.');
   // A grade administrativa pode estar em uma data histórica. No fluxo móvel,
@@ -4669,7 +4675,7 @@ async function tgHomCarregarFicha(){
   // individual de percentuais da ficha, sem inventar previsões.
   let gradeDisponivel=false;
   try{
-   if(tgSistema==='SEMI'){
+   if(sistemaSolicitado==='SEMI'){
     // A validação administrativa faz uma segunda leitura concorrente que pode
     // devolver 104 KG para São Guilherme, apesar da leitura oficial de 196 KG.
     // Para homologação: reconstruir a grade pela mesma rotina de impressão,
@@ -4685,16 +4691,16 @@ async function tgHomCarregarFicha(){
     // Nao chamar trSincronizarPrevisaoFicha: sua validacao da grade pode
     // bloquear uma leitura oficial existente (ex.: BAIA A1).
    }
-   gradeDisponivel=tgSistema==='SEMI'&&[...document.querySelectorAll('#tr_grade_body tr')].some(r=>r.dataset.sistema===tgSistema&&r.dataset.total!=='');
+   gradeDisponivel=sistemaSolicitado==='SEMI'&&[...document.querySelectorAll('#tr_grade_body tr')].some(r=>r.dataset.sistema===sistemaSolicitado&&r.dataset.total!=='');
   }catch(e){
-   const existentes=[...document.querySelectorAll('#tr_grade_body tr')].filter(r=>r.dataset.sistema===tgSistema&&r.dataset.total!=='');
+   const existentes=[...document.querySelectorAll('#tr_grade_body tr')].filter(r=>r.dataset.sistema===sistemaSolicitado&&r.dataset.total!=='');
    if(existentes.length)throw e;
   }
   const dieta=(nutriCache.dietas||[]).find(d=>{
    const tipo=String(d.tipo||'').toUpperCase();
-   return tgSistema==='SEMI'?tipo.includes('SEMI'):(tipo.includes('CONFINAMENTO')&&!tipo.includes('SEMI'));
+   return sistemaSolicitado==='SEMI'?tipo.includes('SEMI'):(tipo.includes('CONFINAMENTO')&&!tipo.includes('SEMI'));
   });
-  if(!dieta)throw Error('DIETA ATIVA NÃO ENCONTRADA PARA '+tgSistema+'.');
+  if(!dieta)throw Error('DIETA ATIVA NÃO ENCONTRADA PARA '+sistemaSolicitado+'.');
   const versao=(nutriCache.versoes||[]).filter(v=>String(v.dieta_id)===String(dieta.id)&&v.status==='ATIVA').sort((a,b)=>Number(b.versao)-Number(a.versao))[0];
   if(!versao)throw Error('DIETA SEM VERSÃO ATIVA.');
   const itens=(nutriCache.itens||[]).filter(i=>String(i.versao_id)===String(versao.id));
@@ -4702,13 +4708,13 @@ async function tgHomCarregarFicha(){
   const receita=itens.reduce((t,i)=>t+Number(i.batida_kg??i.quantidade_mn??0),0);
   if(!(receita>0))throw Error('RECEITA DA DIETA SEM PESO VÁLIDO.');
   const norm=v=>String(v||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-  const locais=[...document.querySelectorAll('#tr_grade_body tr')].filter(tr=>norm(tr.dataset.sistema)===tgSistema && tr.querySelector('[data-tr-dieta]')?.checked!==false).map(tr=>{
+  const locais=[...document.querySelectorAll('#tr_grade_body tr')].filter(tr=>norm(tr.dataset.sistema)===sistemaSolicitado && tr.querySelector('[data-tr-dieta]')?.checked!==false).map(tr=>{
    if(tr.dataset.total==null||tr.dataset.total==='')return null;
    const divisao=[...tr.querySelectorAll('td[data-prev]')].map(td=>Number(td.dataset.ajustado!==undefined?td.dataset.ajustado:td.dataset.prev??0));
    if(divisao.length!==4||divisao.some(v=>!Number.isFinite(v)))throw Error('PREVISÃO INCOMPLETA PARA '+tr.dataset.local);
-   return {nome:tr.dataset.local,divisao:tgSistema==='SEMI'?[divisao.reduce((a,b)=>a+b,0),0,0,0]:divisao};
+   return {nome:tr.dataset.local,divisao:sistemaSolicitado==='SEMI'?[divisao.reduce((a,b)=>a+b,0),0,0,0]:divisao};
   }).filter(Boolean);
-  if(tgSistema==='CONFINAMENTO'){
+  if(sistemaSolicitado==='CONFINAMENTO'){
    // A publicação administrativa prevalece SEMPRE sobre DOM/leituras antigas.
    locais.length=0;
    // No celular a grade pode não estar montada. Buscar a última publicação oficial,
@@ -4724,6 +4730,9 @@ async function tgHomCarregarFicha(){
    if(realizadosOficiais.error)throw realizadosOficiais.error;
    const chaveOficial=v=>norm(v).replace(/^BAIA\s+/,'').replace(/\s+/g,' ');
    const realizadosPorLocal=new Map((realizadosOficiais.data||[]).map(x=>[chaveOficial(x.localizacao),x]));
+   const notaValidacao=await supa.from('tratos_ajustes_df').select('localizacao,quantidade_kg').eq('data_referencia',dia).eq('sistema','CONFINAMENTO').eq('tipo','DESCONTO_NOTA_2').eq('desconto_selecionado',true);
+   if(notaValidacao.error)throw notaValidacao.error;
+   const notaPorLocal=new Map((notaValidacao.data||[]).map(x=>[chaveOficial(x.localizacao),Number(x.quantidade_kg)]));
    for(const r of Object.values(pacote.registros||{})){
     if(r.__sistema!=='CONFINAMENTO'||r.comDieta===false||!(Number(r.total)>0))continue;
     // Usar SEMPRE o total da grade administrativa publicada, inclusive em pacotes
@@ -4736,27 +4745,28 @@ async function tgHomCarregarFicha(){
     const realizadoOficial=realizadosPorLocal.get(chaveOficial(r.__local));
     const valoresRealizados=[1,2,3,4].map(i=>realizadoOficial?.['trato_'+i]);
     const somaRealizada=valoresRealizados.reduce((a,v)=>a+Number(v??0),0);
-    const saldoOficial=Math.max(0,totalOficial-somaRealizada);
+    const descontoOficial=notaPorLocal.get(chaveOficial(r.__local))||0;
+    const saldoOficial=Math.max(0,totalOficial-somaRealizada-descontoOficial);
     const somaDivisao=divisao?.reduce((a,b)=>a+b,0);
     const saldoConfere=completo&&valoresRealizados.some(v=>v!=null)&&valoresRealizados.every((v,i)=>v==null||divisao[i]===0)&&Math.abs(somaDivisao-saldoOficial)<=0.01;
-    if(!divisao||divisao.some(x=>!Number.isFinite(x)||x<0)||(!saldoConfere&&Math.abs(somaDivisao-totalOficial)>0.01))
+    if(!divisao||divisao.some(x=>!Number.isFinite(x)||x<0)||(!saldoConfere&&Math.abs(somaDivisao-totalOficial)>0.01&&!(completo&&descontoOficial>0&&divisao[0]===0&&Math.abs(somaDivisao-(totalOficial-descontoOficial))<=0.01)))
       throw Error('PREVISÃO ADMINISTRATIVA INVÁLIDA: '+r.__local);
     locais.push({nome:r.__local,divisao,realizados:valoresRealizados});
    }
    // Somente o pacote publicado com quatro tratos é a fonte do tratador.
   }
   // Confinamento nunca deve utilizar a leitura de cocho como fonte de carregamento.
-  if(!locais.length && tgSistema==='CONFINAMENTO'){
+  if(!locais.length && sistemaSolicitado==='CONFINAMENTO'){
    throw Error('PREVISÃO ADMINISTRATIVA AINDA NÃO PUBLICADA COM OS QUATRO TRATOS. NÃO UTILIZAR LEITURA DE COCHO COMO CARREGAMENTO.');
   }
   if(!locais.length){
    // Fonte oficial da própria grade: leituras_cocho / semi_leituras_cocho.
    // Percentuais são os mesmos da rotina tratosRender (trCochoConfig + trDividir).
-   const conf=tgSistema==='CONFINAMENTO';
+   const conf=sistemaSolicitado==='CONFINAMENTO';
    const [leit,cfg,rj]=await Promise.all([
     conf?supa.from('leituras_cocho').select('total_previsto,currais(codigo)').eq('data_leitura',dia):supa.from('semi_leituras_cocho').select('localizacao,total_previsto').eq('data_leitura',dia),
     supa.from('tratos_configuracao_currais').select('localizacao,recebe_dieta'),
-    supa.from('tratos_realizados').select('id').eq('data_trato',dia).eq('sistema',tgSistema).limit(1)
+    supa.from('tratos_realizados').select('id').eq('data_trato',dia).eq('sistema',sistemaSolicitado).limit(1)
    ]);
    if(leit.error)throw leit.error;if(cfg.error)throw cfg.error;if(rj.error)throw rj.error;
    // Registros oficiais (inclusive zero no primeiro trato) não impedem leitura da ficha; preservados no Supabase.
@@ -4774,13 +4784,13 @@ async function tgHomCarregarFicha(){
     if(!Array.isArray(pct)||pct.length!==4)throw Error('PERCENTUAIS INCOMPLETOS PARA '+exibicao);
     const divisao=trDividir(peso,pct);
     if(!Array.isArray(divisao)||divisao.length!==4||divisao.some(v=>!Number.isFinite(Number(v))))throw Error('DIVISÃO INVÁLIDA PARA '+exibicao);
-    locais.push({nome:exibicao,divisao:tgSistema==='SEMI'?[peso,0,0,0]:divisao.map(Number)});
+    locais.push({nome:exibicao,divisao:sistemaSolicitado==='SEMI'?[peso,0,0,0]:divisao.map(Number)});
    }
    if(!locais.length)throw Error('NENHUMA PREVISÃO POSITIVA DE CURRAL COM DIETA ENCONTRADA EM '+dia+'.');
   }
   // Complementar São Guilherme no SEMI diretamente pela leitura oficial do dia,
   // caso a grade tenha omitido a localidade por cadastro físico desatualizado.
-  if(tgSistema==='SEMI'){
+  if(sistemaSolicitado==='SEMI'){
    const sg=await supa.from('semi_leituras_cocho').select('localizacao,total_previsto').eq('data_leitura',dia);
    if(sg.error)throw sg.error;
    const cfgSG=trCochoConfig();
@@ -4799,16 +4809,16 @@ async function tgHomCarregarFicha(){
   // Fonte única de descontos: Supabase, por dia e sistema, inclusive no celular.
   const ajustesQ=await supa.from('tratos_ajustes_df')
     .select('tipo,localizacao,quantidade_kg,desconto_selecionado')
-    .eq('data_referencia',dia).eq('sistema',tgSistema);
+    .eq('data_referencia',dia).eq('sistema',sistemaSolicitado);
   if(ajustesQ.error)throw Error('AJUSTES OFICIAIS NÃO DISPONÍVEIS: '+ajustesQ.error.message);
-  const nota2Q=await supa.from('tratos_ajustes_df').select('tipo,localizacao,quantidade_kg,desconto_selecionado').eq('data_referencia',window.trNota2OrigemDia(dia)).eq('sistema',tgSistema).eq('tipo','DESCONTO_NOTA_2');
+  const nota2Q=await supa.from('tratos_ajustes_df').select('tipo,localizacao,quantidade_kg,desconto_selecionado').eq('data_referencia',window.trNota2OrigemDia(dia)).eq('sistema',sistemaSolicitado).eq('tipo','DESCONTO_NOTA_2');
   if(nota2Q.error)throw nota2Q.error;
   const ajustes=[...(ajustesQ.data||[]).filter(a=>a.tipo!=='DESCONTO_NOTA_2'),...(nota2Q.data||[])];
-  const sobra=await trConsultarSobraEntrada(dia,tgSistema);
+  const sobra=await trConsultarSobraEntrada(dia,sistemaSolicitado);
   const normLocal=v=>String(v||'').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/^BAIA\s+/,'').replace(/\s+/g,' ').trim();
   let nota2=0;
   const jaMarcados=new Set();
-  if(tgSistema==='CONFINAMENTO')for(const a of ajustes.filter(a=>a.tipo==='DESCONTO_NOTA_2'&&a.desconto_selecionado===true)){
+  if(sistemaSolicitado==='CONFINAMENTO')for(const a of ajustes.filter(a=>a.tipo==='DESCONTO_NOTA_2'&&a.desconto_selecionado===true)){
     const nome=normLocal(a.localizacao);
     if(jaMarcados.has(nome))continue;
     const linha=locais.find(l=>normLocal(l.nome)===nome);
@@ -4816,13 +4826,15 @@ async function tgHomCarregarFicha(){
     // A quantidade gravada anteriormente pode ser o total diário da leitura.
     // Nota 2 abate exclusivamente a previsão do primeiro trato do curral.
     const desconto=Number(linha.divisao[0]||0);
+    const descontoRegistrado=Number(a.quantidade_kg||0);
+    if(desconto===0&&descontoRegistrado>0){nota2+=descontoRegistrado;jaMarcados.add(nome);continue;}
     if(!Number.isFinite(desconto)||desconto<0)throw Error('NOTA 2 INVÁLIDA: '+a.localizacao);
     if(desconto>Number(linha.divisao[0]||0)+0.001){
       // A grade do administrativo pode já conter o desconto depois do Trato 1.
       // Só aceitar esta condição quando o banco confirmar o Trato 1 efetivamente realizado.
       const [c1,r1]=await Promise.all([
-       supa.from('tratos_carregamentos').select('id').eq('data_trato',dia).eq('sistema',tgSistema).in('carga',['1','CONSOLIDADO']).limit(1),
-       supa.from('tratos_realizados').select('id').eq('data_trato',dia).eq('sistema',tgSistema).not('trato_1','is',null).limit(1)
+       supa.from('tratos_carregamentos').select('id').eq('data_trato',dia).eq('sistema',sistemaSolicitado).in('carga',['1','CONSOLIDADO']).limit(1),
+       supa.from('tratos_realizados').select('id').eq('data_trato',dia).eq('sistema',sistemaSolicitado).not('trato_1','is',null).limit(1)
       ]);
       if(c1.error||r1.error||!(c1.data||[]).length||!(r1.data||[]).length)
        throw Error('DESCONTO NOTA 2 INCOMPATÍVEL COM PRIMEIRO TRATO: '+a.localizacao);
@@ -4833,7 +4845,7 @@ async function tgHomCarregarFicha(){
     }
     nota2+=desconto;jaMarcados.add(nome);
   }
-  if(tgSistema==='CONFINAMENTO'){
+  if(sistemaSolicitado==='CONFINAMENTO'){
    const q=await supa.from('leituras_cocho').select('total_previsto').eq('data_leitura',dia);
    if(q.error)throw q.error;
    const bruto=(q.data||[]).reduce((t,x)=>t+Number(x.total_previsto||0),0);
@@ -4846,20 +4858,20 @@ async function tgHomCarregarFicha(){
   for(let i=0;i<4&&resto>0;i++){const abatido=Math.min(cargas[i],resto);cargas[i]-=abatido;resto-=abatido;}
   const ingredientes=trOrdenarIngredientes(itens.map(i=>({nome:insumos.get(String(i.insumo_id))||String(i.insumo_id),id:String(i.insumo_id),frac:Number(i.batida_kg??i.quantidade_mn??0)/receita})));
   const planos={};
-  for(const n of (tgSistema==='SEMI'?[1]:[1,2,3,4])){
+  for(const n of (sistemaSolicitado==='SEMI'?[1]:[1,2,3,4])){
    const idx=n-1;
-   planos[n]={ingredientes:ingredientes.map(i=>[i.nome,cargas[idx]*i.frac,i.id]),currais:tgOrdenarCurrais(locais.filter(l=>l.divisao[idx]>0||(tgSistema==='CONFINAMENTO'&&l.realizados?.[idx]!=null)).map(l=>[l.nome,l.divisao[idx]]))};
+   planos[n]={ingredientes:ingredientes.map(i=>[i.nome,cargas[idx]*i.frac,i.id]),currais:tgOrdenarCurrais(locais.filter(l=>l.divisao[idx]>0||(sistemaSolicitado==='CONFINAMENTO'&&l.realizados?.[idx]!=null)).map(l=>[l.nome,l.divisao[idx]]))};
   }
   // Carga 4: mesma fonte oficial das cargas 1-3; não substituir por leitura antiga.
-  if(tgSistema!==sistemaSolicitado)return;
-  tgHomFicha={dia,sistema:tgSistema,planos,sobraRecebidaKg:sobra,versaoDieta:String(versao.id),origem:tgSistema==='CONFINAMENTO'?'PUBLICAÇÃO ADMINISTRATIVA':'GRADE/LEITURAS SEMI',gradeDisponivel};
-  try{localStorage.setItem('tg_offline_ficha_'+dia+'_'+tgSistema,JSON.stringify(tgHomFicha));}catch(cacheError){console.warn('CACHE DE PREVISÕES NÃO SALVO',cacheError);}
+  if(!vigente())return;
+  tgHomFicha={dia,sistema:sistemaSolicitado,planos,sobraRecebidaKg:sobra,versaoDieta:String(versao.id),origem:sistemaSolicitado==='CONFINAMENTO'?'PUBLICAÇÃO ADMINISTRATIVA':'GRADE/LEITURAS SEMI',gradeDisponivel};
+  try{localStorage.setItem('tg_offline_ficha_'+dia+'_'+sistemaSolicitado,JSON.stringify(tgHomFicha));}catch(cacheError){console.warn('CACHE DE PREVISÕES NÃO SALVO',cacheError);}
  }catch(e){
-  if(tgSistema!==sistemaSolicitado)return;
+  if(!vigente())return;
   tgHomFichaErro=String(e.message||e);
   try{
-   const cache=JSON.parse(localStorage.getItem('tg_offline_ficha_'+dia+'_'+tgSistema)||'null');
-   if(cache&&cache.dia===dia&&cache.sistema===tgSistema&&cache.planos){
+   const cache=JSON.parse(localStorage.getItem('tg_offline_ficha_'+dia+'_'+sistemaSolicitado)||'null');
+   if(cache&&cache.dia===dia&&cache.sistema===sistemaSolicitado&&cache.planos){
     if(!navigator.onLine){
      tgHomFicha=cache;tgHomFichaErro='';tgHomOfflineAviso='PREVISÃO SALVA NO DISPOSITIVO — SEM CONSULTA ATUALIZADA';
     }else if(/^DESCONTO NOTA 2 INCOMPATÍVEL COM PRIMEIRO TRATO:/.test(tgHomFichaErro)){
@@ -4868,8 +4880,8 @@ async function tgHomCarregarFicha(){
      // Reutilizar apenas a ficha congelada no dispositivo se o banco confirmar
      // que já houve carregamento e distribuição do primeiro trato.
      const [c,r]=await Promise.all([
-      supa.from('tratos_carregamentos').select('id').eq('data_trato',dia).eq('sistema',tgSistema).in('carga',['1','CONSOLIDADO']).limit(1),
-      supa.from('tratos_realizados').select('id').eq('data_trato',dia).eq('sistema',tgSistema).not('trato_1','is',null).limit(1)
+      supa.from('tratos_carregamentos').select('id').eq('data_trato',dia).eq('sistema',sistemaSolicitado).in('carga',['1','CONSOLIDADO']).limit(1),
+      supa.from('tratos_realizados').select('id').eq('data_trato',dia).eq('sistema',sistemaSolicitado).not('trato_1','is',null).limit(1)
      ]);
      if(!c.error&&!r.error&&(c.data||[]).length&&(r.data||[]).length){
       tgHomFicha=cache;tgHomFichaErro='';
@@ -4879,9 +4891,11 @@ async function tgHomCarregarFicha(){
    }
   }catch(cacheError){console.warn('PREVISÃO OFFLINE INDISPONÍVEL',cacheError);}
  }
- if(tgSistema!==sistemaSolicitado)return;
+ if(!vigente())return;
  await tgHomRecuperarCarregamentosBanco();
+ if(!vigente())return;
  tgHomAtualizarOpcoes('');tgHomRender();
+ }finally{if(solicitacao===tgFichaSolicitacao)for(const id of ['tgConf','tgSemi','tgCarga']){const e=document.getElementById(id);if(e)e.disabled=false;}}
 }
 
 // Ordem operacional única para carregamento no celular, administrativo e fichas impressas.
@@ -5409,6 +5423,7 @@ function tgHomRender(){
  if(tgHomRecuperacaoErro){el.innerHTML='<p style="color:#a12525;font-weight:700">'+tgHomEsc(tgHomRecuperacaoErro)+'</p>';return;}
  if(!tgHomFicha){el.innerHTML='<p style="color:#a12525;font-weight:700">'+(tgHomFichaErro?'FICHA OFICIAL INDISPONÍVEL: '+tgHomEsc(tgHomFichaErro):'CARREGANDO PREVISÕES OFICIAIS...')+'</p>'+(perfilLogado==='TRATADOR'?'':tgHomBotaoReiniciar());return;}
  const avisoFonte='';
+ if(tgHomFicha.sistema!==tgSistema||tgHomFicha.dia!==tgHomDia()){el.textContent='FICHA DE OUTRO SISTEMA OU DATA. SELECIONE NOVAMENTE.';return;}
  const numero=Number(tgHomModo==='distribuicao'?tgHomDistribuicaoSelecionada?.split('|')[1]:document.getElementById('tgCarga').value);
  const d=numero?tgHomDadosNumero(numero):{fase:'sem_carga',registros:{}};const fase=d.fase;
  // Não apresentar conclusão se não houver todos os currais confirmados.
@@ -5436,7 +5451,7 @@ function tgHomRender(){
   const lista=tgHomLista(numero,fase);
   const prefix=fase==='ingredientes'?'I':'C';
   const i=lista.findIndex((x,j)=>!Object.prototype.hasOwnProperty.call(d.registros,prefix+j));
-  const titulo=fase==='ingredientes'?'CARREGAMENTO — INGREDIENTES':'DISTRIBUIÇÃO — CURRAIS';
+  const titulo=tgSistema+' — '+(fase==='ingredientes'?'CARREGAMENTO — INGREDIENTES':'DISTRIBUIÇÃO — CURRAIS');
   h='<div class="tg-step-heading"><span class="tg-step-tag">'+(fase==='ingredientes'?'ETAPA 01':'ETAPA 02')+'</span><h3>'+titulo+'</h3></div>';
   // Contador será exibido abaixo do campo de peso, não no topo.
 

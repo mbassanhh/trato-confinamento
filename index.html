@@ -5879,7 +5879,6 @@ async function salvarPesagemSaidaAtual(){
    toast('EXISTEM ANIMAIS DE OUTRA LOCALIDADE. FAÇA UMA PESAGEM SEPARADA OU CONFIRA O LOCAL FÍSICO.');return;
  }
  if(new Set(ls.map(x=>x.dataSaida)).size!==1){toast('UTILIZE UMA DATA DE SAÍDA POR PESAGEM.');return}
- if(ls.some(x=>!x.dataEntrada||!Number(x.pesoEntrada))){toast('ANIMAL SEM DATA OU PESO DE ENTRADA.');return}
  btn.disabled=true;
  let pesagemId=null,gravados=0;
  try{
@@ -5907,16 +5906,16 @@ async function salvarPesagemSaidaAtual(){
    if(p.error)throw p.error;
    pesagemId=p.data.id;
    for(const x of ls){
-     const dias=diasEntre(x.dataEntrada,x.dataSaida),pe=Number(x.pesoEntrada);
-     const gmd=dias>0?(x.pesoSaida-pe)/dias:0;
-     const diaria=dias>0?await diariaMediaPeriodoUnificada(local,x.dataSaida,x.dataEntrada):0;
+     const dias=x.dataEntrada?diasEntre(x.dataEntrada,x.dataSaida):null,pe=Number(x.pesoEntrada);
+     const gmd=dias>0&&pe>0?(x.pesoSaida-pe)/dias:null;
+     const diaria=dias>0?await diariaMediaPeriodoUnificada(local,x.dataSaida,x.dataEntrada):dias===null?null:0;
      if(dias>0&&(!Number.isFinite(diaria)||diaria<=0))throw new Error('BRINCO '+x.brinco+': DIÁRIA DO CICLO AUSENTE. NÃO É PERMITIDO FECHAR O CUSTO ATUAL COMO ZERO.');
-     const compra=Number(x.precoCompra)||0,acum=Number(x.custoAcumulado)||0,custoAtual=diaria*dias;
+     const compra=Number(x.precoCompra)||0,acum=Number(x.custoAcumulado)||0,custoAtual=dias===null?null:diaria*dias;
      const u=await supa.from('animais').update({
        localizacao:local,origem:x.localizacaoOriginal==='REPOSITÓRIO'?'REPOSITÓRIO':undefined,
        pesagem_id:pesagemId,data_saida:x.dataSaida,peso_saida:x.pesoSaida,qtd_dias:dias,gmd,
        valor_diaria:diaria,custo_atual:custoAtual,custo_acumulado:acum,
-       custo_animal:compra+acum+custoAtual,status:'VENDA',tipo_evento:'VENDA',
+       custo_animal:custoAtual===null?null:compra+acum+custoAtual,status:'VENDA',tipo_evento:'VENDA',
        evento_id:crypto.randomUUID(),atualizado_em:new Date().toISOString()
      }).eq('id',x.id).eq('status','ATIVO').select('id');
      if(u.error)throw u.error;
@@ -9337,17 +9336,19 @@ window.visaoAbateCarregar=async function(){
  // Valores financeiros exibidos POR CABEÇA, não totais por localidade.
  // Sem valor de venda cadastrado, mantém pendente; não inventa resultado.
  const totalVenda=r.every(x=>n(x.valor_venda)!==null&&n(x.valor_venda)>0)?avg(r,'valor_venda'):null;
- const totalCompra=r.every(x=>n(x.preco_compra)!==null&&n(x.preco_compra)>0)?avg(r,'preco_compra'):null;
+ const comprasValidas=r.filter(x=>n(x.preco_compra)>0);
+ const totalCompra=avg(comprasValidas,'preco_compra');
+ const compraCompleta=comprasValidas.length===r.length;
  // Acumulado por cabeça: somar os valores efetivamente registrados e dividir
  // pelo total de animais do grupo. Um registro sem acumulado não pode ocultar
  // o acumulado conhecido dos demais; não altera nem preenche o banco.
  const acumuladosConhecidos=r.map(x=>n(x.custo_acumulado)).filter(v=>v!==null);
  const totalAcum=acumuladosConhecidos.length ? acumuladosConhecidos.reduce((s,v)=>s+v,0)/r.length : null;
  const totalConf=cicloCompleto?custoUltimoCiclo:null;
- const resultado=totalVenda!==null&&totalCompra!==null&&totalAcum!==null&&totalConf!==null?totalVenda-totalCompra-totalAcum-totalConf:null;
+ const resultado=compraCompleta&&totalVenda!==null&&totalCompra!==null&&totalAcum!==null&&totalConf!==null?totalVenda-totalCompra-totalAcum-totalConf:null;
  // Só entram no resultado os animais com os quatro componentes disponíveis.
  financeiroAbate.qtd+=r.length;
- if(totalVenda!==null&&totalCompra!==null&&totalAcum!==null&&totalConf!==null){
+ if(compraCompleta&&totalVenda!==null&&totalCompra!==null&&totalAcum!==null&&totalConf!==null){
   financeiroAbate.completo+=r.length;
   financeiroAbate.venda+=totalVenda*r.length;
   financeiroAbate.compra+=totalCompra*r.length;
@@ -9360,7 +9361,7 @@ window.visaoAbateCarregar=async function(){
  const valores=[null,r.length,pe,ps,ps===null?null:ps/30,carcKg===null?null:carcKg/15,rc===null?null:rc*100,dias,gmd,gdc,diaria,arrobas,custoArroba,apurado,parcialPorLocal.get(g.local)??null,totalCompra,totalAcum,totalVenda,totalConf,resultado];
  [valores[9],valores[10],valores[11],valores[12],valores[13],valores[14]]=[valores[14],valores[9],valores[10],valores[11],valores[12],valores[13]];
  // Médias por cabeça ponderadas pela quantidade de animais da localidade.
- valores.forEach((v,i)=>{if(i<2||i===12||v===null||!Number.isFinite(v))return;mediaColunas[i].soma+=v*r.length;mediaColunas[i].peso+=r.length;});
+ valores.forEach((v,i)=>{if(i<2||i===12||v===null||!Number.isFinite(v))return;const peso=i===15?comprasValidas.length:r.length;mediaColunas[i].soma+=v*peso;mediaColunas[i].peso+=peso;});
  if(arrobas!==null&&arrobas>0&&custoUltimoCiclo!==null){custoArrobaNumerador+=custoUltimoCiclo*r.length;custoArrobaDenominador+=arrobas*r.length;}
  html+='<tr>'+cells.map(c=>'<td>'+c+'</td>').join('')+'</tr>';
  }

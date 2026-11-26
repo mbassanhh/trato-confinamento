@@ -6022,15 +6022,25 @@ function leiDias(a,b){if(!a||!b)return null;const n=Math.round((Date.parse(b+'T1
 async function leiMovimentarUm(a,origem,destino,data,diaria,acao,valorVenda=null){
  const dias=leiDias(a.data_entrada,data);
  if(diaria!==null&&dias===null)throw Error('BRINCO '+a.brinco+' SEM DATA DE ENTRADA VÁLIDA. REGULARIZE ANTES DE APURAR DIÁRIAS.');
- if(acao==='VENDA CONFIRMADA'&&dias>0){const mediaOficial=await diariaMediaPeriodoUnificada(origem,data,a.data_entrada);if(!Number.isFinite(mediaOficial)||mediaOficial<=0)throw Error('BRINCO '+a.brinco+': MÉDIA OFICIAL PENDENTE. VENDA BLOQUEADA.');diaria=mediaOficial;}
- const custo=diaria===null?null:Math.round(dias*diaria*100)/100;
+ let custoFechado=null;
+ if(acao==='VENDA CONFIRMADA'&&origem==='LEILÃO'){
+ const r=await supa.from('movimentacoes_animais').select('data_movimentacao,data_entrada_origem,dias_origem,valor_diaria_origem,custo_ciclo,acumulado_apos_ciclo').eq('animal_id',a.id).eq('destino','LEILÃO').lte('data_movimentacao',data).order('data_movimentacao',{ascending:false}).limit(1).maybeSingle();
+ if(r.error)throw r.error;
+ const m=r.data;
+ if(!m||m.custo_ciclo==null||m.acumulado_apos_ciclo==null)throw Error('BRINCO '+a.brinco+': CUSTO DE ORIGEM PENDENTE.');
+ diaria=Number(m.valor_diaria_origem);
+ const saldo=Number(m.acumulado_apos_ciclo)-(Number(a.custo_acumulado)||0);
+ if(!Number.isFinite(saldo)||saldo< -0.005||saldo>Number(m.custo_ciclo)+0.005)throw Error('BRINCO '+a.brinco+': ACUMULADO INCONSISTENTE.');
+ custoFechado=Math.max(0,Math.round(saldo*100)/100);
+ }else if(acao==='VENDA CONFIRMADA'&&dias>0){const mediaOficial=await diariaMediaPeriodoUnificada(origem,data,a.data_entrada);if(!Number.isFinite(mediaOficial)||mediaOficial<=0)throw Error('BRINCO '+a.brinco+': MÉDIA OFICIAL PENDENTE. VENDA BLOQUEADA.');diaria=mediaOficial;}
+ const custo=custoFechado!==null?custoFechado:diaria===null?null:Math.round(dias*diaria*100)/100;
  const acumulado=Number(a.custo_acumulado)||0;
  const novo=acumulado+(custo||0);
  const registro={animal_id:a.id,brinco:a.brinco,origem,destino,data_movimentacao:data,data_entrada_origem:a.data_entrada||null,dias_origem:dias,valor_diaria_origem:diaria,custo_ciclo:custo,acumulado_apos_ciclo:novo,peso_entrada_origem:a.peso_entrada,observacao:acao+(acao==='VENDA CONFIRMADA'?' — VENDA POR ANIMAL R$ '+Number(valorVenda).toFixed(2):'')+(custo===null?' — DIÁRIA PENDENTE; DATA ORIGINAL PRESERVADA.':' — CICLO ENCERRADO E ACUMULADO TRANSFERIDO.')};
  if(acao==='VENDA CONFIRMADA'&&(!(Number(valorVenda)>0)||custo===null))throw Error('VENDA SEM CUSTO OU VALOR VÁLIDO: NENHUM REGISTRO GRAVADO.');
  const ins=await supa.from('movimentacoes_animais').insert(registro).select('id').single();if(ins.error)throw ins.error;
  const upd={localizacao:destino,atualizado_em:new Date().toISOString()};
- if(acao==='VENDA CONFIRMADA'){if(dias>0&&(diaria===null||!Number.isFinite(diaria)||diaria<=0))throw Error('BRINCO '+a.brinco+': CUSTO ATUAL PENDENTE. VENDA NÃO PODE SER FECHADA.');if(!(Number(valorVenda)>0))throw Error('VALOR DE VENDA OBRIGATÓRIO.');upd.status='VENDA';upd.data_saida=data;upd.destino='LEILÃO';upd.valor_venda=Number(valorVenda);upd.tipo_evento='VENDA';upd.custo_animal=(Number(a.preco_compra)||0)+novo;upd.resultado=custo===null?null:Number(valorVenda)-upd.custo_animal;}
+ if(acao==='VENDA CONFIRMADA'){if(dias>0&&(diaria===null||!Number.isFinite(diaria)||diaria<=0))throw Error('BRINCO '+a.brinco+': CUSTO ATUAL PENDENTE. VENDA NÃO PODE SER FECHADA.');if(!(Number(valorVenda)>0))throw Error('VALOR DE VENDA OBRIGATÓRIO.');upd.status='VENDA';upd.data_saida=data;upd.destino='LEILÃO';upd.valor_venda=Number(valorVenda);upd.tipo_evento='VENDA';if(origem==='LEILÃO')upd.custo_atual=0;upd.custo_animal=(Number(a.preco_compra)||0)+novo;upd.resultado=custo===null?null:Number(valorVenda)-upd.custo_animal;}
  else if(custo!==null){upd.data_entrada=data;upd.custo_atual=0;upd.valor_diaria=null;}
  if(custo!==null)upd.custo_acumulado=novo;
  const u=await supa.from('animais').update(upd).eq('id',a.id).eq('status','ATIVO').eq('localizacao',origem).select('id');

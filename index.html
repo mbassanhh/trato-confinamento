@@ -9265,7 +9265,8 @@ window.visaoAbateCarregar=async function(){
  const campos='id,pesagem_id,localizacao,data_entrada,categoria,categoria_animal,peso_entrada,peso_saida,qtd_dias,gmd,valor_diaria,preco_compra,custo_acumulado,custo_atual,valor_venda,resultado,brinco,destino,tipo_evento';
  const a=await supa.from('animais').select(campos).eq('data_saida',dia).eq('status','VENDA').not('peso_saida','is',null).limit(1000);
  if(a.error)throw a.error;
- const animais=(a.data||[]).filter(x=>!ehLeilao(x.destino,x.tipo_evento,x.localizacao)&&!pesagensLeilao.has(x.pesagem_id));
+ const idsPesagensValidas=new Set(ids);
+ const animais=(a.data||[]).filter(x=>x && idsPesagensValidas.has(x.pesagem_id) && !ehLeilao(x.destino,x.tipo_evento,x.localizacao)&&!pesagensLeilao.has(x.pesagem_id));
  // Histórico de movimentações: identifica a entrada do último ciclo por animal.
  const movPorAnimal=new Map();
  if(animais.length){
@@ -9333,7 +9334,8 @@ window.visaoAbateCarregar=async function(){
  for(const g of [...grupos.values()].sort((x,y)=>x.local.localeCompare(y.local,'pt-BR'))){
  const r=g.rows,ab=g.p?.id?abMap.get(g.p.id):undefined,pe=avg(r,'peso_entrada'),ps=avg(r,'peso_saida'),dias=avg(r,'qtd_dias'),gmd=avg(r.filter(x=>n(x.peso_entrada)>0&&n(x.peso_saida)>0&&n(x.qtd_dias)>0).map(x=>({gmd:(n(x.peso_saida)-n(x.peso_entrada))/n(x.qtd_dias)})),'gmd');
  const serie=diarioPorLocal.get(g.local)||[];
- const diaria=r.every(x=>n(x.valor_diaria)>0)?avg(r,'valor_diaria'):(await diariaMediaPeriodoUnificada(g.local,dia))??avg(r,'valor_diaria');
+ let diaria=avg(r,'valor_diaria');
+ if(!r.every(x=>n(x.valor_diaria)>0)){try{diaria=(await diariaMediaPeriodoUnificada(g.local,dia))??diaria;}catch(e){console.warn('Diária oficial indisponível na visão do abate',g.local,e);}}
  // Cálculo SEMPRE individual: acumulado do animal + dias do ciclo corrente x diária atual.
  // A movimentação de entrada na baia prevalece sobre a entrada histórica no cadastro.
  const custosCiclo=r.map(x=>{

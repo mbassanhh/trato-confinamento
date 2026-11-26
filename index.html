@@ -1949,7 +1949,7 @@ body{background:#f4f8f7}
 <section id="visaoAbate" class="page">
  <div class="panel">
   <div class="section-head"><div><h2>VISÃO DO ABATE</h2><p>Relatório geral das pesagens de saída, separado por localidade.</p></div></div>
-  <div style="display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap"><div class="field" style="max-width:230px"><label>DATA DO ABATE</label><input id="va_data" type="date" onchange="visaoAbateCarregar()"></div><button type="button" class="btn primary no-print" onclick="visaoAbateImprimir()">IMPRIMIR</button></div>
+  <div style="display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap"><div class="field" style="max-width:230px"><label>DATA DO ABATE</label><input id="va_data" type="date" onchange="visaoAbateCarregar()"></div><button type="button" class="btn primary no-print" onclick="visaoAbateImprimir()">GERAR PDF</button></div>
   <div id="va_resultado" style="margin-top:16px"><div class="empty">Selecione a data do abate.</div></div>
  </div>
 </section>
@@ -2564,7 +2564,7 @@ body{background:#f4f8f7}
     </section>
 
     <section id="graficos" class="page"><div id="graficosConteudo" class="chart-grid"></div></section>
-  <section id="custoLoteVenda" class="page"><div class="panel"><h2>CUSTO DO LOTE P/ VENDA</h2><p>Consulta do custo do ciclo até a data selecionada. Não registra venda nem altera estoque.</p><div class="grid no-print"><div class="field"><label>DATA DE REFERÊNCIA</label><input id="clv_data" type="date" onchange="clvAlterarData()"></div><div class="field"><label>BRINCO (OU LISTA DE BRINCOS)</label><input id="clv_brincos" placeholder="Ex.: 5305, 5306" onkeydown="if(event.key==='Enter'){event.preventDefault();clvAdicionar()}"></div></div><div class="form-actions no-print" style="justify-content:flex-start;flex-wrap:wrap"><button class="btn primary" onclick="clvAdicionar()">ADICIONAR BRINCOS</button><button class="btn" onclick="clvMontar()">MONTAR LOTE</button><button class="btn" onclick="clvSalvar()">SALVAR LOTE</button><button class="btn" onclick="clvRecuperar()">RECUPERAR LOTE</button><button class="btn" onclick="clvLimpar()">LIMPAR</button><button class="btn" onclick="window.print()">IMPRIMIR / PDF</button></div><div id="clv_montagem" class="no-print" hidden><label>LOCALIDADE DO LOTE</label><select id="clv_local" onchange="clvListarLocal()"></select><div id="clv_candidatos"></div><button class="btn" onclick="clvConfirmarLote()">ADICIONAR SELECIONADOS</button><button class="btn" onclick="$('clv_montagem').hidden=true">FECHAR</button></div><p id="clv_msg" role="status"></p><div id="clv_resultado"></div></div></section>
+  <section id="custoLoteVenda" class="page"><div class="panel"><h2>CUSTO DO LOTE P/ VENDA</h2><p>Consulta do custo do ciclo até a data selecionada. Não registra venda nem altera estoque.</p><div class="grid no-print"><div class="field"><label>DATA DE REFERÊNCIA</label><input id="clv_data" type="date" onchange="clvAlterarData()"></div><div class="field"><label>BRINCO (OU LISTA DE BRINCOS)</label><input id="clv_brincos" placeholder="Ex.: 5305, 5306" onkeydown="if(event.key==='Enter'){event.preventDefault();clvAdicionar()}"></div></div><div class="form-actions no-print" style="justify-content:flex-start;flex-wrap:wrap"><button class="btn primary" onclick="clvAdicionar()">ADICIONAR BRINCOS</button><button class="btn" onclick="clvMontar()">MONTAR LOTE</button><button class="btn" onclick="clvSalvar()">SALVAR LOTE</button><button class="btn" onclick="clvRecuperar()">RECUPERAR LOTE</button><button class="btn" onclick="clvLimpar()">LIMPAR</button><button class="btn" onclick="clvGerarPDF()">GERAR PDF</button></div><div id="clv_montagem" class="no-print" hidden><label>LOCALIDADE DO LOTE</label><select id="clv_local" onchange="clvListarLocal()"></select><div id="clv_candidatos"></div><button class="btn" onclick="clvConfirmarLote()">ADICIONAR SELECIONADOS</button><button class="btn" onclick="$('clv_montagem').hidden=true">FECHAR</button></div><p id="clv_msg" role="status"></p><div id="clv_resultado"></div></div></section>
 <section id="relatorios" class="page"><div class="panel"><div class="section-head"><div><h2>RELATÓRIO DE ANIMAIS PARA O LEILÃO</h2><p>Selecione a localidade e a data da venda para consultar qualquer lote vendido. Consulta e impressão não alteram dados.</p></div><div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="rel_leilao_lote" aria-label="SELECIONE O LOTE DO LEILÃO" style="min-width:250px;max-width:360px;padding:10px;border:1px solid #b6c5bf;border-radius:8px" onchange="relLeilaoAtualConsultar()"><option value="">CARREGAR LOTES DO LEILÃO...</option></select><button class="btn" type="button" onclick="relLeilaoCarregarLotes()">BUSCAR LOTES</button><button class="btn primary" type="button" onclick="relLeilaoAtualConsultar()">ATUALIZAR RELATÓRIO</button><button class="btn" type="button" onclick="relLeilaoAtualImprimir()">IMPRIMIR / SALVAR PDF</button></div></div><div id="rel_leilao_atual_resultado" class="notice">Clique em BUSCAR LOTES ou ATUALIZAR RELATÓRIO para consultar o estoque atual no Supabase.</div></div></section>
 <div id="assinaturaGlobal" style="margin:28px 8px 8px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-size:12px;font-weight:800;font-style:italic;color:#17242d">
 <span>FAZENDA NOVA ESPERANÇA</span>
@@ -9258,12 +9258,14 @@ window.visaoAbateCarregar=async function(){
  const p=await supa.from('pesagens').select('id,data_saida,destino,observacoes').eq('data_saida',dia).order('observacoes');if(p.error)throw p.error;
  // A data da saída dos animais é a referência primária da visão do abate.
  // Inclui vendas lançadas diretamente no banco, ainda que falte o vínculo com pesagens.
- const pesagens=p.data||[];
+ const ehLeilao=(...valores)=>valores.some(v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().includes('LEILAO'));
+ const pesagens=(p.data||[]).filter(x=>!ehLeilao(x.destino));
+ const pesagensLeilao=new Set((p.data||[]).filter(x=>ehLeilao(x.destino)).map(x=>x.id));
  const ids=pesagens.map(x=>x.id);
- const campos='id,pesagem_id,localizacao,data_entrada,categoria,categoria_animal,peso_entrada,peso_saida,qtd_dias,gmd,valor_diaria,preco_compra,custo_acumulado,custo_atual,valor_venda,resultado,brinco';
+ const campos='id,pesagem_id,localizacao,data_entrada,categoria,categoria_animal,peso_entrada,peso_saida,qtd_dias,gmd,valor_diaria,preco_compra,custo_acumulado,custo_atual,valor_venda,resultado,brinco,destino,tipo_evento';
  const a=await supa.from('animais').select(campos).eq('data_saida',dia).eq('status','VENDA').not('peso_saida','is',null).limit(1000);
  if(a.error)throw a.error;
- const animais=a.data||[];
+ const animais=(a.data||[]).filter(x=>!ehLeilao(x.destino,x.tipo_evento,x.localizacao)&&!pesagensLeilao.has(x.pesagem_id));
  // Histórico de movimentações: identifica a entrada do último ciclo por animal.
  const movPorAnimal=new Map();
  if(animais.length){
@@ -9287,7 +9289,7 @@ window.visaoAbateCarregar=async function(){
  for(const d of diarios){const key=String(d.localizacao).trim().toUpperCase();if(!diarioPorLocal.has(key))diarioPorLocal.set(key,[]);diarioPorLocal.get(key).push(d);}
 
  // Suporte a vendas sem cabeçalho de pesagem, sem gravar nem duplicar registros.
- for(const x of animais){if(!pesagens.some(y=>y.id===x.pesagem_id))pesagens.push({id:x.pesagem_id||'SEM_PESAGEM',data_saida:dia,destino:'',observacoes:''});}
+ for(const x of animais){const pid=x.pesagem_id||'SEM_PESAGEM';if(!pesagens.some(y=>y.id===pid))pesagens.push({id:pid,data_saida:dia,destino:'',observacoes:''});}
  const abMap=new Map();for(const ab of abates){if(!abMap.has(ab.pesagem_id))abMap.set(ab.pesagem_id,ab);}
  const pMap=new Map(pesagens.map(x=>[x.id,x]));
  // Mesmo critério de média ponderada por animal da visão PARCIAL POR BAIA.
@@ -9296,9 +9298,9 @@ window.visaoAbateCarregar=async function(){
  let historico=[];
  if(locais.length){
   for(let ini=0;ini<10000;ini+=500){
-   const h=await supa.from('animais').select('id,localizacao,data_entrada,data_saida,peso_entrada,peso_saida,qtd_dias,status').eq('status','VENDA').in('localizacao',locais).lte('data_saida',dia).range(ini,ini+499);
+   const h=await supa.from('animais').select('id,localizacao,data_entrada,data_saida,peso_entrada,peso_saida,qtd_dias,status,destino,tipo_evento').eq('status','VENDA').in('localizacao',locais).lte('data_saida',dia).range(ini,ini+499);
    if(h.error)throw h.error;
-   historico.push(...(h.data||[]));if((h.data||[]).length<500)break;
+   historico.push(...(h.data||[]).filter(x=>!ehLeilao(x.destino,x.tipo_evento,x.localizacao)));if((h.data||[]).length<500)break;
   }
  }
  const parcialPorLocal=new Map();
@@ -9314,7 +9316,7 @@ window.visaoAbateCarregar=async function(){
  }
 
  const grupos=new Map();
- for(const x of animais){const p=pMap.get(x.pesagem_id),local=String(x.localizacao||'SEM LOCALIDADE').trim().toUpperCase(),cat=String(x.categoria_animal||x.categoria||'SEM CATEGORIA').trim().toUpperCase();const key=local;if(!grupos.has(key))grupos.set(key,{p,local,rows:[]});grupos.get(key).rows.push(x);}
+ for(const x of animais){const p=pMap.get(x.pesagem_id||'SEM_PESAGEM'),local=String(x.localizacao||'SEM LOCALIDADE').trim().toUpperCase(),cat=String(x.categoria_animal||x.categoria||'SEM CATEGORIA').trim().toUpperCase();const key=local;if(!grupos.has(key))grupos.set(key,{p,local,rows:[]});grupos.get(key).rows.push(x);}
  const dataBR=dia.split('-').reverse().join('/');
  const destino=[...new Set(pesagens.map(x=>x.destino).filter(Boolean))].map(esc).join(' / ');
  const pesoMedio=avg(animais,'peso_saida');const gmdValidos=animais.map(x=>{const pe=n(x.peso_entrada),ps=n(x.peso_saida),dias=n(x.qtd_dias);return pe!==null&&pe>0&&ps!==null&&ps>0&&dias!==null&&dias>0?(ps-pe)/dias:null;}).filter(v=>v!==null&&Number.isFinite(v));const gmdMedio=gmdValidos.length?gmdValidos.reduce((a,b)=>a+b,0)/gmdValidos.length:null;
@@ -9329,7 +9331,7 @@ window.visaoAbateCarregar=async function(){
 
  const resultadoColorido=(v)=>v===null||!Number.isFinite(v)||v===0?reais(v):'<span style="color:'+(v>0?'#087443':'#b42318')+';font-weight:800">'+reais(v)+'</span>';
  for(const g of [...grupos.values()].sort((x,y)=>x.local.localeCompare(y.local,'pt-BR'))){
- const r=g.rows,ab=abMap.get(g.p.id),pe=avg(r,'peso_entrada'),ps=avg(r,'peso_saida'),dias=avg(r,'qtd_dias'),gmd=avg(r.filter(x=>n(x.peso_entrada)>0&&n(x.peso_saida)>0&&n(x.qtd_dias)>0).map(x=>({gmd:(n(x.peso_saida)-n(x.peso_entrada))/n(x.qtd_dias)})),'gmd');
+ const r=g.rows,ab=g.p?.id?abMap.get(g.p.id):undefined,pe=avg(r,'peso_entrada'),ps=avg(r,'peso_saida'),dias=avg(r,'qtd_dias'),gmd=avg(r.filter(x=>n(x.peso_entrada)>0&&n(x.peso_saida)>0&&n(x.qtd_dias)>0).map(x=>({gmd:(n(x.peso_saida)-n(x.peso_entrada))/n(x.qtd_dias)})),'gmd');
  const serie=diarioPorLocal.get(g.local)||[];
  const diaria=r.every(x=>n(x.valor_diaria)>0)?avg(r,'valor_diaria'):(await diariaMediaPeriodoUnificada(g.local,dia))??avg(r,'valor_diaria');
  // Cálculo SEMPRE individual: acumulado do animal + dias do ciclo corrente x diária atual.
@@ -9408,11 +9410,31 @@ window.visaoAbateCarregar=async function(){
  }catch(e){box.textContent='Não foi possível carregar a visão do abate: '+String(e.message||e);console.error('Visão do abate:',e);}
 };
 window.visaoAbateImprimir=function(){
- const area=el('va_resultado');if(!area||!area.querySelector('table')){alert('SELECIONE UMA DATA COM PESAGENS ANTES DE IMPRIMIR.');return;}
- const w=window.open('','_blank','width=1450,height=950');if(!w){alert('LIBERE A JANELA DE IMPRESSÃO NO NAVEGADOR.');return;}
- const titulo='FAZENDA NOVA ESPERANÇA — VISÃO DO ABATE';
- w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+titulo+'</title><style>@page{size:A3 landscape;margin:7mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#172027;margin:0}h1{font-size:17px;margin:0 0 10px}.hint{font-size:10px;color:#667}.va-kpis{display:flex;gap:12px;margin:8px 0 14px}.va-kpi{border:1px solid #ccd;padding:8px;flex:1}.va-kpi span{display:block;font-size:9px}.va-kpi strong{font-size:16px}.va-scroll{overflow:visible}table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:7px}th,td{border:1px solid #cbd4d0;padding:5px 2px;text-align:center;overflow-wrap:anywhere}th{background:#e8eeea}th:first-child,td:first-child{text-align:left;width:12%}.va-pendente{color:#8a6b23}</style></head><body><h1>'+titulo+'</h1>'+area.innerHTML+'</body></html>');
- w.document.close();w.focus();setTimeout(()=>w.print(),350);
+ const area=el('va_resultado'),table=area?.querySelector('table');if(!table){alert('SELECIONE UMA DATA COM PESAGENS ANTES DE GERAR O PDF.');return;}
+ try{
+ const W=841.89,H=595.28,M=22, usable=W-2*M, pages=[];let ops=[],y=0;
+ const clean=s=>String(s??'').replace(/\s+/g,' ').trim();
+ const hex=s=>Array.from(clean(s),c=>{const map={'—':151,'–':150,'−':45,'€':128,'“':147,'”':148,'’':146};return (map[c]??(c.charCodeAt(0)<=255?c.charCodeAt(0):63)).toString(16).padStart(2,'0');}).join('');
+ const num=n=>Number(n.toFixed(3));const rgb=c=>c.match(/\w\w/g).map(v=>num(parseInt(v,16)/255)).join(' ');
+ const ctx=document.createElement('canvas').getContext('2d');
+ const measure=(s,z,b)=>{ctx.font=(b?'bold ':'')+z+'px Arial';return ctx.measureText(clean(s)).width;};
+ function txt(s,x,top,z=9,b=false,c='172027',align='left',max=Infinity){s=clean(s);if(!s)return;const width=measure(s,z,b);if(width>max)z*=max/width;const w=measure(s,z,b);if(align==='center')x-=w/2;if(align==='right')x-=w;ops.push(`BT /${b?'F2':'F1'} ${num(z)} Tf ${rgb(c)} rg 1 0 0 1 ${num(x)} ${num(H-top-z)} Tm <${hex(s)}> Tj ET`);}
+ function rect(x,top,w,h,fill='ffffff',stroke='cbd4d0'){ops.push(`${rgb(fill)} rg ${rgb(stroke)} RG 0.5 w ${num(x)} ${num(H-top-h)} ${num(w)} ${num(h)} re B`);}
+ function color(node){if(!node)return '172027';const e=node.querySelector('[style*="color"]')||node;const s=e.style.color||'';return /087443|8,\s*116,\s*67/.test(s)?'087443':/b42318|180,\s*35,\s*24/.test(s)?'b42318':'172027';}
+ function wrap(s,max,z,b){const out=[];let line='';for(const word of clean(s).split(' ')){if(line&&measure(line+' '+word,z,b)>max){out.push(line);line=word;}else line+=(line?' ':'')+word;}if(line)out.push(line);return out;}
+ function newPage(){if(ops.length)pages.push(ops.join('\n'));ops=[];y=M;txt('FAZENDA NOVA ESPERANÇA — VISÃO DO ABATE',M,y,14,true);y+=22;txt(area.querySelector('h3')?.textContent,M,y,11,true);y+=16;}
+ function cards(group){if(!group)return;const items=[...group.querySelectorAll('.va-kpi')],gap=6,w=(usable-gap*(items.length-1))/items.length;items.forEach((item,i)=>{const x=M+i*(w+gap),v=item.querySelector('strong');rect(x,y,w,36,'ffffff',color(v)==='172027'?'cbd4d0':color(v));txt(item.querySelector('span')?.textContent,x+5,y+4,8,false,'172027','left',w-10);txt(v?.textContent,x+5,y+16,13,true,color(v),'left',w-10);});y+=45;}
+ const groups=area.querySelectorAll('.va-kpis');newPage();txt(area.querySelector('.hint')?.textContent,M,y,8);y+=13;cards(groups[0]);
+ const headers=[...table.tHead.rows[0].cells].map(c=>clean(c.textContent));const rows=[...table.tBodies[0].rows];
+ const weights=[86,22,32,32,35,32,34,25,30,36,30,43,36,44,45,51,49,52,49,51];const sum=weights.reduce((a,b)=>a+b,0), widths=weights.map(v=>v*usable/sum);
+ function header(){let x=M;headers.forEach((s,i)=>{const w=widths[i];rect(x,y,w,27,'e8eeea');const lines=wrap(s,w-4,7,true);lines.forEach((l,j)=>txt(l,x+w/2,y+3+j*8,7,true,'172027','center',w-4));x+=w;});y+=27;}
+ header();for(const row of rows){if(y+20>H-M){newPage();header();}let x=M;const b=row.classList.contains('va-total');[...row.cells].forEach((cell,i)=>{const w=widths[i];rect(x,y,w,20,b?'eaf0ec':'ffffff');txt(cell.textContent,i===0?x+3:x+w/2,y+5,8,b||color(cell)!=='172027',color(cell),i===0?'left':'center',w-5);x+=w;});y+=20;}
+ if(y+105>H-M)newPage();y+=12;txt(groups[1]?.previousElementSibling?.textContent,M,y,11,true);y+=17;cards(groups[1]);for(const hint of [...area.querySelectorAll('.hint')].slice(1)){for(const line of wrap(hint.textContent,usable,8,false)){if(y+12>H-M)newPage();txt(line,M,y,8,false,'666677');y+=11;}y+=3;}pages.push(ops.join('\n'));
+ const objs=['','<< /Type /Catalog /Pages 2 0 R >>','', '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>'];const kids=[];
+ for(const stream of pages){const p=objs.length; kids.push(p+' 0 R');objs.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Rotate 0 /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${p+1} 0 R >>`,`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);}
+ objs[2]=`<< /Type /Pages /Kids [${kids.join(' ')}] /Count ${kids.length} >>`;let pdf='%PDF-1.4\n',offsets=[0];for(let i=1;i<objs.length;i++){offsets.push(pdf.length);pdf+=`${i} 0 obj\n${objs[i]}\nendobj\n`;}const start=pdf.length;pdf+=`xref\n0 ${objs.length}\n0000000000 65535 f \n`+offsets.slice(1).map(o=>String(o).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<< /Size ${objs.length} /Root 1 0 R >>\nstartxref\n${start}\n%%EOF\n`;
+ const url=URL.createObjectURL(new Blob([pdf],{type:'application/pdf'})),a=document.createElement('a');a.href=url;a.download='RESULTADO_ABATE_'+(el('va_data')?.value||'RELATORIO')+'.pdf';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+ }catch(e){console.error(e);alert('NÃO FOI POSSÍVEL GERAR O PDF: '+e.message);}
 };
 })();
 </script>
@@ -10178,5 +10200,34 @@ async function rpiCarregar(){
 let trRapidoTimer=null,trRapidoSeq=0;
 function trRapidoAbrir(btn){document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));document.getElementById('trRapido').classList.add('active');document.querySelectorAll('.nav button').forEach(e=>e.classList.remove('active'));btn.classList.add('active');document.getElementById('trRapido').scrollIntoView({block:'start'});clearInterval(trRapidoTimer);trRapidoConsultar();trRapidoTimer=setInterval(()=>{if(!document.getElementById('trRapido').classList.contains('active')){clearInterval(trRapidoTimer);return}if(!document.hidden)trRapidoConsultar()},30000);}
 async function trRapidoConsultar(){const seq=++trRapidoSeq,el=document.getElementById('trRapidoDados'),st=document.getElementById('trRapidoStatus'),sis=document.getElementById('trRapidoSistema').value;const dia=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());const aliases=sis==='SEMICONFINAMENTO'?['SEMI','SEMICONFINAMENTO']:[sis];const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const kg=x=>x==null?'—':Number(x).toLocaleString('pt-BR',{maximumFractionDigits:2})+' kg';const hora=x=>x?new Date(x).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'}):'—';const linha=(nome,p,q,h)=>`<div class="qr-line"><span>${esc(nome)}</span><span>${kg(p)}</span><strong>${kg(q)}</strong><span>${hora(h)}</span></div>`;const total=(nome,p,q)=>linha(nome,p,q,null).replace('class="qr-line"','class="qr-line qr-total'+(nome==='TOTAL DO DIA'?' qr-day':'')+'"');const cab=()=>`<div class="qr-line qr-head"><span>ITEM</span><span>PREV.</span><span>REAL.</span><span>HORA</span></div>`;const soma=(xs)=>xs.length&&xs.every(x=>x!=null)?xs.reduce((a,b)=>a+Number(b),0):null;const canon=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim().replace(/^BAIA /,'');st.textContent='Consultando registros oficiais...';try{const [c,r,i,g]=await Promise.all([supa.from('tratos_carregamentos').select('id,carga,previsto_kg,carregado_kg,tratos_carregamento_ingredientes(insumo_id,previsto_kg,carregado_kg,registrado_em)').eq('data_trato',dia).in('sistema',aliases).order('carga'),supa.from('tratos_realizados').select('localizacao,trato_1,trato_2,trato_3,trato_4,trato_1_registrado_em,trato_2_registrado_em,trato_3_registrado_em,trato_4_registrado_em').eq('data_trato',dia).in('sistema',aliases),supa.from('nutri_insumos').select('id,nome'),supa.from('cocho_ajustes_previsao').select('localizacao,motivo').eq('data_leitura',dia).eq('sistema','CONTROLE').like('localizacao','__GRADE_OFICIAL_V2__%').order('id',{ascending:false}).limit(100)]);if(seq!==trRapidoSeq)return;for(const x of [c,r,i])if(x.error)throw x.error;const ret=await trRetificacoesPorCarga(c.data.map(x=>x.id));if(seq!==trRapidoSeq)return;const pacotes=(g.data||[]).flatMap(x=>{try{const p=JSON.parse(x.motivo.slice('TRATOS_ESTADO:'.length));return p.dia===dia?[{t:Number(x.localizacao.match(/V2__(\d+)/)?.[1]),rows:Object.values(p.registros||{})}]:[]}catch{return []}});const prev=(y,n)=>{const h=y['trato_'+n+'_registrado_em'];const t=h?Date.parse(h):null;const p=t?pacotes.find(x=>x.t<=t):pacotes[0];const z=p?.rows.find(x=>canon(x.__local)===canon(y.localizacao)&&aliases.includes(x.__sistema));if(!z||z.comDieta===false)return null;const v=z.__tratos_ajustados;if(!Array.isArray(v)||!v.length)return null;const q=sis==='CONFINAMENTO'?v[n-1]:soma(v);return q==null||!Number.isFinite(Number(q))?null:Number(q)};const nomes=new Map(i.data.map(x=>[String(x.id),x.nome]));let html='<h3>CARREGAMENTOS</h3>',tc=0,td=0,pc=[],pd=[];for(const x of c.data.filter(x=>/^[1-4]$/.test(String(x.carga)))){const itens=x.tratos_carregamento_ingredientes.filter(y=>y.carregado_kg!=null||y.previsto_kg!=null).sort((a,b)=>String(a.registrado_em||'9999').localeCompare(String(b.registrado_em||'9999')));if(!itens.length)continue;const t=itens.reduce((a,b)=>a+Number(b.carregado_kg),0);tc+=t;const p=soma(itens.map(y=>trPrevisaoRetificada({...y,carregamento_id:x.id},ret)));pc.push(p);html+=`<div class="qr-card"><h4>CARREGAMENTO ${esc(x.carga)}</h4>`+cab()+itens.map(y=>linha(nomes.get(String(y.insumo_id))||'INSUMO NÃO IDENTIFICADO',trPrevisaoRetificada({...y,carregamento_id:x.id},ret),y.carregado_kg,y.registrado_em)).join('')+total('TOTAL',p,t)+'</div>';}html+=total('TOTAL DO DIA',soma(pc),tc)+'<h3 style="margin-top:20px">DISTRIBUIÇÕES</h3>';for(let n=1;n<=(sis==='CONFINAMENTO'?4:1);n++){const k='trato_'+n,h=k+'_registrado_em';const itens=r.data.filter(y=>y[k]!=null&&(Number(y[k])!==0||y[h])).sort((a,b)=>String(a[h]||'9999').localeCompare(String(b[h]||'9999')));if(!itens.length)continue;const t=itens.reduce((a,b)=>a+Number(b[k]),0);td+=t;const p=soma(itens.map(y=>prev(y,n)));pd.push(p);html+=`<div class="qr-card"><h4>TRATO ${n}</h4>`+cab()+itens.map(y=>linha(sis==='CONFINAMENTO'&&/^[AB][1-5]$/.test(y.localizacao)?'BAIA '+y.localizacao:y.localizacao,prev(y,n),y[k],y[h])).join('')+total('TOTAL',p,t)+'</div>';}el.innerHTML=html+total('TOTAL DO DIA',soma(pd),td)+'<p style="font-size:11px">— Horário individual não registrado. Previsão: registros oficiais salvos; — quando indisponível. Totais da distribuição abrangem os locais exibidos.</p>';st.textContent=dia.split('-').reverse().join('/')+' • Atualizado às '+hora(new Date())+' • Consulta a cada 30 s';}catch(e){if(seq===trRapidoSeq){el.innerHTML='';st.textContent='Falha na consulta: '+(e.message||e);}}}
+</script>
+<script>
+window.clvGerarPDF=function(){
+ const area=document.getElementById('clv_resultado'),table=area?.querySelector('table');if(!table){alert('MONTE O LOTE E AGUARDE O CÁLCULO ANTES DE GERAR O PDF.');return;}
+ try{
+ const W=841.89,H=595.28,M=22, usable=W-2*M, pages=[];let ops=[],y=0;
+ const clean=s=>String(s??'').replace(/\s+/g,' ').trim();
+ const hex=s=>Array.from(clean(s),c=>{const map={'—':151,'–':150,'−':45,'€':128,'“':147,'”':148,'’':146};return (map[c]??(c.charCodeAt(0)<=255?c.charCodeAt(0):63)).toString(16).padStart(2,'0');}).join('');
+ const num=n=>Number(n.toFixed(3));const rgb=c=>c.match(/\w\w/g).map(v=>num(parseInt(v,16)/255)).join(' ');
+ const ctx=document.createElement('canvas').getContext('2d');
+ const measure=(s,z,b)=>{ctx.font=(b?'bold ':'')+z+'px Arial';return ctx.measureText(clean(s)).width;};
+ function txt(s,x,top,z=9,b=false,c='172027',align='left',max=Infinity){s=clean(s);if(!s)return;const width=measure(s,z,b);if(width>max)z*=max/width;const w=measure(s,z,b);if(align==='center')x-=w/2;if(align==='right')x-=w;ops.push(`BT /${b?'F2':'F1'} ${num(z)} Tf ${rgb(c)} rg 1 0 0 1 ${num(x)} ${num(H-top-z)} Tm <${hex(s)}> Tj ET`);}
+ function rect(x,top,w,h,fill='ffffff',stroke='cbd4d0'){ops.push(`${rgb(fill)} rg ${rgb(stroke)} RG 0.5 w ${num(x)} ${num(H-top-h)} ${num(w)} ${num(h)} re B`);}
+ function color(node){if(!node)return '172027';const e=node.querySelector('[style*="color"]')||node;const s=e.style.color||'';return /087443|8,\s*116,\s*67/.test(s)?'087443':/b42318|180,\s*35,\s*24/.test(s)?'b42318':'172027';}
+ function wrap(s,max,z,b){const out=[];let line='';for(const word of clean(s).split(' ')){if(line&&measure(line+' '+word,z,b)>max){out.push(line);line=word;}else line+=(line?' ':'')+word;}if(line)out.push(line);return out;}
+ function newPage(){if(ops.length)pages.push(ops.join('\n'));ops=[];y=M;txt('FAZENDA NOVA ESPERANÇA — CUSTO DO LOTE P/ VENDA',M,y,14,true);y+=22;txt('DATA DE REFERÊNCIA: '+(document.getElementById('clv_data').value||'').split('-').reverse().join('/'),M,y,11,true);y+=16;}
+ function cards(group){if(!group)return;const items=[...group.querySelectorAll('.kpi')],gap=6,w=(usable-gap*(items.length-1))/items.length;items.forEach((item,i)=>{const x=M+i*(w+gap),v=item.querySelector('strong');rect(x,y,w,36,'ffffff',color(v)==='172027'?'cbd4d0':color(v));txt(item.querySelector('span')?.textContent,x+5,y+4,8,false,'172027','left',w-10);txt(v?.textContent,x+5,y+16,13,true,color(v),'left',w-10);});y+=45;}
+ const groups=area.querySelectorAll('.kpis');newPage();txt(area.querySelector('p')?.textContent,M,y,8);y+=13;cards(groups[0]);
+ const headers=[...table.tHead.rows[0].cells].slice(0,-1).map(c=>clean(c.textContent));const rows=[...table.tBodies[0].rows];
+ const weights=[40,95,100,65,55,65,55,55,65,65,35,70];const sum=weights.reduce((a,b)=>a+b,0), widths=weights.map(v=>v*usable/sum);
+ function header(){let x=M;headers.forEach((s,i)=>{const w=widths[i];rect(x,y,w,27,'e8eeea');const lines=wrap(s,w-4,7,true);lines.forEach((l,j)=>txt(l,x+w/2,y+3+j*8,7,true,'172027','center',w-4));x+=w;});y+=27;}
+ header();for(const row of rows){if(y+20>H-M-15){newPage();header();}let x=M;const b=row.classList.contains('va-total');[...row.cells].slice(0,-1).forEach((cell,i)=>{const w=widths[i];rect(x,y,w,20,b?'eaf0ec':'ffffff');txt(cell.textContent,i===0?x+3:x+w/2,y+5,8,b||color(cell)!=='172027',color(cell),i===0?'left':'center',w-5);x+=w;});y+=20;}
+ if(y+35>H-M)newPage();y+=12;for(const line of wrap(area.querySelector('p:last-child')?.textContent||'',usable,8,false)){txt(line,M,y,8,false,'666677');y+=11;}pages.push(ops.join('\n'));
+ const objs=['','<< /Type /Catalog /Pages 2 0 R >>','', '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>'];const kids=[];
+ for(const stream of pages){const p=objs.length; kids.push(p+' 0 R');objs.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Rotate 0 /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${p+1} 0 R >>`,`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);}
+ objs[2]=`<< /Type /Pages /Kids [${kids.join(' ')}] /Count ${kids.length} >>`;let pdf='%PDF-1.4\n',offsets=[0];for(let i=1;i<objs.length;i++){offsets.push(pdf.length);pdf+=`${i} 0 obj\n${objs[i]}\nendobj\n`;}const start=pdf.length;pdf+=`xref\n0 ${objs.length}\n0000000000 65535 f \n`+offsets.slice(1).map(o=>String(o).padStart(10,'0')+' 00000 n \n').join('')+`trailer\n<< /Size ${objs.length} /Root 1 0 R >>\nstartxref\n${start}\n%%EOF\n`;
+ const url=URL.createObjectURL(new Blob([pdf],{type:'application/pdf'})),a=document.createElement('a');a.href=url;a.download='CUSTO_LOTE_VENDA_'+(document.getElementById('clv_data').value||'RELATORIO')+'.pdf';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+ }catch(e){console.error(e);alert('NÃO FOI POSSÍVEL GERAR O PDF: '+e.message);}
+};
 </script>
 </body></html>

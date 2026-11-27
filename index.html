@@ -1483,8 +1483,7 @@ function consumoImprimirDezDias(kind){
  }).join('');
  const inicio=datas.at(-1).split('-').reverse().join('/'),fim=datas[0].split('-').reverse().join('/');
  const pagina='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>'+esc(vista.title)+'</title><style>@page{size:A4 landscape;margin:9mm}body{font:10px Arial,sans-serif;color:#20262d}h1{font-size:16px;margin:0 0 5px}h2{font-size:13px;margin:0 0 8px}.sub{margin-bottom:12px;color:#59636b}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{border:1px solid #cbd3d8;padding:5px 3px;text-align:center;overflow-wrap:anywhere}th{background:#e9eef0}th:first-child,td:first-child{text-align:left;width:17%}tr{break-inside:avoid}footer{margin-top:9px;font-size:9px;color:#59636b}</style><style>@media(max-width:760px){body:not(.acesso-tratador) .side .nav{flex-wrap:wrap;overflow:visible}body:not(.acesso-tratador) .side .nav #grupoTrRapido{display:block!important;flex:0 0 100%;margin:8px 0 0}body:not(.acesso-tratador) .side .nav #menuTrRapido{display:block!important;flex:0 0 100%;text-align:left;background:#315d4b;color:white;font-weight:700}}</style></head><body><h1>FAZENDA NOVA ESPERANÇA</h1><h2>'+esc(vista.title)+'</h2><div class="sub">PERÍODO: '+inicio+' A '+fim+' — 10 DIAS ENCERRADOS</div><table><thead><tr><th>LOCALIDADE</th><th>DIAS</th><th>MÉDIA</th>'+datas.map(d=>'<th>'+d.slice(8,10)+'/'+d.slice(5,7)+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table><footer>DIAS = TOTAL DO HISTÓRICO DO LOTE NA VISÃO DE %PV. MÉDIA = MÉDIA DOS DIAS VÁLIDOS DO PERÍODO IMPRESSO. ZERO REGISTRADO ENTRA NO CÁLCULO; AUSÊNCIA DE REGISTRO = —. SEM ALTERAÇÃO DO HISTÓRICO.</footer>'+
- '
-</body></html>';
+ '</body></html>';
  const w=window.open('','_blank');if(!w){alert('LIBERE A JANELA DE IMPRESSÃO NO NAVEGADOR.');return;}
  w.document.open();w.document.write(pagina);w.document.close();w.focus();setTimeout(()=>w.print(),350);
 }
@@ -4805,12 +4804,19 @@ async function tgHomCarregarFicha(){
     const somaRealizada=valoresRealizados.reduce((a,v)=>a+Number(v??0),0);
     const descontoOficial=notaPorLocal.get(chaveOficial(r.__local))||0;
     const saldoOficial=Math.max(0,totalOficial-somaRealizada-descontoOficial);
-    const somaDivisao=divisao?.reduce((a,b)=>a+b,0);
-    const todosRealizados=valoresRealizados.every(v=>v!=null);
-    if(todosRealizados) divisao.fill(0);
-    const saldoConfere=completo&&(todosRealizados||(valoresRealizados.some(v=>v!=null)&&valoresRealizados.every((v,i)=>v==null||divisao[i]===0)&&Math.abs(somaDivisao-saldoOficial)<=0.01));
-    if(!divisao||divisao.some(x=>!Number.isFinite(x)||x<0)||(!saldoConfere&&Math.abs(somaDivisao-totalOficial)>0.01&&!(completo&&descontoOficial>0&&divisao[0]===0&&Math.abs(somaDivisao-(totalOficial-descontoOficial))<=0.01)))
-      throw Error('PREVISÃO ADMINISTRATIVA INVÁLIDA: '+r.__local);
+    if(!divisao||divisao.some(x=>!Number.isFinite(x)||x<0))throw Error('PREVISÃO ADMINISTRATIVA INVÁLIDA: '+r.__local);
+    const pendentes=valoresRealizados.map((v,i)=>v==null?i:-1).filter(i=>i>=0);
+    const somaDivisao=divisao.reduce((a,b)=>a+b,0);
+    if(!pendentes.length)divisao.fill(0);
+    else if(valoresRealizados.some(v=>v!=null)){
+      // Atualizar somente saldo pendente usando os pesos da publicação oficial.
+      const pesos=divisao.map((v,i)=>pendentes.includes(i)?v:0);
+      if(!pesos.some(v=>v>0)&&saldoOficial>0)pesos[pendentes[pendentes.length-1]]=1;
+      const ativos=pendentes.filter(i=>pesos[i]>0), soma=pesos.reduce((a,b)=>a+b,0);
+      divisao.fill(0); let restante=saldoOficial;
+      ativos.forEach((i,pos)=>{const v=pos===ativos.length-1?restante:Math.min(restante,Math.round(saldoOficial*pesos[i]/soma));divisao[i]=v;restante-=v;});
+      if(Math.abs(divisao.reduce((a,b)=>a+b,0)-saldoOficial)>0.01)throw Error('SALDO ADMINISTRATIVO INVÁLIDO: '+r.__local);
+    }else if(Math.abs(somaDivisao-totalOficial)>0.01&&!(descontoOficial>0&&divisao[0]===0&&Math.abs(somaDivisao-(totalOficial-descontoOficial))<=0.01))throw Error('PREVISÃO ADMINISTRATIVA INVÁLIDA: '+r.__local);
     locais.push({nome:r.__local,divisao,realizados:valoresRealizados});
    }
    // Somente o pacote publicado com quatro tratos é a fonte do tratador.

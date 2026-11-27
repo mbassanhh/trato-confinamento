@@ -3716,11 +3716,13 @@ async function atualizarPendenciasAbateDashboard(){
    if(a.error)throw a.error;
    for(const x of a.data||[])if((Number(x.carcaca_arrobas)>0||Number(x.carcaca_kg)>0)&&Number(x.valor_arroba)>0)completos.add(String(x.pesagem_id));
   }
-  const datasPendentes=new Set(pesagens.filter(x=>!completos.has(String(x.id))).map(x=>String(x.data_saida).slice(0,10)));
-  if(!datasPendentes.size){qtd.textContent='0';lista.textContent='';return;}
-  const datas=[...datasPendentes],v=await supa.from('animais').select('id,localizacao,data_saida').eq('status','VENDA').in('data_saida',datas).limit(10000);
-  if(v.error)throw v.error;
-  const pendentes=(v.data||[]).filter(x=>datasPendentes.has(String(x.data_saida).slice(0,10)));
+  const idsPendentes=pesagens.filter(x=>!completos.has(String(x.id))).map(x=>x.id);
+  const pendentes=[];
+  for(let k=0;k<idsPendentes.length;k+=100){
+   const v=await supa.from('animais').select('id,localizacao,data_saida,pesagem_id').eq('status','VENDA').in('pesagem_id',idsPendentes.slice(k,k+100)).limit(10000);
+   if(v.error)throw v.error;
+   pendentes.push(...(v.data||[]).filter(x=>!String(x.localizacao||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().includes('LEILAO')));
+  }
   const grupos=new Map();for(const x of pendentes){const key=String(x.data_saida).slice(0,10)+'|'+String(x.localizacao||'SEM LOCALIDADE').trim();grupos.set(key,(grupos.get(key)||0)+1);}
   qtd.textContent=String(pendentes.length);
   if(!pendentes.length)return;

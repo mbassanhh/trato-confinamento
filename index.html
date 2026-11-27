@@ -9102,15 +9102,24 @@ function relCustos41Imprimir(){
 <script>
 // RELATÓRIO LEILÃO ATUAL — SOMENTE LEITURA. Não interfere nos demais módulos.
 
+async function relLeilaoPaginar(criarConsulta){
+ const rows=[];
+ for(let i=0;;i+=1000){const r=await criarConsulta().range(i,i+999);if(r.error)throw r.error;rows.push(...(r.data||[]));if((r.data||[]).length<1000)return rows;}
+}
+async function relLeilaoIdsApartados(){
+ const rows=await relLeilaoPaginar(()=>supa.from('leilao_apartes').select('id,animal_id').order('id'));
+ return new Set(rows.map(x=>x.animal_id).filter(Boolean));
+}
 async function relLeilaoCarregarLotes(){
  const select=document.getElementById('rel_leilao_lote');if(!select||!supa)return;
  const anterior=select.value;select.innerHTML='<option value="">CONSULTANDO LOTES...</option>';
  try{
-  const [ap,vendas]=await Promise.all([
-   supa.from('leilao_apartes').select('data_aparte,peso_kg,status,lote_aparte').order('data_aparte',{ascending:false}).limit(1000),
-   supa.from('animais').select('data_saida,valor_venda').eq('status','VENDA').eq('localizacao','LEILÃO').not('data_saida','is',null).order('data_saida',{ascending:false}).limit(1000)
+  const [apartes,vendasRows]=await Promise.all([
+   relLeilaoPaginar(()=>supa.from('leilao_apartes').select('id,animal_id,data_aparte,peso_kg,status,lote_aparte').order('id')),
+   relLeilaoPaginar(()=>supa.from('animais').select('id,data_saida,valor_venda').eq('status','VENDA').eq('localizacao','LEILÃO').not('data_saida','is',null).order('id'))
   ]);
-  if(ap.error)throw ap.error;if(vendas.error)throw vendas.error;
+  const idsApartados=new Set(apartes.map(x=>x.animal_id).filter(Boolean));
+  const ap={data:apartes},vendas={data:vendasRows.filter(x=>!idsApartados.has(x.id))};
   const grupos=new Map();
   for(const x of ap.data||[]){const nome=String(x.lote_aparte||'SEM LOTE').trim();const k='APARTE|'+x.data_aparte+'|'+encodeURIComponent(nome);const v=grupos.get(k)||{data:x.data_aparte,qtd:0,tipo:'APARTE',nome};v.qtd++;grupos.set(k,v);}
   for(const x of vendas.data||[]){const k='VENDA|'+x.data_saida;const v=grupos.get(k)||{data:x.data_saida,qtd:0,tipo:'VENDA'};v.qtd++;grupos.set(k,v);}
@@ -9206,6 +9215,9 @@ async function relLeilaoAtualConsultar(){
    const r=await supa.from('animais').select('id,brinco,localizacao,status,origem,data_entrada,peso_entrada,peso_saida,data_saida,preco_compra,custo_acumulado,custo_atual,valor_diaria,origem_compra,qtd_dias,valor_venda').eq('status','VENDA').eq('data_saida',dataSelecionada).eq('localizacao',localSelecionado).order('brinco').range(i,i+999);
    if(r.error)throw r.error;ativos.push(...(r.data||[]));if((r.data||[]).length<1000)break;
   }
+  const idsApartados=await relLeilaoIdsApartados();
+  for(let i=ativos.length-1;i>=0;i--)if(idsApartados.has(ativos[i].id))ativos.splice(i,1);
+  if(!ativos.length){el.textContent='NENHUMA VENDA SEM LOTE NESTA DATA.';return;}
   const ids=ativos.map(x=>x.id).filter(Boolean), movimentos=[];
   for(let i=0;i<ids.length;i+=100){
    const r=await supa.from('movimentacoes_animais').select('animal_id,origem,destino,data_movimentacao,data_entrada_origem,dias_origem,peso_entrada_origem,custo_ciclo,acumulado_apos_ciclo').in('animal_id',ids.slice(i,i+100)).order('data_movimentacao',{ascending:false});

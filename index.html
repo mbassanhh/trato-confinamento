@@ -507,7 +507,7 @@ async function nutriGravarDiariasHistoricas(dia){
   const c=custos[/^PASTO [AB][1-5]$/.test(local)?'CONFINAMENTO':si],m=c;
   if(!m||m.kg<=0||m.ms<=0||m.custo<=0){console.warn('DIÁRIA PENDENTE POR FALTA DE CUSTO:',si,dia);continue;}
   const fracao=m.ms/m.kg,custoKgMs=m.custo/m.ms,ms=kg*fracao,custo=ms*custoKgMs;
-  linhas.push({data_trato:dia,sistema:x.sistema,localizacao:x.localizacao,quantidade_animais:n,mn_distribuida_kg:kg,ms_distribuida_kg:Number(ms.toFixed(3)),custo_distribuido:Number(custo.toFixed(2)),custo_diaria_cabeca:Number(diariaCustoEfetivoOficial(kg,n,m.custo/m.kg).toFixed(4)),origem_calculo:c&&c.kg>0?'CUSTO_INGREDIENTES_HISTORICO':'MEDIA_HISTORICA_MS_SOBRA_VAGAO',fechado:true});
+  linhas.push({data_trato:dia,sistema:x.sistema,localizacao:x.localizacao,quantidade_animais:n,mn_distribuida_kg:kg,ms_distribuida_kg:Number(ms.toFixed(3)),custo_distribuido:Number(custo.toFixed(2)),custo_diaria_cabeca:Number(diariaCustoEfetivoOficial(dia>='2026-11-27'?ms:kg,n,dia>='2026-11-27'?custoKgMs:m.custo/m.kg).toFixed(4)),origem_calculo:dia>='2026-11-27'?'CUSTO_MS_HISTORICO':(c&&c.kg>0?'CUSTO_INGREDIENTES_HISTORICO':'MEDIA_HISTORICA_MS_SOBRA_VAGAO'),fechado:true});
  }
  // Não reescrever históricos existentes nem duplicar registros.
  if(!linhas.length)return 0;
@@ -557,7 +557,7 @@ async function diariasConferir(){
    const custos=porSistema.get(normaliza(x.sistema));
    // Sem ingredientes históricos completos, não inventar MS ou custo.
    if(!custos||custos.kg<=0||custos.ms<=0||custos.custo<=0)return {...x,mn_distribuida_kg:mn,ms_distribuida_kg:null,custo_distribuido:null,custo_diaria_cabeca:null,fechado:false};
-   const ms=mn*custos.ms/custos.kg,custo=mn*custos.custo/custos.kg;
+   const ms=mn*custos.ms/custos.kg,custo=dia>='2026-11-27'?ms*(custos.custo/custos.ms):mn*custos.custo/custos.kg;
    return {...x,mn_distribuida_kg:mn,ms_distribuida_kg:ms,custo_distribuido:custo,custo_diaria_cabeca:Number(x.quantidade_animais)>0?custo/Number(x.quantidade_animais):null,fechado:false};
   });
   const nomeExibicao=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase()==='VINHACA'?'VINHAÇA':x;
@@ -750,8 +750,8 @@ async function consultarFonteDiariasOficial(){
    const si=normalizarDiaria(t.sistema),local=normalizarDiaria(t.localizacao),key=t.data_trato+'|'+si+'|'+local;
    if(rows.some(r=>r.data_trato===t.data_trato&&normalizarDiaria(r.sistema)===si&&normalizarDiaria(r.localizacao)===local))continue;
    const kg=[1,2,3,4].reduce((a,i)=>a+(Number(t['trato_'+i])||0),0),c=custosPorDia.get(t.data_trato+'|'+si),n=lotacoes.get(key);
-   if(kg>0&&c&&c.kg>0&&c.custo>0&&n>0){
-    diariasCalculadas.set(key,{data_trato:t.data_trato,sistema:si,localizacao:local,quantidade_animais:n,mn_distribuida_kg:kg,custo_diaria_cabeca:kg*c.custo/c.kg/n,_calculadoNaoFechado:true});
+   if(kg>=0&&c&&c.kg>0&&c.custo>0&&n>0&&(t.data_trato<'2026-11-27'||c.ms>0)){
+    diariasCalculadas.set(key,{data_trato:t.data_trato,sistema:si,localizacao:local,quantidade_animais:n,mn_distribuida_kg:kg,ms_distribuida_kg:kg*c.ms/c.kg,custo_diaria_cabeca:t.data_trato>='2026-11-27'?(kg*c.ms/c.kg)*(c.custo/c.ms)/n:kg*c.custo/c.kg/n,_calculadoNaoFechado:true});
    }
   }
   // Reconciliação somente para exibição: não alterar lançamentos financeiros existentes.
@@ -1898,7 +1898,7 @@ body{background:#f4f8f7}
 <div class="nav-group">INÍCIO</div>
 <button class="active" onclick="showPage('dashboard',this)">PAINEL PRINCIPAL</button>
 <div class="nav-group" id="grupoTrRapido">ACESSO RÁPIDO</div>
-<button id="menuTrRapido" onclick="trRapidoAbrir(this)">TRATOS REALIZADOS</button>
+<button id="menuTrRapido" onclick="trRapidoAbrir(this)">TRATOS TEMPO REAL</button>
 <div class="nav-group">PESAGENS E ANIMAIS</div>
 <button onclick="showPage('lote',this)">PESAGEM DE ENTRADA</button>
 <button class="admin-only" onclick="showPage('comprasAnimais',this);comprasCarregar()">COMPRAS</button>
@@ -2316,7 +2316,7 @@ body{background:#f4f8f7}
 
   </section>
 
-<section id="trRapido" class="page"><div class="panel"><h2>TRATOS REALIZADOS</h2><p id="trRapidoStatus" role="status">Consultando...</p><div class="qr-controls"><select id="trRapidoSistema" onchange="trRapidoConsultar()" aria-label="Sistema"><option value="CONFINAMENTO">CONFINAMENTO</option><option value="SEMICONFINAMENTO">SEMI</option></select><button class="btn" onclick="trRapidoConsultar()">ATUALIZAR</button></div><div id="trRapidoDados"></div></div></section>
+<section id="trRapido" class="page"><div class="panel"><h2>TRATOS TEMPO REAL</h2><p id="trRapidoStatus" role="status">Consultando...</p><div class="qr-controls"><select id="trRapidoSistema" onchange="trRapidoConsultar()" aria-label="Sistema"><option value="CONFINAMENTO">CONFINAMENTO</option><option value="SEMICONFINAMENTO">SEMI</option></select><button class="btn" onclick="trRapidoConsultar()">ATUALIZAR</button></div><div id="trRapidoDados"></div></div></section>
 <style>
 #trRapido .panel{max-width:850px;margin:0 auto;padding:18px;background:#f4f7f5;border:1px solid #dce6df;border-radius:14px;color:#243b32}
 #trRapido h2{font-size:22px;letter-spacing:.025em;margin:0 0 8px;color:#214c3a}
@@ -4090,7 +4090,7 @@ async function carregarEstoqueInsumos(){
   }
   const diasDesde=(a,b)=>Math.round((Date.parse(b+'T12:00:00Z')-Date.parse(a+'T12:00:00Z'))/86400000);
   const mediaDiaria=x=>{
-    if(x.nome==='VINHAÇA DE SORGO E MILHO')return trHojeISO()>='2026-11-23'?2000:(trHojeISO()>='2026-11-07'?1500:(trHojeISO()>='2026-10-28'?1000:500));
+    if(x.nome==='VINHAÇA DE SORGO E MILHO')return trHojeISO()>='2026-11-27'?2500:trHojeISO()>='2026-11-23'?2000:(trHojeISO()>='2026-11-07'?1500:(trHojeISO()>='2026-10-28'?1000:500));
     const registro=consumos7.get(x.nome);
     if(!registro)return 0;
     const dias=Math.max(1,diasDesde(registro.primeira,hojeEstoque));
@@ -4159,7 +4159,7 @@ async function postoKafeBaixaDiaria(){
    const dia=d.toISOString().slice(0,10);
    if(jaBaixados.has(dia))continue;
    // Limitar o consumo ao estoque disponível: nunca gerar saldo negativo.
-   const consumoDia=dia>='2026-11-23'?2000:(dia>='2026-11-07'?1500:(dia>='2026-10-28'?1000:500));
+   const consumoDia=dia>='2026-11-27'?2500:dia>='2026-11-23'?2000:(dia>='2026-11-07'?1500:(dia>='2026-10-28'?1000:500));
    if(saldo<=0)continue;
    // Reconsulta o estoque e as baixas do dia para evitar repetição entre sessões.
    const chk=await supa.from('nutri_estoque_movimentos').select('id,tipo,quantidade_kg,observacao').eq('insumo_nome',nome).limit(10000);
